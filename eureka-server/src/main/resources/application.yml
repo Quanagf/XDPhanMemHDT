@@ -1,0 +1,15 @@
+
+# Cổng mặc định cho Eureka Server
+server:
+    port: 8761
+# Tên của Eureka Server
+spring:
+    application:
+        name: eureka-server
+# Cấu hình Eureka Server
+eureka:
+    client:
+        register-with-eureka: false
+        fetch-registry: false
+
+

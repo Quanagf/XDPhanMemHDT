@@ -1,0 +1,47 @@
+# Cổng 8080 sẽ là cổng chính mà React app gọi vào
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway # Tên để đăng ký với Eureka
+
+  cloud:
+    gateway:
+      routes:
+        # 1. Định tuyến cho UserService (sẽ làm ở bước 3)
+        # "id" là tên gợi nhớ cho route
+        - id: user-service-route
+          # "uri" là nơi chuyển request đến
+          # "lb" = Load Balancer, nghĩa là: "Hãy hỏi Eureka xem service tên 'user-service' đang ở đâu"
+          uri: lb://user-service 
+          # "predicates" là điều kiện để áp dụng route này
+          predicates:
+            # Nếu URL có dạng /api/users/... hoặc /api/auth/...
+            - Path=/api/users/**, /api/auth/** # 2. Định tuyến cho BookingService (sẽ làm sau)
+        - id: booking-service-route
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/bookings/**
+        
+        # 3. Định tuyến cho FleetService (sẽ làm sau)
+        - id: fleet-service-route
+          uri: lb://fleet-service
+          predicates:
+            - Path=/api/fleet/**
+            
+        # ... Thêm các routes khác cho Payment, Analytics, v.v. ...
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "http://localhost:3000"
+            allowed-methods: "*"
+            allowed-headers: "*"
+
+# Cấu hình để Gateway tìm thấy Eureka Server
+eureka:
+  client:
+    service-url:
+      # Trỏ đến Eureka Server mà chúng ta đã tạo ở Bước 1
+      # Chúng ta dùng tên "eureka-server" vì Docker sẽ phân giải tên này
+      defaultZone: http://eureka-server:8761/eureka/

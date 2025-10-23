@@ -1,0 +1,57 @@
+services:
+  # 1. Dịch vụ Database (MySQL)
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    ports:
+      - "3307:3306" # Sử dụng cổng 3307
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  # 2. Dịch vụ Eureka Server
+  eureka-server:
+    build: ./eureka-server 
+    container_name: eureka-server
+    ports:
+      - "8761:8761" 
+
+  # 3. Dịch vụ API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080" 
+    depends_on:
+      - eureka-server 
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  # 4. Dịch vụ User Service
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql-db       
+      - eureka-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/userdb?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  # 5. Dịch vụ Frontend (React)
+  client:
+    build: ./client 
+    container_name: client
+    ports:
+      - "3000:80" 
+    depends_on:
+      - api-gateway 
+
+# Định nghĩa volume để lưu trữ dữ liệu database
+volumes:
+  mysql-data:
