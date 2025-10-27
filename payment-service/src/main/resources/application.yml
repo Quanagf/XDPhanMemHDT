@@ -11,7 +11,7 @@ spring:
   datasource:
     url: jdbc:mysql://mysql-db:3306/paymentdb?createDatabaseIfNotExist=true # <-- DB mới
     username: root
-    password: Quan11092005@
+    password: 2005
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:

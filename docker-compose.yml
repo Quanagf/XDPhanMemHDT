@@ -5,7 +5,7 @@ services:
     container_name: mysql-db
     ports: ["3307:3306"]
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     volumes: 
       - mysql-data:/var/lib/mysql
 
@@ -49,7 +49,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/userdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -66,7 +66,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/bookingdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -83,7 +83,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/fleetdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -100,7 +100,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/paymentdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -117,7 +117,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/notificationdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -134,7 +134,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/analyticsdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -151,7 +151,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/validationdb?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Quan11092005@
+      SPRING_DATASOURCE_PASSWORD: 2005
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATA_REDIS_HOST: redis 
       SPRING_RABBITMQ_HOST: rabbitmq

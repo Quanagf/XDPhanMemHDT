@@ -1,15 +1,22 @@
-
-# Cổng mặc định cho Eureka Server
 server:
-    port: 8761
-# Tên của Eureka Server
+  port: 8761
+
 spring:
-    application:
-        name: eureka-server
-# Cấu hình Eureka Server
+  application:
+    name: eureka-server
+
 eureka:
-    client:
-        register-with-eureka: false
-        fetch-registry: false
+  client:
+    # Vì đây là server nên không tự đăng ký chính nó
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
-
+  server:
+    # ⚙️ Tắt chế độ tự bảo vệ để tránh cảnh báo đỏ
+    enable-self-preservation: true
+    # ⏰ Mỗi 5 giây kiểm tra instance hết hạn
+    eviction-interval-timer-in-ms: 5000
+    # 📉 Giảm ngưỡng renew xuống thấp để không bật cảnh báo khi chỉ có ít service
+    renewal-percent-threshold: 0.5

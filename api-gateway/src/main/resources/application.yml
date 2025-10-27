@@ -66,6 +66,12 @@ spring:
 
 # --- 3. CẤU HÌNH EUREKA ---
 eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10       # Mỗi 10s gửi heartbeat 1 lần
+    lease-expiration-duration-in-seconds: 30    # Nếu sau 30s không thấy heartbeat → coi như chết
   client:
+    register-with-eureka: true
+    fetch-registry: true
     service-url:
-      defaultZone: http://eureka-server:8761/eureka/
+      defaultZone: http://localhost:8761/eureka/ # hoặc http://eureka-server:8761/eureka/ nếu chạy Docker
