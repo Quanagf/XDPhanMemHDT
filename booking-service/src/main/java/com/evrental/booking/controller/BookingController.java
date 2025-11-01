@@ -5,13 +5,17 @@ import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
 import com.evrental.booking.model.Booking;
 import com.evrental.booking.service.IBookingService;
+import com.evrental.booking.service.JwtService; // <-- IMPORT MỚI
+import io.jsonwebtoken.Claims; // <-- IMPORT MỚI
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // <-- IMPORT MỚI
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-// import java.security.Principal; // (Sẽ dùng khi tích hợp bảo mật)
+import java.security.Principal;
+
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -19,28 +23,43 @@ import java.util.List;
 public class BookingController {
 
     private final IBookingService bookingService;
+    private final JwtService jwtService; // <-- INJECT MỚI
+
 
     @GetMapping("/ping")
     public String ping() {
         return "Booking-Service is alive!";
     }
+    
+    // === Hàm helper (lấy Token từ header) ===
+    private String extractToken(String authorizationHeader) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);
+        }
+        return null;
+    }
+
+
 
     // === API 1: Renter Đặt xe (1.b) ===
     @PostMapping
-    // TODO: @PreAuthorize("hasRole('RENTER')")
+    @PreAuthorize("hasRole('RENTER')") 
     public ResponseEntity<Booking> createBooking(
-            @RequestBody CreateBookingRequest request) {
+            @RequestBody CreateBookingRequest request,
+            @RequestHeader("Authorization") String authorizationHeader // <-- Lấy Token
+    ) {
         
-        // (Tạm thời chúng ta lấy userId từ request)
-        // (Khi có bảo mật: Long userId = ((User) principal).getId();)
-        
-        Booking newBooking = bookingService.createBooking(request);
+        // Lấy userId từ Token (Bảo mật)
+        String token = extractToken(authorizationHeader);
+        Long userId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+
+        Booking newBooking = bookingService.createBooking(request, userId); // <-- Truyền userId bảo mật
         return ResponseEntity.status(HttpStatus.CREATED).body(newBooking);
     }
 
     // === API 2: Staff Giao xe (1.c / 2.a) ===
     @PostMapping("/{bookingId}/check-in")
-    // TODO: @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // <-- KHÓA API
     public ResponseEntity<Booking> checkIn(
             @PathVariable Long bookingId,
             @RequestBody CheckInRequest request) {
@@ -51,7 +70,7 @@ public class BookingController {
 
     // === API 3: Staff Nhận xe (1.d / 2.a) ===
     @PostMapping("/{bookingId}/check-out")
-    // TODO: @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // <-- KHÓA API
     public ResponseEntity<Booking> checkOut(
             @PathVariable Long bookingId,
             @RequestBody CheckOutRequest request) {
@@ -61,11 +80,37 @@ public class BookingController {
     }
 
     // === API 4: Renter Lấy lịch sử (1.e) ===
-    @GetMapping("/my-history/{userId}")
-    // TODO: @PreAuthorize("isAuthenticated()")
-    // (Và kiểm tra principal.getName() == userId)
-    public ResponseEntity<List<Booking>> getMyHistory(@PathVariable Long userId) {
-        List<Booking> history = bookingService.getMyHistory(userId);
+    @GetMapping("/my-history") // <-- Xóa {userId} khỏi URL
+    @PreAuthorize("hasRole('RENTER')") // <-- KHÓA API
+    public ResponseEntity<List<Booking>> getMyHistory(
+            @RequestHeader("Authorization") String authorizationHeader // <-- Lấy Token
+    ) {
+        // Lấy userId từ Token (Bảo mật)
+        String token = extractToken(authorizationHeader);
+        Long userId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+        
+        List<Booking> history = bookingService.getBookingsByUserId(userId); // Sửa tên hàm
         return ResponseEntity.ok(history);
     }
+    
+    // === API 5: Admin/Staff xem lịch sử của BẤT KỲ ai ===
+    @GetMapping("/history/user/{userId}")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // <-- KHÓA API (Staff/Admin)
+    public ResponseEntity<List<Booking>> getUserHistoryForStaff(
+            @PathVariable Long userId) {
+
+        List<Booking> history = bookingService.getBookingsByUserId(userId);
+        return ResponseEntity.ok(history);
+    }
+
+    // === API 6: Staff Xem các booking tại trạm (2.a) ===
+    @GetMapping("/station/{stationId}")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // <-- KHÓA API
+    public ResponseEntity<List<Booking>> getStationBookings(
+            @PathVariable Long stationId) {
+        
+        List<Booking> bookings = bookingService.getStationBookings(stationId);
+        return ResponseEntity.ok(bookings);
+    }
 }
+

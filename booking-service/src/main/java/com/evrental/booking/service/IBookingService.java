@@ -10,7 +10,7 @@ import java.util.List;
 public interface IBookingService {
 
     // 1. Renter: Đặt xe (1.b)
-    Booking createBooking(CreateBookingRequest request);
+    Booking createBooking(CreateBookingRequest request, Long userId);
 
     // 2. Staff: Giao xe (1.c / 2.a)
     Booking checkIn(Long bookingId, CheckInRequest request);
@@ -23,4 +23,7 @@ public interface IBookingService {
     
     // 5. Staff: Xem các booking tại trạm (2.a)
     List<Booking> getStationBookings(Long stationId);
+
+    // 6. Admin/Staff: Xem lịch sử của BẤT KỲ ai (3.a)
+    List<Booking> getBookingsByUserId(Long userId);
 }

@@ -43,7 +43,7 @@ public class BookingServiceImpl implements IBookingService {
     private String paymentServiceUrl;
 
     @Override
-    public Booking createBooking(CreateBookingRequest request) {
+    public Booking createBooking(CreateBookingRequest request, Long userId) {
         
         // --- BƯỚC 1: GỌI API NỘI BỘ SANG VEHICLE-SERVICE ---
         VehicleDTO vehicle = restTemplate.getForObject(
@@ -63,7 +63,7 @@ public class BookingServiceImpl implements IBookingService {
 
         // --- BƯỚC 3: TẠO BOOKING MỚI ---
         Booking booking = Booking.builder()
-                .userId(request.getUserId())
+                .userId(userId)
                 .vehicleId(request.getVehicleId())
                 .startStationId(request.getStartStationId())
                 .bookingTime(LocalDateTime.now())
@@ -193,4 +193,11 @@ public class BookingServiceImpl implements IBookingService {
         // TODO: Cần 1 câu query phức tạp hơn
         return List.of(); 
     }
+
+    @Override
+    public List<Booking> getBookingsByUserId(Long userId) {
+        // (Chức năng 3.a)
+        return bookingRepository.findByUserIdOrderByBookingTimeDesc(userId);
+    }  
+    
 }
