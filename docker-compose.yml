@@ -1,0 +1,127 @@
+services:
+  # 1. Dịch vụ MySQL Database (Giữ nguyên)
+  mysql-db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306" 
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_DATABASE: ev_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ev_network
+
+  # 2. Dịch vụ User (CẬP NHẬT)
+  user-service:
+    build:
+      context: ./user-service
+    ports:
+      - "8081:8080"
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    depends_on:
+      - mysql-db
+      - minio # <-- CẬP NHẬT (Phải chờ Minio)
+    networks:
+      - ev_network
+
+  # 3. Dịch vụ Vehicle (Giữ nguyên)
+  vehicle-service:
+    build:
+      context: ./vehicle-service 
+    ports:
+      - "8082:8080"
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    depends_on:
+      - mysql-db
+    networks:
+      - ev_network
+
+  # 4. booking-service (CẬP NHẬT)
+  booking-service:
+    build:
+      context: ./booking-service 
+    ports:
+      - "8083:8080"
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    depends_on:
+      - mysql-db
+      - user-service    
+      - vehicle-service 
+      - minio # <-- CẬP NHẬT (Phải chờ Minio)
+    networks:
+      - ev_network
+
+  # 5. payment-service (Giữ nguyên)
+  payment-service:
+    build:
+      context: ./payment-service
+    ports:
+      - "8084:8080"
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    depends_on:
+      - mysql-db
+    networks:
+      - ev_network
+
+  # 6. reporting-service (Giữ nguyên)
+  reporting-service:
+    build:
+      context: ./reporting-service
+    ports:
+      - "8085:8080"
+    environment:
+      MYSQL_ROOT_PASSWORD: Quan11092005@
+    depends_on:
+      - mysql-db
+    networks:
+      - ev_network
+
+  # 7. MINIO-SERVICE (KHỐI MỚI - KHO LƯU TRỮ FILE)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000" # Cổng API (để code giao tiếp)
+      - "9001:9001" # Cổng Console (giao diện web)
+    environment:
+      # Thông tin đăng nhập Minio
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    volumes:
+      - minio-data:/data # Giữ lại data file
+    command: server /data --console-address ":9001"
+    networks:
+      - ev_network
+
+  # 8. Dịch vụ Frontend (CẬP NHẬT)
+  frontend-app:
+    build:
+      context: ./frontend-app
+    ports:
+      - "3000:80" 
+    depends_on:
+      - user-service
+      - vehicle-service
+      - booking-service
+      - payment-service
+      - reporting-service
+      - minio # <-- CẬP NHẬT (Chờ Minio)
+    networks:
+      - ev_network
+
+# Định nghĩa mạng chung
+networks:
+  ev_network:
+    driver: bridge
+
+# Định nghĩa volume để lưu data MySQL và Minio
+volumes:
+  mysql-data:
+    driver: local
+  minio-data: # <-- VOLUME MỚI CHO MINIO
+    driver: local
+
