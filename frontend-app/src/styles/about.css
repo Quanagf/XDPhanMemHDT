@@ -1,0 +1,367 @@
+/* ========================================================= */
+/* CSS CHO TRANG ABOUT - GIỚI THIỆU */
+/* ========================================================= */
+
+/* --- Green Journey Section --- */
+.green-journey-section {
+    padding-top: 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.green-journey-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: left;
+    margin-bottom: 30px;
+    position: relative;
+    padding-bottom: 10px;
+    color: var(--color-dark);
+}
+
+.green-journey-section h2::after {
+    content: '';
+    display: block;
+    width: 15%;
+    height: 2px;
+    background-color: var(--color-fev-green);
+    margin: 10px 0 0;
+    border-radius: 2px;
+}
+
+.green-journey-section .content-wrapper {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+}
+
+.green-journey-section .text-block {
+    flex: 1;
+    font-size: 1rem;
+}
+
+.green-journey-section .text-block p {
+    margin-bottom: 15px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.green-journey-section .image-row {
+    flex: 1;
+    display: flex;
+    position: relative;
+    max-width: 550px;
+}
+
+.green-journey-section .image-row img {
+    width: 60%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 20px;
+    box-shadow: var(--shadow-light);
+}
+
+.green-journey-section .image-row img:first-child {
+    z-index: 2;
+    clip-path: polygon(0 0, 95% 0, 75% 100%, 0% 100%);
+}
+
+.green-journey-section .image-row img:last-child {
+    position: absolute;
+    right: 0;
+    width: 60%;
+    height: 300px;
+    z-index: 1;
+    clip-path: polygon(25% 0, 100% 0, 100% 100%, 5% 100%);
+}
+
+/* --- Charge Accelerate Section --- */
+.charge-accelerate-section {
+    padding-top: 80px;
+    padding-bottom: 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.charge-accelerate-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: left;
+    margin-bottom: 30px;
+    position: relative;
+    padding-bottom: 10px;
+    color: var(--color-dark);
+}
+
+.charge-accelerate-section h2::after {
+    content: '';
+    display: block;
+    width: 15%;
+    height: 2px;
+    background-color: var(--color-fev-green);
+    margin: 10px 0 0;
+    border-radius: 2px;
+}
+
+.charge-accelerate-section .content-wrapper {
+    display: flex;
+    gap: 60px;
+    align-items: center;
+}
+
+.charge-accelerate-section .text-block {
+    flex: 1;
+    font-size: 1rem;
+    max-width: 60%;
+}
+
+.charge-accelerate-section .text-block p {
+    margin-bottom: 15px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.charge-accelerate-section .image-column {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    max-width: 40%;
+}
+
+.charge-accelerate-section .image-column img {
+    width: 350px; 
+    height: 350px;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Impressive Numbers Section --- */
+.impressive-numbers-section {
+    background-color: var(--color-gray-light);
+    padding: 80px 20px;
+    border-radius: 20px;
+    margin: 40px 20px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.impressive-numbers-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 10px;
+    color: var(--color-dark);
+}
+
+.impressive-numbers-section h2::after {
+    content: '';
+    display: block;
+    width: 15%;
+    height: 2px;
+    background-color: var(--color-fev-green);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+.numbers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px 20px;
+    text-align: center;
+}
+
+.number-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.number-card svg {
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+}
+
+.number-card:hover svg {
+    transform: scale(1.1);
+}
+
+.number-card iconify-icon {
+    font-size: 60px;
+    color: var(--color-fev-green);
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+}
+
+.number-card:hover iconify-icon {
+    transform: scale(1.1);
+}
+
+.number-card h3 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--color-dark);
+    margin-bottom: 5px;
+}
+
+.number-card p {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    max-width: 180px;
+    line-height: 1.4;
+}
+
+/* --- Commitments Section --- */
+.commitments-section {
+    padding-top: 80px;
+    padding-bottom: 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.commitments-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 10px;
+    color: var(--color-dark);
+}
+
+.commitments-section h2::after {
+    content: '';
+    display: block;
+    width: 15%;
+    height: 2px;
+    background-color: var(--color-fev-green);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+.commitment-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+}
+
+.commitment-item {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.commitment-item img {
+    width: 50%;
+    max-width: 450px;
+    height: auto;
+    object-fit: cover;
+    border-radius: var(--border-radius-base);
+    box-shadow: var(--shadow-light);
+}
+
+.commitment-item .commitment-text {
+    flex: 1;
+    font-size: 1.05rem;
+}
+
+.commitment-item .commitment-text p {
+    margin-bottom: 15px;
+    line-height: 1.8;
+    color: var(--color-text-muted);
+}
+
+.commitment-item.commitment-bottom {
+    flex-direction: row-reverse;
+}
+
+/* ========================================================= */
+/* RESPONSIVE DESIGN */
+/* ========================================================= */
+
+@media (max-width: 1050px) {
+    .green-journey-section .content-wrapper,
+    .charge-accelerate-section .content-wrapper {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .green-journey-section h2, 
+    .charge-accelerate-section h2 {
+        text-align: center;
+    }
+
+    .green-journey-section h2::after, 
+    .charge-accelerate-section h2::after {
+        margin: 10px auto 0;
+    }
+
+    .charge-accelerate-section .text-block {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 900px) {
+    .numbers-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .commitment-item {
+        flex-direction: column !important;
+    }
+    
+    .commitment-item img {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .charge-accelerate-section .image-column {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .numbers-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .green-journey-section .image-row {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+        width: 100%;
+        position: static;
+    }
+    
+    .green-journey-section .image-row img {
+        width: 80%;
+        position: static !important;
+        clip-path: none !important;
+    }
+    
+    .charge-accelerate-section .image-column img {
+        width: 250px; 
+        height: 250px;
+    }
+
+    .impressive-numbers-section {
+        margin: 20px 10px;
+        padding: 60px 15px;
+    }
+
+    .green-journey-section,
+    .charge-accelerate-section,
+    .commitments-section {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}

@@ -1,0 +1,869 @@
+/* ========================================================= */
+/* 0. CSS RESET & VARIABLES */
+/* ========================================================= */
+/* Áp dụng box-sizing cho cả pseudo elements và reset margin/padding */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    /* width: 100%; -> thường không cần đặt, bỏ để tránh trường hợp không mong muốn */
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Cân nhắc: che dấu cuộn ngang, chỉ giữ nếu bạn đã kiểm tra nguyên nhân */
+    font-family: 'Montserrat', sans-serif;
+    color: var(--color-dark);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+:root {
+    --color-fev-green: #5FCF86;
+    --color-dark: #1A1A1A;
+    --color-white: #FFFFFF;
+    --color-gray-light: #F7F7F7;
+    --color-text-muted: #666666;
+    --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --border-radius-base: 8px;
+    --padding-section: 60px 0;
+}
+
+/* focus hữu dụng cho accessibility */
+:focus-visible {
+    outline: 3px solid rgba(95, 207, 134, 0.25);
+    outline-offset: 2px;
+}
+
+/* ========================================================= */
+/* 1. TOP GREEN BAR */
+/* ========================================================= */
+
+.top-green-bar {
+    width: 100%;
+    background-color: var(--color-fev-green); 
+    height: 12px;
+}
+
+/* ========================================================= */
+/* 2. HEADER & NAVIGATION */
+/* ========================================================= */
+
+.main-header {
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-light);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 90px;
+}
+
+.fev-logo-icon {
+    height: 60px; /* Điều chỉnh chiều cao logo cho phù hợp */
+    width: auto;
+}
+
+.main-nav ul {
+    display: flex;
+    gap: 30px;
+}
+
+.main-nav a {
+    font-size: 16px;
+    font-weight: 500;
+    padding: 5px 0;
+    color: var(--color-dark);
+    transition: color 0.3s, border-bottom 0.3s;
+    border-bottom: 2px solid transparent;
+}
+
+.main-nav a:hover {
+    color: var(--color-fev-green);
+}
+
+.main-nav a.active {
+    color: var(--color-fev-green);
+    border-bottom: 2px solid var(--color-fev-green);
+}
+
+.login-btn {
+    border: 2px solid var(--color-dark);
+    color: var(--color-dark);
+    padding: 10px 25px;
+    border-radius: 20px;
+    font-weight: 700;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+}
+
+.login-btn:hover {
+    /* Hiệu ứng khi di chuột qua */
+    background-color: var(--color-fev-green); /* Nền xanh khi hover */
+    color: var(--color-white); /* Chữ trắng khi hover */
+}
+
+/* ========================================================= */
+/* 3. HERO SECTION (Banner và Form tìm kiếm) */
+/* ========================================================= */
+
+.hero-section {
+    position: relative;
+    width: 100%;
+    min-height: 550px;
+    display: flex;
+    padding-bottom: 120px;
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 38px;
+
+}
+
+.hero-bg-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(60%); /* Tối ảnh nền */
+}
+
+.hero-content {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    color: var(--color-white);
+    z-index: 10;
+    text-align: center;
+    margin-top: 50px;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: 900;
+    font-family: 'Montserrat', sans-serif;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero-content h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Montserrat', sans-serif;
+    margin-bottom: 20px;
+    color: var(--color-white);
+}
+
+.hero-content .description {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-content .description span {
+    font-weight: 700;
+    color: var(--color-fev-green);
+}
+
+.ev-tag {
+    /* Đảm bảo nó không bị ảnh hưởng bởi text-align: center của .hero-content */
+    display: inline-flex; 
+    align-items: center;
+    background-color: var(--color-fev-green); 
+    color: var(--color-white); 
+    padding: 10px 25px; 
+    border-radius: 50px;
+    font-weight: 700; 
+    font-size: 1.1rem; 
+    box-shadow: 0 4px 10px rgba(95, 207, 134, 0.4);  
+    /* ĐỊNH VỊ MỚI */
+    position: absolute;
+    bottom: 70px; /* Đặt nó cao hơn form (bottom: -60px) khoảng 120px */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25; /* Đảm bảo nó nằm trên mọi thứ */
+}
+
+.ev-tag iconify-icon {
+    font-size: 1.5rem; /* Tăng kích thước icon */
+    margin-right: 8px;
+    color: var(--color-white);
+}
+
+/* Booking Form */
+.booking-form-wrapper {
+    position: absolute;
+    bottom: -60px; /* Đẩy form nổi lên trên ranh giới section */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 1000px;
+    padding: 25px 30px;
+    background-color: var(--color-white);
+    border-radius:18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    z-index: 20;
+}
+
+.booking-form {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.form-inputs {
+    display: flex;
+    flex-grow: 1;
+    gap: 15px;
+}
+
+.input-group {
+    flex: 1;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: var(--color-text-muted);
+}
+
+.input-field {
+    display: flex;
+    align-items: center;
+    border: 1px solid #E0E0E0;
+    border-radius: var(--border-radius-base);
+    padding: 0 10px;
+    background-color: var(--color-gray-light);
+}
+
+.input-field iconify-icon {
+    font-size: 1.2rem;
+    margin-right: 10px;
+    color: var(--color-fev-green);
+}
+
+.input-field select,
+.input-field input {
+    flex-grow: 1;
+    border: none;
+    padding: 10px 0;
+    background-color: transparent;
+    font-size: 1rem;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Kiểu riêng cho input datetime-local */
+.input-field input[type="datetime-local"] {
+    padding: 10px 0;
+}
+
+.search-btn {
+    background-color: var(--color-fev-green);
+    color: var(--color-white);
+    padding: 12px 30px;
+    border: none;
+    border-radius: var(--border-radius-base);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.search-btn:hover {
+    background-color: var(--color-dark);
+}
+
+/* ========================================================= */
+/* 4. SECTIONS CHUNG */
+/* ========================================================= */
+
+main section {
+    padding: var(--padding-section);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+h2::after {
+    content: '';
+    display: block;
+    width: 15%;
+    height: 2px;
+    background-color: var(--color-fev-green);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+/* ========================================================= */
+/* 5. FEATURED CARS */
+/* ========================================================= */
+
+.featured-cars {
+    padding-top: 150px; /* Tăng padding trên để tránh form booking */
+}
+
+.car-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.car-card {
+    background-color: var(--color-white);
+    border: 1px solid #EBEBEB;
+    border-radius: var(--border-radius-base);
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.car-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.car-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-details {
+    padding: 20px;
+}
+
+.card-details h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin-bottom: 15px;
+}
+
+.info-group {
+    border-top: 1px dashed #E0E0E0;
+    padding-top: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.detail-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.detail-item iconify-icon {
+    font-size: 1.1rem;
+    margin-right: 5px;
+    color: var(--color-fev-green);
+}
+
+
+.location-info {
+    font-weight: 500;
+    color: var(--color-dark);
+    margin-top: 10px;
+}
+
+.location-info iconify-icon {
+    color: #FF6B6B; /* Màu đỏ cho icon location */
+}
+
+.card-footer {
+    border-top: 1px solid #E0E0E0;
+    padding-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rating-reviews {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-dark);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.star-icon {
+    color: #FFC107; /* Màu vàng cho ngôi sao */
+}
+
+.trip-icon {
+    color: var(--color-fev-green);
+}
+
+.separator {
+    color: var(--color-text-muted);
+}
+
+.price-per-day {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--color-fev-green);
+}
+
+.price-per-day .day {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+/* ========================================================= */
+/* 6. FEATURED LOCATIONS */
+/* ========================================================= */
+.location-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.location-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 400px;
+    box-shadow: var(--shadow-light);
+}
+
+.location-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.location-card:hover .location-image {
+    transform: scale(1.05);
+}
+
+.location-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+    color: var(--color-white);
+}
+
+.location-content h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.location-content .stats {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-fev-green);
+}
+
+/* ========================================================= */
+/* 7. HOW TO RENT SECTION (Hướng Dẫn Thuê Xe) */
+/* ========================================================= */
+
+.how-to-rent-section {
+    text-align: center;
+}
+
+.section-header p {
+    max-width: 600px;
+    margin: 0 auto 50px;
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.step-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.step-item::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -15px; /* Giữa khoảng cách gap 30px */
+    width: 30px;
+    height: 2px;
+    background-color: #E0E0E0;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+
+.step-item:last-child::after {
+    display: none;
+}
+
+.step-image {
+    height: 150px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 20px;
+}
+
+.step-number {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(95, 207, 134, 0.7); /* Màu xanh nhạt mờ */
+    z-index: 0;
+    line-height: 1;
+}
+
+.step-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin-top: 15px;
+    position: relative;
+    z-index: 2;
+}
+
+/* ========================================================= */
+/* 8. FOOTER */
+/* ========================================================= */
+
+.main-footer {
+    background-color: var(--color-white);
+    color: var(--color-dark);
+    padding-top: 50px;
+    border-top: 1px solid var(--color-dark);
+}
+
+.footer-content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 cột bằng nhau */
+    gap: 40px;
+    padding-bottom: 40px;
+}
+
+.footer-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-logo-box {
+    margin-bottom: 20px;
+    background-color: rgba(95, 207, 134, 0.1);
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    width: fit-content;
+}
+
+.footer-logo-box .fev-logo-icon {
+    height: 60px;
+    width: auto;
+    margin: 0 auto 10px;
+}
+
+.slogan {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.phone-number {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--color-fev-green);
+    margin: 15px 0 5px;
+}
+
+.working-hours, .email-address {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.contact-us-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 15px 0 5px;
+    color: var(--color-dark);
+}
+
+.col-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--color-dark);
+    text-transform: uppercase;
+}
+
+.green-title {
+    color: var(--color-fev-green);
+}
+
+.footer-nav li a {
+    display: block;
+    padding: 5px 0;
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    transition: color 0.3s;
+}
+
+.footer-nav li a:hover {
+    color: var(--color-fev-green);
+}
+
+.commitment-text {
+    font-size: 0.95rem;
+    margin-bottom: 25px;
+}
+
+.social-icons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.social-icons a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: var(--color-dark); 
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.social-icons iconify-icon {
+    font-size: 1.3rem;
+    color: var(--color-white);
+}
+
+.social-icons a:hover {
+    background-color: var(--color-fev-green);
+}
+
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 240px;
+}
+
+.payment-col-inner .col-title {
+    margin-bottom: 15px; /* Đảm bảo có khoảng cách dưới tiêu đề */
+}
+
+.payment-methods img {
+    height: 50px;
+    width: 75px;
+    border-radius: 6px;
+    background-color: var(--color-white);
+    padding: 5px;
+    object-fit: contain;
+    border: 1px solid #E0E0E0;
+}
+
+.footer-bottom-bar {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 20px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.footer-green-line {
+    width: 100%;
+    height: 10px; /* Độ dày của line xanh lá */
+    background-color: var(--color-fev-green);
+}
+
+
+
+
+/* ========================================================= */
+/* 9. MEDIA QUERIES (Responsive Design) */
+/* ========================================================= */
+
+@media (max-width: 1050px) {
+    .booking-form {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-inputs {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .search-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 15px 30px;
+    }
+}
+
+@media (max-width: 900px) {
+    .header-container {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 20px;
+    }
+
+    .main-nav {
+        order: 3; /* Đẩy nav xuống dưới cùng */
+        width: 100%;
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .main-nav ul {
+        justify-content: center;
+    }
+
+    .login-btn {
+        margin-left: auto; /* Đẩy nút login sang phải */
+    }
+
+    .hero-content h1 {
+        font-size: 2.8rem;
+    }
+    
+    .hero-content h2 {
+        font-size: 1.6rem;
+    }
+
+    .footer-content-wrapper {
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+
+    .payment-methods {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 160px;
+    }
+
+    .step-item::after {
+        display: none; /* Bỏ mũi tên nối bước trên mobile */
+    }
+    
+    .steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .hero-content {
+        text-align: center;
+    }
+    
+    .hero-content .description {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-section {
+        min-height: 450px;
+        padding-bottom: 100px;
+    }
+    
+    .booking-form-wrapper {
+        padding: 15px;
+    }
+
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-content-wrapper {
+        grid-template-columns: 1fr;
+        gap: 25px;
+        text-align: center;
+    }
+
+    .footer-logo-box {
+        margin: 0 auto 20px;
+    }
+
+    .social-icons {
+        justify-content: center;
+    }
+
+    .payment-methods {
+        margin: 0 auto;
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 240px;
+    }
+}
+
+/* ========================================================= */
