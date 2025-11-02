@@ -3,12 +3,14 @@ services:
   mysql-db:
     image: mysql:8.0
     ports:
-      - "3306:3306" 
+    # T bị xung đột với MySQL cục bộ nên đoạn này đổi port
+    # default 3306:3306
+      - "3307:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
-      MYSQL_DATABASE: ev_db
+      MYSQL_ROOT_PASSWORD: 2005
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
     networks:
       - ev_network
 
@@ -19,7 +21,7 @@ services:
     ports:
       - "8081:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     depends_on:
       - mysql-db
       - minio # <-- CẬP NHẬT (Phải chờ Minio)
@@ -33,7 +35,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     depends_on:
       - mysql-db
     networks:
@@ -46,7 +48,7 @@ services:
     ports:
       - "8083:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     depends_on:
       - mysql-db
       - user-service    
@@ -62,7 +64,7 @@ services:
     ports:
       - "8084:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     depends_on:
       - mysql-db
     networks:
@@ -75,7 +77,7 @@ services:
     ports:
       - "8085:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: Quan11092005@
+      MYSQL_ROOT_PASSWORD: 2005
     depends_on:
       - mysql-db
     networks:
