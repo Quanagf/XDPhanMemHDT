@@ -3,7 +3,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
-import '../styles/about.css';
 
 const About = () => {
   const [showLogin, setShowLogin] = useState(false);

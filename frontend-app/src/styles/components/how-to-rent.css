@@ -1,0 +1,71 @@
+/* ========================================================= */
+/* HOW TO RENT SECTION COMPONENT (Hướng Dẫn Thuê Xe) */
+/* ========================================================= */
+
+.how-to-rent-section {
+    text-align: center;
+}
+
+.section-header p {
+    max-width: 600px;
+    margin: 0 auto 50px;
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.step-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.step-item::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -15px; /* Giữa khoảng cách gap 30px */
+    width: 30px;
+    height: 2px;
+    background-color: #E0E0E0;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+
+.step-item:last-child::after {
+    display: none;
+}
+
+.step-image {
+    height: 150px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 20px;
+}
+
+.step-number {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(95, 207, 134, 0.7); /* Màu xanh nhạt mờ */
+    z-index: 0;
+    line-height: 1;
+}
+
+.step-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin-top: 15px;
+    position: relative;
+    z-index: 2;
+}

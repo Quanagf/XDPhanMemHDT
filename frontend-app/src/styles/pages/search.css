@@ -1,0 +1,172 @@
+/* ========================================================= */
+/* SEARCH PAGE STYLES - MIOTO INSPIRED */
+/* ========================================================= */
+
+.search-main {
+    background-color: #ffffff;
+    min-height: 100vh;
+    padding-top: 0;
+}
+
+.search-header {
+    background-color: #ffffff;
+    padding: 15px 0;
+    border-bottom: 1px solid #e8e8e8;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.search-summary-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+/* Back Button */
+.back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    color: #333;
+}
+
+.back-btn:hover {
+    background-color: #f5f5f5;
+}
+
+.back-btn iconify-icon {
+    font-size: 20px;
+}
+
+.search-summary-info {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    flex: 1;
+}
+
+.search-location,
+.search-datetime {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+    padding: 0;
+    background: none;
+    border: none;
+    transition: none;
+}
+
+.search-location iconify-icon,
+.search-datetime iconify-icon {
+    color: #666;
+    font-size: 18px;
+}
+
+.search-filter {
+    margin-left: auto;
+}
+
+.filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.filter-btn:hover {
+    background-color: #ebebeb;
+    border-color: #d0d0d0;
+}
+
+.filter-btn iconify-icon {
+    font-size: 16px;
+}
+
+.search-results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 20px 80px 20px;
+}
+
+.search-results-header {
+    margin-bottom: 24px;
+}
+
+.results-title h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+/* Sử dụng lại car-list-grid từ featured cars cho đồng bộ */
+.search-results-container .car-list-grid {
+    margin-top: 0;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+    .search-summary-container {
+        gap: 15px;
+        padding: 0 15px;
+    }
+    
+    .search-summary-info {
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .search-location,
+    .search-datetime {
+        font-size: 14px;
+    }
+    
+    .search-location iconify-icon,
+    .search-datetime iconify-icon {
+        font-size: 16px;
+    }
+    
+    .back-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .back-btn iconify-icon {
+        font-size: 18px;
+    }
+    
+    .filter-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .results-title h2 {
+        font-size: 20px;
+    }
+    
+    .search-results-container {
+        padding: 15px 15px 60px 15px;
+    }
+}

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import '../styles/Login.css';
 
 const Login = ({ onClose, onSwitchToRegister }) => {
   const [formData, setFormData] = useState({

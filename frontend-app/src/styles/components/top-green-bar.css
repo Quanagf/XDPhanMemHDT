@@ -1,0 +1,9 @@
+/* ========================================================= */
+/* TOP GREEN BAR COMPONENT */
+/* ========================================================= */
+
+.top-green-bar {
+    width: 100%;
+    background-color: var(--color-fev-green); 
+    height: 12px;
+}

@@ -1,5 +1,5 @@
 # Sử dụng base image Java 17
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 # Thư mục làm việc bên trong container
 WORKDIR /app

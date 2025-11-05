@@ -1,0 +1,49 @@
+/* ========================================================= */
+/* FEATURED LOCATIONS COMPONENT */
+/* ========================================================= */
+.location-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.location-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 400px;
+    box-shadow: var(--shadow-light);
+}
+
+.location-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.location-card:hover .location-image {
+    transform: scale(1.05);
+}
+
+.location-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+    color: var(--color-white);
+}
+
+.location-content h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.location-content .stats {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-fev-green);
+}

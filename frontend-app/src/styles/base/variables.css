@@ -1,0 +1,14 @@
+/* ========================================================= */
+/* CSS VARIABLES - BIẾN CSS TOÀN CỤC */
+/* ========================================================= */
+
+:root {
+    --color-fev-green: #5FCF86;
+    --color-dark: #1A1A1A;
+    --color-white: #FFFFFF;
+    --color-gray-light: #F7F7F7;
+    --color-text-muted: #666666;
+    --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --border-radius-base: 8px;
+    --padding-section: 60px 0;
+}

@@ -1,0 +1,124 @@
+/* ========================================================= */
+/* FEATURED CARS COMPONENT */
+/* ========================================================= */
+
+.featured-cars {
+    padding-top: 150px; /* Tăng padding trên để tránh form booking */
+}
+
+.car-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.car-card {
+    background-color: var(--color-white);
+    border: 1px solid #EBEBEB;
+    border-radius: var(--border-radius-base);
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.car-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.car-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-details {
+    padding: 20px;
+}
+
+.card-details h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin-bottom: 15px;
+}
+
+.info-group {
+    border-top: 1px dashed #E0E0E0;
+    padding-top: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.detail-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.detail-item iconify-icon {
+    font-size: 1.1rem;
+    margin-right: 5px;
+    color: var(--color-fev-green);
+}
+
+
+.location-info {
+    font-weight: 500;
+    color: var(--color-dark);
+    margin-top: 10px;
+}
+
+.location-info iconify-icon {
+    color: #FF6B6B; /* Màu đỏ cho icon location */
+}
+
+.card-footer {
+    border-top: 1px solid #E0E0E0;
+    padding-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rating-reviews {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-dark);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.star-icon {
+    color: #FFC107; /* Màu vàng cho ngôi sao */
+}
+
+.trip-icon {
+    color: var(--color-fev-green);
+}
+
+.separator {
+    color: var(--color-text-muted);
+}
+
+.price-per-day {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--color-fev-green);
+}
+
+.price-per-day .day {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}

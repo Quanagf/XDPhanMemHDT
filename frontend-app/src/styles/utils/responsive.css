@@ -1,0 +1,323 @@
+/* ========================================================= */
+/* RESPONSIVE DESIGN - MEDIA QUERIES */
+/* ========================================================= */
+
+@media (max-width: 1050px) {
+    .booking-form {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .form-inputs {
+        flex-direction: column;
+        width: 100%;
+        gap: 15px;
+    }
+
+    .input-group.location,
+    .input-group.station,
+    .input-group.datetime-picker {
+        flex: 1; /* Reset flex trên mobile */
+    }
+
+    .datetime-display {
+        font-size: 0.9rem; /* Giảm font size trên mobile */
+    }
+
+    .search-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 15px 30px;
+    }
+
+    /* About page responsive */
+    .green-journey-section .content-wrapper,
+    .charge-accelerate-section .content-wrapper {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .green-journey-section h2, 
+    .charge-accelerate-section h2 {
+        text-align: center;
+    }
+
+    .green-journey-section h2::after, 
+    .charge-accelerate-section h2::after {
+        margin: 10px auto 0;
+    }
+
+    .charge-accelerate-section .text-block {
+        max-width: 100%;
+    }
+
+    /* Search page responsive */
+    .search-summary-container {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .search-summary-info {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    /* Datetime modal responsive */
+    .calendars {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-selectors {
+        grid-template-columns: 1fr;
+    }
+    
+    .hour-inputs {
+        grid-template-columns: 1fr;
+    }
+    
+    .rental-summary {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 900px) {
+    .header-container {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 20px;
+    }
+
+    .main-nav {
+        order: 3; /* Đẩy nav xuống dưới cùng */
+        width: 100%;
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .main-nav ul {
+        justify-content: center;
+    }
+
+    .login-btn {
+        margin-left: auto; /* Đẩy nút login sang phải */
+    }
+
+    .hero-content h1 {
+        font-size: 2.8rem;
+    }
+    
+    .hero-content h2 {
+        font-size: 1.6rem;
+    }
+
+    .footer-content-wrapper {
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+
+    .payment-methods {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 160px;
+    }
+
+    .step-item::after {
+        display: none; /* Bỏ mũi tên nối bước trên mobile */
+    }
+    
+    .steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* About page responsive */
+    .numbers-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .commitment-item {
+        flex-direction: column !important;
+    }
+    
+    .commitment-item img {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .charge-accelerate-section .image-column {
+        max-width: 100%;
+    }
+
+    /* Login modal responsive */
+    .social-login {
+        flex-direction: column;
+    }
+    
+    .social-btn {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Datetime modal responsive */
+    .datetime-modal {
+        width: 95%;
+        margin: 20px;
+    }
+
+    /* Search page responsive */
+    .search-summary-container {
+        padding: 0 15px;
+    }
+    
+    .search-results-container {
+        padding: 0 15px 60px 15px; /* Giảm padding-bottom trên mobile */
+    }
+    
+    .results-title h2 {
+        font-size: 1.5rem;
+    }
+
+    /* Login modal responsive */
+    .login-modal {
+        width: 95%;
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .login-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+    
+    .form-input {
+        padding: 14px 16px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .login-submit-btn {
+        padding: 14px 20px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .hero-content {
+        text-align: center;
+    }
+    
+    .hero-content .description {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-section {
+        min-height: 450px;
+        padding-bottom: 100px;
+    }
+    
+    .booking-form-wrapper {
+        padding: 15px;
+    }
+
+    .ev-tag {
+        bottom: 60px; /* Điều chỉnh cho mobile */
+        padding: 10px 20px; /* Giảm padding trên mobile */
+        font-size: 1rem; /* Giảm font size trên mobile */
+    }
+
+    .ev-tag iconify-icon {
+        font-size: 1.2rem; /* Giảm icon size trên mobile */
+        margin-right: 8px;
+    }
+
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-content-wrapper {
+        grid-template-columns: 1fr;
+        gap: 25px;
+        text-align: center;
+    }
+
+    .footer-logo-box {
+        margin: 0 auto 20px;
+    }
+
+    .social-icons {
+        justify-content: center;
+    }
+
+    .payment-methods {
+        margin: 0 auto;
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 240px;
+    }
+
+    /* About page responsive */
+    .numbers-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .green-journey-section .image-row {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+        width: 100%;
+        position: static;
+    }
+    
+    .green-journey-section .image-row img {
+        width: 80%;
+        position: static !important;
+        clip-path: none !important;
+    }
+    
+    .charge-accelerate-section .image-column img {
+        width: 250px; 
+        height: 250px;
+    }
+
+    .impressive-numbers-section {
+        margin: 20px 10px;
+        padding: 60px 15px;
+    }
+
+    .green-journey-section,
+    .charge-accelerate-section,
+    .commitments-section {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    /* Login modal responsive */
+    .login-modal {
+        padding: 25px 15px;
+    }
+    
+    .login-title {
+        font-size: 22px;
+    }
+    
+    .form-input {
+        padding: 12px 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Login modal responsive */
+    .login-modal {
+        padding: 25px 15px;
+    }
+    
+    .login-title {
+        font-size: 22px;
+    }
+    
+    .form-input {
+        padding: 12px 14px;
+    }
+}

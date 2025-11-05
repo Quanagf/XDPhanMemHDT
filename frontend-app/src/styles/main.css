@@ -1,0 +1,34 @@
+/* ========================================================= */
+/* MAIN CSS - FILE IMPORT CHÍNH */
+/* ========================================================= */
+
+/* 1. Base styles - Phải import đầu tiên */
+@import './base/variables.css';
+@import './base/reset.css';
+
+/* 2. Utility classes */
+@import './utils/utilities.css';
+
+/* 3. Shared components */
+@import './components/sections.css';
+
+/* 4. Layout components - theo thứ tự từ trên xuống dưới */
+@import './components/top-green-bar.css';
+@import './components/header.css';
+@import './components/hero.css';
+@import './components/featured-cars.css';
+@import './components/featured-locations.css';
+@import './components/how-to-rent.css';
+@import './components/footer.css';
+
+/* 5. Modal components */
+@import './components/datetime-modal.css';
+@import './components/login-modal.css';
+
+/* 6. Page-specific styles */
+@import './pages/home.css';
+@import './pages/search.css';
+@import './pages/about.css';
+
+/* 7. Responsive styles - Phải import cuối cùng để override */
+@import './utils/responsive.css';

@@ -1,3 +1,7 @@
+/* ========================================================= */
+/* LOGIN MODAL COMPONENT */
+/* ========================================================= */
+
 /* Login Modal Styles */
 .login-overlay {
   position: fixed;
@@ -294,50 +298,4 @@
 .facebook-btn:hover {
   border-color: #1877f2;
   background-color: rgba(24, 119, 242, 0.05);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .login-modal {
-    width: 95%;
-    padding: 30px 20px;
-    margin: 20px;
-  }
-  
-  .login-title {
-    font-size: 24px;
-    margin-bottom: 30px;
-  }
-  
-  .form-input {
-    padding: 14px 16px;
-    font-size: 16px; /* Prevent zoom on iOS */
-  }
-  
-  .login-submit-btn {
-    padding: 14px 20px;
-    font-size: 16px;
-  }
-  
-  .social-login {
-    flex-direction: column;
-  }
-  
-  .social-btn {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-modal {
-    padding: 25px 15px;
-  }
-  
-  .login-title {
-    font-size: 22px;
-  }
-  
-  .form-input {
-    padding: 12px 14px;
-  }
 }

@@ -1,5 +1,5 @@
 /* ========================================================= */
-/* CSS CHO TRANG ABOUT - GIỚI THIỆU */
+/* ABOUT PAGE STYLES - TRANG GIỚI THIỆU */
 /* ========================================================= */
 
 /* --- Green Journey Section --- */
@@ -282,86 +282,4 @@
 
 .commitment-item.commitment-bottom {
     flex-direction: row-reverse;
-}
-
-/* ========================================================= */
-/* RESPONSIVE DESIGN */
-/* ========================================================= */
-
-@media (max-width: 1050px) {
-    .green-journey-section .content-wrapper,
-    .charge-accelerate-section .content-wrapper {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .green-journey-section h2, 
-    .charge-accelerate-section h2 {
-        text-align: center;
-    }
-
-    .green-journey-section h2::after, 
-    .charge-accelerate-section h2::after {
-        margin: 10px auto 0;
-    }
-
-    .charge-accelerate-section .text-block {
-        max-width: 100%;
-    }
-}
-
-@media (max-width: 900px) {
-    .numbers-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .commitment-item {
-        flex-direction: column !important;
-    }
-    
-    .commitment-item img {
-        width: 100%;
-        max-width: 100%;
-    }
-    
-    .charge-accelerate-section .image-column {
-        max-width: 100%;
-    }
-}
-
-@media (max-width: 600px) {
-    .numbers-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .green-journey-section .image-row {
-        flex-direction: column;
-        gap: 15px;
-        align-items: center;
-        width: 100%;
-        position: static;
-    }
-    
-    .green-journey-section .image-row img {
-        width: 80%;
-        position: static !important;
-        clip-path: none !important;
-    }
-    
-    .charge-accelerate-section .image-column img {
-        width: 250px; 
-        height: 250px;
-    }
-
-    .impressive-numbers-section {
-        margin: 20px 10px;
-        padding: 60px 15px;
-    }
-
-    .green-journey-section,
-    .charge-accelerate-section,
-    .commitments-section {
-        padding-left: 15px;
-        padding-right: 15px;
-    }
 }

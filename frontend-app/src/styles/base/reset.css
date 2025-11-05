@@ -1,0 +1,41 @@
+/* ========================================================= */
+/* CSS RESET & BASE STYLES - THIẾT LẬP CSS CƠ BẢN */
+/* ========================================================= */
+
+/* Áp dụng box-sizing cho cả pseudo elements và reset margin/padding */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    /* width: 100%; -> thường không cần đặt, bỏ để tránh trường hợp không mong muốn */
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Cân nhắc: che dấu cuộn ngang, chỉ giữ nếu bạn đã kiểm tra nguyên nhân */
+    font-family: 'Montserrat', sans-serif;
+    color: var(--color-dark);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* focus hữu dụng cho accessibility */
+:focus-visible {
+    outline: 3px solid rgba(95, 207, 134, 0.25);
+    outline-offset: 2px;
+}

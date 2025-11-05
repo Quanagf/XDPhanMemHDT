@@ -1,0 +1,69 @@
+/* ========================================================= */
+/* HEADER & NAVIGATION COMPONENT */
+/* ========================================================= */
+
+.main-header {
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-light);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 90px;
+}
+
+.fev-logo-icon {
+    height: 60px; /* Điều chỉnh chiều cao logo cho phù hợp */
+    width: auto;
+}
+
+.main-nav ul {
+    display: flex;
+    gap: 30px;
+}
+
+.main-nav a {
+    font-size: 16px;
+    font-weight: 500;
+    padding: 5px 0;
+    color: var(--color-dark);
+    transition: color 0.3s, border-bottom 0.3s;
+    border-bottom: 2px solid transparent;
+}
+
+.main-nav a:hover {
+    color: var(--color-fev-green);
+}
+
+.main-nav a.active {
+    color: var(--color-fev-green);
+    border-bottom: 2px solid var(--color-fev-green);
+}
+
+.login-btn {
+    border: 2px solid var(--color-dark);
+    color: var(--color-dark);
+    padding: 10px 25px;
+    border-radius: 20px;
+    font-weight: 700;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+}
+
+.login-btn:hover {
+    /* Hiệu ứng khi di chuột qua */
+    background-color: var(--color-fev-green); /* Nền xanh khi hover */
+    color: var(--color-white); /* Chữ trắng khi hover */
+}
