@@ -78,9 +78,25 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Gọi API thông qua nginx proxy
+      const response = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.phoneNumber + '@example.com', // Tạm dùng phone như email
+          username: formData.phoneNumber, // Dùng phone như username
+          fullName: formData.displayName,
+          password: formData.password,
+          role: 'RENTER'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Đăng ký thất bại');
+      }
+
       // Xử lý logic đăng ký ở đây
       console.log('Đăng ký thành công với:', {
         phoneNumber: formData.phoneNumber,

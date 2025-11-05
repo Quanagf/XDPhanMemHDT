@@ -1,12 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = ({ onOpenLogin }) => {
   const location = useLocation();
+  const [user, setUser] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Kiểm tra trạng thái đăng nhập khi component mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const userProfile = localStorage.getItem('userProfile');
+    
+    if (token && userProfile) {
+      try {
+        setUser(JSON.parse(userProfile));
+      } catch (error) {
+        console.error('Error parsing user profile:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userProfile');
+        localStorage.removeItem('userRole');
+      }
+    }
+  }, []);
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showUserMenu && !event.target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
   
   const handleLoginClick = (e) => {
     e.preventDefault();
     onOpenLogin();
+  };
+
+  const handleLoginSuccess = (userProfile, token) => {
+    setUser(userProfile);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('userRole');
+    setUser(null);
+    setShowUserMenu(false);
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  // Cập nhật onOpenLogin để truyền callback
+  const handleOpenLogin = () => {
+    if (onOpenLogin) {
+      onOpenLogin(handleLoginSuccess);
+    }
   };
 
   return (
@@ -40,20 +96,4 @@ const Header = ({ onOpenLogin }) => {
                   to="/gioi-thieu-fev"
                   className={location.pathname === '/gioi-thieu-fev' ? 'active' : ''}
                   aria-current={location.pathname === '/gioi-thieu-fev' ? 'page' : undefined}
-                >
-                  GIỚI THIỆU FEV
-                </Link>
-              </li>
-              <li><a href="/lien-he">LIÊN HỆ</a></li>
-              <li><a href="/chuyen-cua-toi">CHUYẾN CỦA TÔI</a></li>
-            </ul>
-          </nav>
-          
-          <button onClick={handleLoginClick} className="login-btn" role="button">ĐĂNG NHẬP</button>
-        </div>
-      </header>
-    </>
-  );
-};
-
-export default Header;
+                  

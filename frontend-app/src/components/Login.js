@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 
-const Login = ({ onClose, onSwitchToRegister }) => {
+const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -13,13 +15,67 @@ const Login = ({ onClose, onSwitchToRegister }) => {
       ...prev,
       [name]: value
     }));
+    // Xóa lỗi khi user nhập lại
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Xử lý logic đăng nhập ở đây
-    console.log('Đăng nhập với:', formData);
-    // Thêm logic xác thực và redirect sau khi đăng nhập thành công
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Gọi API đăng nhập
+      const response = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.username.includes('@') ? formData.username : formData.username + '@example.com',
+          password: formData.password
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+      }
+
+      const data = await response.json();
+      
+      // Lưu token vào localStorage
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('userRole', data.role);
+      
+      // Lấy thông tin profile user
+      const profileResponse = await fetch('/api/users/profile', {
+        headers: {
+          'Authorization': `Bearer ${data.token}`
+        }
+      });
+      
+      if (profileResponse.ok) {
+        const userProfile = await profileResponse.json();
+        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        
+        // Gọi callback để parent component biết đăng nhập thành công
+        if (onLoginSuccess) {
+          onLoginSuccess(userProfile, data.token);
+        }
+      }
+      
+      alert('Đăng nhập thành công!');
+      onClose(); // Đóng modal
+      
+      // Reload trang để Header component cập nhật
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Lỗi đăng nhập:', error);
+      setError(error.message || 'Có lỗi xảy ra khi đăng nhập');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -95,8 +151,10 @@ const Login = ({ onClose, onSwitchToRegister }) => {
               </a>
             </div>
             
-            <button type="submit" className="login-submit-btn">
-              Đăng nhập
+            {error && <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+            
+            <button type="submit" className="login-submit-btn" disabled={isLoading}>
+              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
           
