@@ -6,6 +6,7 @@ const Header = ({ onOpenLogin }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [logoutNotification, setLogoutNotification] = useState({ show: false, message: '' });
   
   // Kiểm tra trạng thái đăng nhập khi component mount
   useEffect(() => {
@@ -48,11 +49,27 @@ const Header = ({ onOpenLogin }) => {
   };
 
   const handleLogout = () => {
+    // Xóa thông tin đăng nhập
     localStorage.removeItem('authToken');
     localStorage.removeItem('userProfile');
     localStorage.removeItem('userRole');
     setUser(null);
     setShowUserMenu(false);
+    
+    // Hiển thị thông báo đăng xuất
+    setLogoutNotification({
+      show: true,
+      message: '👋 Đã đăng xuất!'
+    });
+    
+    // Chuyển về trang chủ sau 1.5 giây
+    setTimeout(() => {
+      navigate('/');
+      // Ẩn thông báo sau khi chuyển trang
+      setTimeout(() => {
+        setLogoutNotification({ show: false, message: '' });
+      }, 500);
+    }, 1000);
   };
 
   const toggleUserMenu = () => {
@@ -69,6 +86,27 @@ const Header = ({ onOpenLogin }) => {
   return (
     <>
       <div className="top-green-bar"></div>
+      
+      {/* Logout Notification */}
+      {logoutNotification.show && (
+        <div className="notification success" style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 9999
+        }}>
+          <div className="notification-content">
+            <div className="notification-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            </div>
+            <span className="notification-message">{logoutNotification.message}</span>
+          </div>
+        </div>
+      )}
+      
       <header className="main-header" role="banner">
         <div className="header-container">
           <Link to="/" className="logo-link" aria-label="Trang chủ FEV">

@@ -1,22 +1,24 @@
 package com.evrental.users.service;
 
-import com.evrental.users.dto.LoginRequest;
-import com.evrental.users.dto.LoginResponse;
-import com.evrental.users.dto.RegistrationRequest;
-import com.evrental.users.model.User;
-import com.evrental.users.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile; // <-- IMPORT MỚI
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
-import java.util.UUID; // <-- IMPORT MỚI (Để tạo tên file)
+import com.evrental.users.dto.LoginRequest;
+import com.evrental.users.dto.LoginResponse;
+import com.evrental.users.dto.RegistrationRequest; // <-- IMPORT MỚI
+import com.evrental.users.model.User;
+import com.evrental.users.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor; // <-- IMPORT MỚI (Để tạo tên file)
 
 @Service
 @RequiredArgsConstructor

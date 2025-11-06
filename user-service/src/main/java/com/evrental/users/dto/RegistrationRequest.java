@@ -1,10 +1,12 @@
 package com.evrental.users.dto;
 
 import com.evrental.users.model.User;
+
 import lombok.Data;
 
 @Data
 public class RegistrationRequest {
+    private String phoneNumber;
     private String email;
     private String password;
     private String username;

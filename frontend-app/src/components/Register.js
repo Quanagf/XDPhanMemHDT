@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 const Register = ({ onClose, onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     phoneNumber: '',
-    displayName: '',
+    fullName: '',
+    username: '',
+    email: '',
     password: '',
     confirmPassword: ''
   });
@@ -11,6 +13,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -39,13 +42,32 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       newErrors.phoneNumber = 'Số điện thoại không hợp lệ (VD: 0912345678)';
     }
 
-    // Validate tên hiển thị
-    if (!formData.displayName.trim()) {
-      newErrors.displayName = 'Vui lòng nhập tên hiển thị';
-    } else if (formData.displayName.trim().length < 2) {
-      newErrors.displayName = 'Tên hiển thị phải có ít nhất 2 ký tự';
-    } else if (formData.displayName.trim().length > 30) {
-      newErrors.displayName = 'Tên hiển thị không được quá 30 ký tự';
+    // Validate tên
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Vui lòng nhập họ và tên';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+    } else if (formData.fullName.trim().length > 50) {
+      newErrors.fullName = 'Họ và tên không được quá 50 ký tự';
+    }
+
+    // Validate username
+    if (!formData.username.trim()) {
+      newErrors.username = 'Vui lòng nhập tên đăng nhập';
+    } else if (formData.username.trim().length < 3) {
+      newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+    } else if (formData.username.trim().length > 20) {
+      newErrors.username = 'Tên đăng nhập không được quá 20 ký tự';
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username.trim())) {
+      newErrors.username = 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới';
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!emailRegex.test(formData.email.trim())) {
+      newErrors.email = 'Email không hợp lệ';
     }
 
     // Validate password
@@ -85,9 +107,10 @@ const Register = ({ onClose, onSwitchToLogin }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.phoneNumber + '@example.com', // Tạm dùng phone như email
-          username: formData.phoneNumber, // Dùng phone như username
-          fullName: formData.displayName,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          username: formData.username,
+          fullName: formData.fullName,
           password: formData.password,
           role: 'RENTER'
         }),
@@ -100,18 +123,36 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       // Xử lý logic đăng ký ở đây
       console.log('Đăng ký thành công với:', {
         phoneNumber: formData.phoneNumber,
-        displayName: formData.displayName
+        email: formData.email,
+        username: formData.username,
+        fullName: formData.fullName
       });
       
       // Hiển thị thông báo thành công
-      alert('Đăng ký thành công! Bây giờ bạn có thể đăng nhập.');
+      setNotification({
+        show: true,
+        type: 'success',
+        message: 'Đăng ký thành công! Bây giờ bạn có thể đăng nhập.'
+      });
       
-      // Chuyển về form đăng nhập
-      onSwitchToLogin();
+      // Tự động ẩn thông báo sau 3 giây và chuyển về form đăng nhập
+      setTimeout(() => {
+        setNotification({ show: false, type: '', message: '' });
+        onSwitchToLogin();
+      }, 3000);
       
     } catch (error) {
       console.error('Lỗi đăng ký:', error);
-      alert('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại!');
+      setNotification({
+        show: true,
+        type: 'error',
+        message: 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại!'
+      });
+      
+      // Tự động ẩn thông báo sau 3 giây
+      setTimeout(() => {
+        setNotification({ show: false, type: '', message: '' });
+      }, 3000);
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +168,38 @@ const Register = ({ onClose, onSwitchToLogin }) => {
 
   return (
     <div className="login-overlay">
+      {/* Notification Component */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            <div className="notification-icon">
+              {notification.type === 'success' ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 12l2 2 4-4"></path>
+                  <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+            </div>
+            <span className="notification-message">{notification.message}</span>
+            <button 
+              className="notification-close"
+              onClick={() => setNotification({ show: false, type: '', message: '' })}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="login-modal">
         <button className="close-btn" onClick={onClose} aria-label="Đóng">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -148,25 +221,55 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 className={`form-input ${errors.phoneNumber ? 'error' : ''}`}
-                placeholder="Nhập số điện thoại của bạn"
+                placeholder="Nhập số điện thoại (VD: 0912345678)"
                 required
               />
               {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="displayName" className="form-label">Tên hiển thị</label>
+              <label htmlFor="fullName" className="form-label">Họ và tên</label>
               <input
                 type="text"
-                id="displayName"
-                name="displayName"
-                value={formData.displayName}
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
                 onChange={handleInputChange}
-                className={`form-input ${errors.displayName ? 'error' : ''}`}
-                placeholder="Nhập tên hiển thị của bạn"
+                className={`form-input ${errors.fullName ? 'error' : ''}`}
+                placeholder="Nhập họ và tên đầy đủ"
                 required
               />
-              {errors.displayName && <span className="error-message">{errors.displayName}</span>}
+              {errors.fullName && <span className="error-message">{errors.fullName}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="username" className="form-label">Tên đăng nhập</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                className={`form-input ${errors.username ? 'error' : ''}`}
+                placeholder="Nhập tên đăng nhập"
+                required
+              />
+              {errors.username && <span className="error-message">{errors.username}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`form-input ${errors.email ? 'error' : ''}`}
+                placeholder="Nhập email của bạn"
+                required
+              />
+              {errors.email && <span className="error-message">{errors.email}</span>}
             </div>
             
             <div className="form-group">

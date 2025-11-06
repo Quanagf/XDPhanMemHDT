@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
   const [formData, setFormData] = useState({
-    username: '',
+    identifier: '', // Có thể là username, email hoặc số điện thoại
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorNotification, setErrorNotification] = useState({ show: false, message: '' });
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -22,23 +24,40 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginSuccess(false);
     setError('');
     
     try {
+      // Xác định loại identifier
+      const isEmail = formData.identifier.includes('@');
+      const isPhone = /^(0[3|5|7|8|9])+([0-9]{8})$/.test(formData.identifier);
+      
+      let loginData = {
+        password: formData.password
+      };
+      
+      // Gán đúng trường dựa trên loại identifier
+      if (isEmail) {
+        loginData.email = formData.identifier;
+      } else if (isPhone) {
+        loginData.phoneNumber = formData.identifier;
+      } else {
+        loginData.username = formData.identifier;
+      }
+      
       // Gọi API đăng nhập
       const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: formData.username.includes('@') ? formData.username : formData.username + '@example.com',
-          password: formData.password
-        }),
+        body: JSON.stringify(loginData),
       });
 
       if (!response.ok) {
-        throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || 'Thông tin đăng nhập không đúng';
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -58,21 +77,31 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
         const userProfile = await profileResponse.json();
         localStorage.setItem('userProfile', JSON.stringify(userProfile));
         
+        // Đánh dấu đăng nhập thành công để hiển thị trên button
+        setLoginSuccess(true);
+        
         // Gọi callback để parent component biết đăng nhập thành công
         if (onLoginSuccess) {
           onLoginSuccess(userProfile, data.token);
         }
+        
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1); 
       }
-      
-      alert('Đăng nhập thành công!');
-      onClose(); // Đóng modal
-      
-      // Reload trang để Header component cập nhật
-      window.location.reload();
       
     } catch (error) {
       console.error('Lỗi đăng nhập:', error);
-      setError(error.message || 'Có lỗi xảy ra khi đăng nhập');
+      setErrorNotification({
+        show: true,
+        message: error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại!'
+      });
+      
+      // Tự động ẩn thông báo lỗi sau 4 giây
+      setTimeout(() => {
+        setErrorNotification({ show: false, message: '' });
+      }, 4000);
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +113,31 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
 
   return (
     <div className="login-overlay">
+      {/* 🔔 Error Notification Only */}
+      {errorNotification.show && (
+        <div className="notification error">
+          <div className="notification-content">
+            <div className="notification-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <span className="notification-message">{errorNotification.message}</span>
+            <button
+              className="notification-close"
+              onClick={() => setErrorNotification({ show: false, message: '' })}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="login-modal">
         <button className="close-btn" onClick={onClose} aria-label="Đóng">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -97,15 +151,15 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
           
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="username" className="form-label">Tài khoản</label>
+              <label htmlFor="identifier" className="form-label">Tài khoản</label>
               <input
                 type="text"
-                id="username"
-                name="username"
-                value={formData.username}
+                id="identifier"
+                name="identifier"
+                value={formData.identifier}
                 onChange={handleInputChange}
                 className="form-input"
-                placeholder="Nhập tài khoản của bạn"
+                placeholder="Nhập username, email hoặc số điện thoại"
                 required
               />
             </div>
@@ -153,8 +207,23 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
             
             {error && <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
             
-            <button type="submit" className="login-submit-btn" disabled={isLoading}>
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            <button type="submit" className="login-submit-btn" disabled={isLoading || loginSuccess}>
+              {loginSuccess ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                  Đăng nhập thành công!
+                </div>
+              ) : isLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <div className="spinner"></div>
+                  Đang đăng nhập...
+                </div>
+              ) : (
+                'Đăng nhập'
+              )}
             </button>
           </form>
           

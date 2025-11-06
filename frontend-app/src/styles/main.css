@@ -24,6 +24,7 @@
 /* 5. Modal components */
 @import './components/datetime-modal.css';
 @import './components/login-modal.css';
+@import './components/notification.css';
 
 /* 6. Page-specific styles */
 @import './pages/home.css';

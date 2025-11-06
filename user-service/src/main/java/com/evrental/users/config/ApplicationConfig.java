@@ -1,7 +1,5 @@
 package com.evrental.users.config;
 
-import com.evrental.users.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,6 +11,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.evrental.users.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
@@ -21,8 +23,13 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        return identifier -> {
+            // Thử tìm theo email trước
+            return userRepository.findByEmail(identifier)
+                    .or(() -> userRepository.findByUsername(identifier)) // Nếu không có, thử username
+                    .or(() -> userRepository.findByPhoneNumber(identifier)) // Nếu không có, thử phoneNumber
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + identifier));
+        };
     }
 
     @Bean
