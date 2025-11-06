@@ -18,7 +18,6 @@ public class ReportController {
     private final IReportService reportService;
 
     @GetMapping("/ping")
-    @PreAuthorize("isAuthenticated()")
     public String ping() {
         return "Reporting-Service is alive!";
     }

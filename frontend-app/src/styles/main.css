@@ -29,6 +29,7 @@
 @import './pages/home.css';
 @import './pages/search.css';
 @import './pages/about.css';
-
+@import './pages/profile.css';
 /* 7. Responsive styles - Phải import cuối cùng để override */
 @import './utils/responsive.css';
+

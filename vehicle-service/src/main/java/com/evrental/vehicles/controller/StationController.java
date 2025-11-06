@@ -17,7 +17,6 @@ public class StationController {
 
     private final IVehicleService vehicleService;
 
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/ping")
     public String ping() {
         return "Vehicle-Service (Stations) is alive!";
