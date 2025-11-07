@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import SearchPage from './pages/SearchPage';
 import Profile from './pages/Profile';
+import Contact from './pages/Contact';
 import './styles/main.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="/gioi-thieu-fev" element={<About />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/lien-he" element={<Contact />} />
         </Routes>
       </div>
     </Router>

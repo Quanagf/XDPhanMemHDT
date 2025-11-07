@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const paymentMethods = [
@@ -12,7 +13,7 @@ const Footer = () => {
 
   const navigationLinks = [
     { href: "/", text: "Trang chủ" },
-    { href: "/gioi-thieu", text: "Giới thiệu" },
+    { href: "/gioi-thieu-fev", text: "Giới thiệu" },
     { href: "/lien-he", text: "Liên hệ" },
     { href: "/chuyen-cua-toi", text: "Chuyến của tôi" }
   ];
@@ -51,7 +52,7 @@ const Footer = () => {
             <ul className="footer-nav">
               {navigationLinks.map((link, index) => (
                 <li key={index}>
-                  <a href={link.href}>{link.text}</a>
+                  <Link to={link.href}>{link.text}</Link>
                 </li>
               ))}
             </ul>

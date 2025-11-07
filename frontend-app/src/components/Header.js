@@ -139,7 +139,15 @@ const Header = ({ onOpenLogin }) => {
                   GIỚI THIỆU FEV
                 </Link>
               </li>
-              <li><a href="/lien-he">LIÊN HỆ</a></li>
+              <li>
+                <Link 
+                  to="/lien-he"
+                  className={location.pathname === '/lien-he' ? 'active' : ''}
+                  aria-current={location.pathname === '/lien-he' ? 'page' : undefined}
+                >
+                  LIÊN HỆ
+                </Link>
+              </li>
               <li><a href="/chuyen-cua-toi">CHUYẾN CỦA TÔI</a></li>
             </ul>
           </nav>
