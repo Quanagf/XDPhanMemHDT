@@ -8,6 +8,8 @@ const Profile = () => {
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [activeSection, setActiveSection] = useState('account');
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [activeTripsTab, setActiveTripsTab] = useState('current');
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
@@ -204,36 +206,205 @@ const Profile = () => {
         return renderAccountInfo();
       case 'favorites':
         return (
-          <div className="profile-box">
-            <h2>Xe yêu thích</h2>
-            <p>Chưa có xe yêu thích nào.</p>
+          <div className="profile-content-container">
+            <div className="profile-box favorites-box">
+              <div className="profile-box-header">
+                <h3 className="profile-box-title">Xe yêu thích của tôi</h3>
+              </div>
+              
+              {/* Empty state for favorites */}
+              <div className="favorites-empty-state">
+                <div className="favorites-empty-icon">
+                  <img 
+                    src="/assets/images/no data/Gemini_Generated_Image_tufjhwtufjhwtufj-removebg-preview.png" 
+                    alt="Không có xe yêu thích" 
+                    className="no-favorites-image"
+                  />
+                </div>
+                <p className="favorites-empty-text">Bạn chưa có xe yêu thích nào</p>
+              </div>
+            </div>
           </div>
         );
       case 'trips':
+        const renderTripsContent = () => {
+          // All tabs show the same empty state for now
+          return (
+            <div className="trips-empty-state">
+              <div className="trips-empty-icon">
+                <img 
+                  src="/assets/images/no data/Gemini_Generated_Image_8hczgs8hczgs8hcz-removebg-preview.png" 
+                  alt="No trips available" 
+                  className="no-trips-image"
+                />
+              </div>
+              <p className="trips-empty-text">Bạn chưa có chuyến</p>
+            </div>
+          );
+        };
+
         return (
-          <div className="profile-box">
-            <h2>Chuyến của tôi</h2>
-            <p>Chưa có chuyến đi nào.</p>
+          <div className="profile-content-container">
+            <div className="profile-box trips-box">
+              <div className="profile-box-header">
+                <h2 className="profile-box-title centered-title">Chuyến của tôi</h2>
+              </div>
+              
+              {/* Trip Tabs */}
+              <div className="trip-tabs">
+                <button 
+                  className={`trip-tab ${activeTripsTab === 'current' ? 'active' : ''}`}
+                  onClick={() => setActiveTripsTab('current')}
+                >
+                  Chuyến hiện tại
+                </button>
+                <button 
+                  className={`trip-tab ${activeTripsTab === 'history' ? 'active' : ''}`}
+                  onClick={() => setActiveTripsTab('history')}
+                >
+                  Lịch sử chuyến
+                </button>
+                <button 
+                  className={`trip-tab ${activeTripsTab === 'overview' ? 'active' : ''}`}
+                  onClick={() => setActiveTripsTab('overview')}
+                >
+                  Tổng quan chuyến
+                </button>
+              </div>
+
+              {/* Trip Content */}
+              <div className="trip-content">
+                {renderTripsContent()}
+              </div>
+            </div>
           </div>
         );
       case 'password':
         return (
-          <div className="profile-box">
-            <h2>Đổi mật khẩu</h2>
-            <p>Chức năng đổi mật khẩu.</p>
-          </div>
-        );
-      case 'delete':
-        return (
-          <div className="profile-box">
-            <h2>Yêu cầu xóa tài khoản</h2>
-            <p>Chức năng xóa tài khoản.</p>
+          <div className="profile-content-container">
+            <div className="profile-box password-box">
+              <div className="password-header">
+                <h3 className="password-title">Đổi mật khẩu</h3>
+                <p className="password-subtitle">Vui lòng nhập mật khẩu hiện tại để cài đặt lại mật khẩu mới!</p>
+              </div>
+              
+              <div className="password-form">
+                <div className="password-section">
+                  <div className="password-field">
+                    <label className="password-label">Nhập mật khẩu hiện tại</label>
+                    <div className="password-input-container">
+                      <input 
+                        type="password" 
+                        className="password-input"
+                        placeholder="Nhập mật khẩu hiện tại"
+                      />
+                      <button type="button" className="password-toggle">
+                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                          <path d="M1 1l22 22"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="password-field">
+                    <label className="password-label">Nhập mật khẩu mới</label>
+                    <div className="password-input-container">
+                      <input 
+                        type="password" 
+                        className="password-input"
+                        placeholder="Nhập mật khẩu mới"
+                      />
+                      <button type="button" className="password-toggle">
+                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                          <path d="M1 1l22 22"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="password-field">
+                    <label className="password-label">Xác nhận mật khẩu mới</label>
+                    <div className="password-input-container">
+                      <input 
+                        type="password" 
+                        className="password-input"
+                        placeholder="Xác nhận mật khẩu mới"
+                      />
+                      <button type="button" className="password-toggle">
+                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                          <path d="M1 1l22 22"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="password-actions">
+                    <button className="password-confirm-btn">Xác nhận</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         );
       default:
         return renderAccountInfo();
     }
   };
+
+  // Render delete account page
+  const renderDeleteAccountPage = () => {
+    return (
+      <div className="profile-container">
+        <Header onOpenLogin={handleOpenLogin} />
+        
+        <main className="profile-main full-width">
+          <div className="delete-account-container">
+            <div className="delete-account-content">
+              <h1 className="delete-account-title">Yêu cầu xóa tài khoản</h1>
+              <p className="delete-account-subtitle">Vui lòng đọc kĩ những điều sau</p>
+              
+              <div className="delete-account-illustration">
+                <img 
+                  src="/assets/images/no data/Gemini_Generated_Image_z6clpdz6clpdz6cl-removebg-preview.png" 
+                  alt="Delete Account Illustration" 
+                  className="delete-account-image"
+                />
+              </div>
+
+              <div className="delete-account-text">
+                <p className="info-text">Khi xóa tài khoản, các thông tin sau (nếu có) sẽ bị xóa trên hệ thống:</p>
+                <ul className="info-list-simple">
+                  <li>Thông tin cá nhân</li>
+                  <li>Thông tin lịch sử chuyến và danh sách xe</li>
+                </ul>
+                <p className="info-text">Yêu cầu xóa tài khoản sẽ được xử lý trong vòng 15 ngày làm việc. FEV sẽ liên hệ trực tiếp với bạn thông qua Email hoặc Số điện thoại đã cung cấp.</p>
+                <p className="info-text">Mọi thắc mắc xin liên hệ Fanpage của FEV hoặc Hotline 1900 1234 (7AM - 10PM) để được hỗ trợ.</p>
+              </div>
+
+              <div className="delete-account-actions">
+                <button className="delete-account-btn">Xóa tài khoản</button>
+                <button className="cancel-btn" onClick={() => setShowDeleteAccount(false)}>Hủy</button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+        {showLogin && <Login onClose={handleCloseLogin} />}
+      </div>
+    );
+  };
+
+  // If showing delete account page, render it
+  if (showDeleteAccount) {
+    return renderDeleteAccountPage();
+  }
 
   return (
     <div className="profile-container">
@@ -304,7 +475,7 @@ const Profile = () => {
 
               <div className={`profile-nav-item ${activeSection === 'delete' ? 'with-border' : 'without-border'}`}>
                 <button
-                  onClick={() => setActiveSection('delete')}
+                  onClick={() => setShowDeleteAccount(true)}
                   className={`profile-nav-button ${activeSection === 'delete' ? 'active' : ''}`}
                 >
                   <svg className="profile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
