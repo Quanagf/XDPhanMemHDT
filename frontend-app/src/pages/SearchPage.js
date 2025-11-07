@@ -38,7 +38,7 @@ const CarCard = ({ car }) => {
               <iconify-icon icon="mdi:wallet-outline" aria-hidden="true"></iconify-icon> số tự động
             </span>
             <span className="detail-item">
-              <iconify-icon icon="mdi:gas-station-outline" aria-hidden="true"></iconify-icon> 4 Ghế
+              <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon> 4 Ghế
             </span>
             <span className="detail-item last-item">
               <iconify-icon icon="mdi:engine-outline" aria-hidden="true"></iconify-icon> ~87.7 kWh

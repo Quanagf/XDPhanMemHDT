@@ -25,6 +25,10 @@
     width: auto;
 }
 
+.main-nav {
+    margin-left: 60px; /* Dịch chuyển menu qua phải */
+}
+
 .main-nav ul {
     display: flex;
     gap: 30px;
@@ -66,4 +70,12 @@
     /* Hiệu ứng khi di chuột qua */
     background-color: var(--color-fev-green); /* Nền xanh khi hover */
     color: var(--color-white); /* Chữ trắng khi hover */
+}
+
+/* ========================================================= */
+/* NOTIFICATIONS DROPDOWN */
+/* ========================================================= */
+
+.notifications-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }

@@ -12,6 +12,12 @@
     gap: 30px;
 }
 
+.car-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
 .car-card {
     background-color: var(--color-white);
     border: 1px solid #EBEBEB;

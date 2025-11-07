@@ -6,6 +6,7 @@ const Header = ({ onOpenLogin }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [logoutNotification, setLogoutNotification] = useState({ show: false, message: '' });
   
   // Kiểm tra trạng thái đăng nhập khi component mount
@@ -31,13 +32,16 @@ const Header = ({ onOpenLogin }) => {
       if (showUserMenu && !event.target.closest('.user-menu-container')) {
         setShowUserMenu(false);
       }
+      if (showNotifications && !event.target.closest('.notification-container')) {
+        setShowNotifications(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu]);
+  }, [showUserMenu, showNotifications]);
   
   const handleLoginClick = (e) => {
     e.preventDefault();
@@ -75,6 +79,46 @@ const Header = ({ onOpenLogin }) => {
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
   };
+
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  // Mock notifications data
+  const notifications = [
+    {
+      id: 1,
+      title: "Chào mừng đến với FEV",
+      message: "Chào mừng bạn tham gia cộng đồng FEV - Fast Electric Vehicle, khám phá ngay những xe điện hiện đại và trải nghiệm thuê xe thông minh.",
+      time: "2 ngày trước",
+      isRead: false,
+      type: "welcome"
+    },
+    {
+      id: 2,
+      title: "Khuyến mãi đặc biệt", 
+      message: "Giảm 20% cho chuyến đi đầu tiên! Sử dụng mã FEVFIRST khi đặt xe điện để nhận ưu đãi hấp dẫn.",
+      time: "1 tuần trước",
+      isRead: false,
+      type: "promotion"
+    },
+    {
+      id: 3,
+      title: "Cập nhật tính năng mới",
+      message: "FEV vừa ra mắt tính năng theo dõi pin xe điện thời gian thực và tìm trạm sạc gần nhất. Trải nghiệm ngay!",
+      time: "2 tuần trước",
+      isRead: true,
+      type: "update"
+    },
+    {
+      id: 4,
+      title: "Chuyến đi thành công",
+      message: "Cảm ơn bạn đã hoàn thành chuyến đi. Đánh giá trải nghiệm của bạn để giúp FEV cải thiện dịch vụ nhé!",
+      time: "3 tuần trước",
+      isRead: true,
+      type: "trip"
+    }
+  ];
 
   // Cập nhật onOpenLogin để truyền callback
   const handleOpenLogin = () => {
@@ -148,14 +192,178 @@ const Header = ({ onOpenLogin }) => {
                   LIÊN HỆ
                 </Link>
               </li>
-              <li><a href="/chuyen-cua-toi">CHUYẾN CỦA TÔI</a></li>
+              <li>
+                <Link 
+                  to="/profile?section=trips"
+                  className={location.pathname === '/profile' && new URLSearchParams(location.search).get('section') === 'trips' ? 'active' : ''}
+                  aria-current={location.pathname === '/profile' && new URLSearchParams(location.search).get('section') === 'trips' ? 'page' : undefined}
+                >
+                  CHUYẾN CỦA TÔI
+                </Link>
+              </li>
             </ul>
           </nav>
           
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               {/* Notification Icon */}
-              <button 
+              <div className="notification-container" style={{ position: 'relative' }}>
+                <button 
+                  onClick={toggleNotifications}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#333',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    transition: 'background-color 0.2s',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                  title="Thông báo"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  {/* Notification badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '6px',
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#ff4757',
+                    borderRadius: '50%'
+                  }}></div>
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div 
+                    className="notifications-dropdown"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      background: '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                      width: '380px',
+                      zIndex: 1000,
+                      marginTop: '8px',
+                      maxHeight: '400px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{
+                      padding: '16px 20px',
+                      borderBottom: '1px solid #f0f0f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <h3 style={{ 
+                        margin: 0, 
+                        fontSize: '18px', 
+                        fontWeight: '600',
+                        color: '#333'
+                      }}>
+                        Thông báo
+                      </h3>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div style={{
+                      maxHeight: '350px',
+                      overflowY: 'auto',
+                      scrollbarWidth: 'none', /* Firefox */
+                      msOverflowStyle: 'none'  /* IE and Edge */
+                    }}
+                    className="notifications-scroll"
+                    >
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id}
+                          style={{
+                            padding: '16px 20px',
+                            borderBottom: '1px solid #f8f8f8',
+                            display: 'flex',
+                            gap: '12px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                            position: 'relative'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        >
+                          {/* Notification Icon */}
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#47C778',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                          </div>
+
+                          {/* Notification Content */}
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{
+                              margin: '0 0 4px 0',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              color: '#333'
+                            }}>
+                              {notification.title}
+                            </h4>
+                            <p style={{
+                              margin: '0 0 8px 0',
+                              fontSize: '14px',
+                              color: '#666',
+                              lineHeight: '1.4'
+                            }}>
+                              {notification.message}
+                            </p>
+                            <span style={{
+                              fontSize: '12px',
+                              color: '#999'
+                            }}>
+                              {notification.time}
+                            </span>
+                          </div>
+
+                          {/* Unread indicator */}
+                          {!notification.isRead && (
+                            <div style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: '#47C778',
+                              marginTop: '6px'
+                            }}></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Icon */}
+              <Link 
+                to="/chatbot"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -164,47 +372,19 @@ const Header = ({ onOpenLogin }) => {
                   padding: '8px',
                   borderRadius: '4px',
                   transition: 'background-color 0.2s',
-                  position: 'relative'
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                title="Thông báo"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                {/* Notification badge */}
-                <div style={{
-                  position: 'absolute',
-                  top: '6px',
-                  right: '6px',
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#ff4757',
-                  borderRadius: '50%'
-                }}></div>
-              </button>
-
-              {/* Chat Icon */}
-              <button 
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#333',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                title="Tin nhắn"
+                title="Trò chuyện với BTSTQ"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
-              </button>
+              </Link>
 
               {/* User Menu */}
               <div className="user-menu-container" style={{ position: 'relative' }}>
@@ -306,8 +486,8 @@ const Header = ({ onOpenLogin }) => {
                     
                     <ul style={{ listStyle: 'none', margin: 0, padding: '8px 0' }}>
                       <li>
-                        <a 
-                          href="/profile"
+                        <Link 
+                          to="/profile?section=account"
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -326,11 +506,11 @@ const Header = ({ onOpenLogin }) => {
                             <circle cx="12" cy="7" r="4"></circle>
                           </svg>
                           Thông tin cá nhân
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <a 
-                          href="/bookings" 
+                        <Link 
+                          to="/profile?section=trips&tab=history"
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -351,7 +531,7 @@ const Header = ({ onOpenLogin }) => {
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                           </svg>
                           Lịch sử thuê xe
-                        </a>
+                        </Link>
                       </li>
                       <li style={{ borderTop: '1px solid #eee', marginTop: '4px', paddingTop: '4px' }}>
                         <button 

@@ -31,6 +31,14 @@
     border-radius: 20px;
     text-align: center;
     width: fit-content;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.footer-logo-box:hover {
+    background-color: rgba(95, 207, 134, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(95, 207, 134, 0.3);
 }
 
 .footer-logo-box .fev-logo-icon {

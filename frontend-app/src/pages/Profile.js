@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 
 
 const Profile = () => {
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [activeSection, setActiveSection] = useState('account');
@@ -36,6 +38,22 @@ const Profile = () => {
       }
     }
   }, []);
+
+  // Xử lý URL query parameters để tự động chuyển đến section tương ứng
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const section = searchParams.get('section');
+    const tab = searchParams.get('tab');
+    
+    if (section && ['account', 'favorites', 'trips', 'password'].includes(section)) {
+      setActiveSection(section);
+    }
+    
+    // Nếu section là trips và có tab parameter, set activeTripsTab
+    if (section === 'trips' && tab && ['current', 'history', 'overview'].includes(tab)) {
+      setActiveTripsTab(tab);
+    }
+  }, [location.search]);
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);

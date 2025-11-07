@@ -1,7 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Footer = () => {
+  const navigate = useNavigate();
+  
   const paymentMethods = [
     { src: "/assets/images/payment/download.png", alt: "ZaloPay" },
     { src: "/assets/images/payment/download (2).png", alt: "MoMo" },
@@ -15,7 +17,7 @@ const Footer = () => {
     { href: "/", text: "Trang chủ" },
     { href: "/gioi-thieu-fev", text: "Giới thiệu" },
     { href: "/lien-he", text: "Liên hệ" },
-    { href: "/chuyen-cua-toi", text: "Chuyến của tôi" }
+    { href: "/profile?section=trips", text: "Chuyến của tôi" }
   ];
 
   const socialLinks = [
@@ -24,12 +26,33 @@ const Footer = () => {
     { href: "https://facebook.com/fev", icon: "mdi:facebook", label: "FEV trên Facebook" }
   ];
 
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  const handleNavClick = (e) => {
+    // Scroll to top when navigation link is clicked
+    setTimeout(() => {
+      scrollToTop();
+    }, 100); // Small delay to ensure navigation completes first
+  };
+
+  const handleLogoClick = () => {
+    navigate('/');
+    setTimeout(() => {
+      scrollToTop();
+    }, 100);
+  };
+
   return (
     <>
       <footer className="main-footer" role="contentinfo">
         <div className="footer-content-wrapper">
           <div className="footer-col contact-col">
-            <div className="footer-logo-box">
+            <div className="footer-logo-box" onClick={handleLogoClick}>
               <img 
                 src="/assets/images/logo/Gemini_Generated_Image_3rs8943rs8943rs8-removebg.png" 
                 alt="Logo FEV" 
@@ -52,7 +75,7 @@ const Footer = () => {
             <ul className="footer-nav">
               {navigationLinks.map((link, index) => (
                 <li key={index}>
-                  <Link to={link.href}>{link.text}</Link>
+                  <Link to={link.href} onClick={handleNavClick}>{link.text}</Link>
                 </li>
               ))}
             </ul>
