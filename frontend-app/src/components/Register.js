@@ -7,7 +7,8 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    birthDate: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -70,6 +71,27 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       newErrors.email = 'Email không hợp lệ';
     }
 
+    // Validate birthDate (ngày sinh)
+    if (!formData.birthDate) {
+      newErrors.birthDate = 'Vui lòng nhập ngày sinh';
+    } else {
+      const birthDate = new Date(formData.birthDate);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+      
+      // Tính tuổi chính xác
+      let actualAge = age;
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        actualAge--;
+      }
+      
+      if (actualAge < 18) {
+        newErrors.birthDate = 'Bạn phải đủ 18 tuổi để đăng ký';
+      }
+    }
+
     // Validate password
     if (!formData.password) {
       newErrors.password = 'Vui lòng nhập mật khẩu';
@@ -112,12 +134,14 @@ const Register = ({ onClose, onSwitchToLogin }) => {
           username: formData.username,
           fullName: formData.fullName,
           password: formData.password,
+          birthDate: formData.birthDate,
           role: 'RENTER'
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Đăng ký thất bại');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Đăng ký thất bại');
       }
 
       // Xử lý logic đăng ký ở đây
@@ -125,7 +149,8 @@ const Register = ({ onClose, onSwitchToLogin }) => {
         phoneNumber: formData.phoneNumber,
         email: formData.email,
         username: formData.username,
-        fullName: formData.fullName
+        fullName: formData.fullName,
+        birthDate: formData.birthDate
       });
       
       // Hiển thị thông báo thành công
@@ -270,6 +295,21 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 required
               />
               {errors.email && <span className="error-message">{errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="birthDate" className="form-label">Ngày sinh (phải đủ 18 tuổi)</label>
+              <input
+                type="date"
+                id="birthDate"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleInputChange}
+                className={`form-input ${errors.birthDate ? 'error' : ''}`}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                required
+              />
+              {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
             </div>
             
             <div className="form-group">

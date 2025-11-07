@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest;
+import com.evrental.users.dto.UpdateProfileRequest;
 import com.evrental.users.model.User;
 import com.evrental.users.service.IUserService;
 
@@ -56,6 +57,17 @@ public class UserController {
     public ResponseEntity<User> getMyProfile(Principal principal) {
         String email = principal.getName();
         return ResponseEntity.ok(userService.getProfile(email));
+    }
+
+    // === API CẬP NHẬT THÔNG TIN CÁ NHÂN ===
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()") // Yêu cầu xác thực
+    public ResponseEntity<User> updateMyProfile(
+            @RequestBody UpdateProfileRequest request,
+            Principal principal) {
+        String email = principal.getName();
+        User updatedUser = userService.updateProfile(email, request);
+        return ResponseEntity.ok(updatedUser);
     }
 
     // === API XÁC THỰC USER (2.b) ===

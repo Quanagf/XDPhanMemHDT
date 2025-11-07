@@ -237,6 +237,29 @@
   color: #999;
 }
 
+/* Input styles for editing mode */
+.profile-info-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.3s;
+}
+
+.profile-info-input:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
+}
+
+.profile-info-input::placeholder {
+  color: #999;
+}
+
 /* Document Styles */
 .profile-document-grid {
   display: grid;

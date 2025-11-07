@@ -10,17 +10,109 @@ const Profile = () => {
   const [activeSection, setActiveSection] = useState('account');
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [activeTripsTab, setActiveTripsTab] = useState('current');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    address: '',
+    birthDate: '',
+    gender: '',
+    facebook: ''
+  });
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
     if (userProfile) {
       try {
-        setUser(JSON.parse(userProfile));
+        const parsedUser = JSON.parse(userProfile);
+        setUser(parsedUser);
+        // Khởi tạo form với dữ liệu hiện tại (chỉ các trường được phép sửa)
+        setEditForm({
+          address: parsedUser.address || '',
+          birthDate: parsedUser.birthDate || '',
+          gender: parsedUser.gender || '',
+          facebook: parsedUser.facebook || ''
+        });
       } catch (error) {
         console.error('Error parsing user profile:', error);
       }
     }
   }, []);
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      // Chỉ gửi các trường có giá trị (loại bỏ empty string)
+      const updateData = {};
+      if (editForm.address && editForm.address.trim()) {
+        updateData.address = editForm.address.trim();
+      }
+      if (editForm.birthDate) {
+        updateData.birthDate = editForm.birthDate;
+      }
+      if (editForm.gender && editForm.gender.trim()) {
+        updateData.gender = editForm.gender.trim();
+      }
+      if (editForm.facebook && editForm.facebook.trim()) {
+        updateData.facebook = editForm.facebook.trim();
+      }
+      
+      console.log('Sending update request with data:', updateData);
+      
+      const response = await fetch('http://localhost:8081/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      console.log('Response status:', response.status);
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        console.log('Updated user:', updatedUser);
+        setUser(updatedUser);
+        localStorage.setItem('userProfile', JSON.stringify(updatedUser));
+        setIsEditing(false);
+        alert('Cập nhật thông tin thành công!');
+      } else {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        alert(`Có lỗi xảy ra: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert(`Có lỗi xảy ra khi cập nhật thông tin: ${error.message}`);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '--/--/---';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const formatCreatedDate = (dateString) => {
+    if (!dateString) return '01/01/2026';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   const handleOpenLogin = (callback) => {
     setShowLogin(true);
@@ -63,8 +155,22 @@ const Profile = () => {
       <div className="profile-box">
         <div className="profile-box-header">
           <h3 className="profile-box-title">Thông tin tài khoản</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-edit-icon">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          <svg 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            className="profile-edit-icon"
+            onClick={isEditing ? handleSaveProfile : handleEditToggle}
+            style={{ cursor: 'pointer' }}
+          >
+            {isEditing ? (
+              <path d="M5 13l4 4L19 7" /> // Save icon (checkmark)
+            ) : (
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            )}
           </svg>
         </div>
 
@@ -72,10 +178,10 @@ const Profile = () => {
           {/* Left side - Avatar and basic info */}
           <div className="profile-avatar-section">
             <div className="profile-avatar">
-              {(user.fullName || user.username || 'J').charAt(0).toUpperCase()}
+              {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
             </div>
-            <h4 className="profile-user-name">Jack - 97</h4>
-            <p className="profile-join-date">Tham gia: 01/01/2026</p>
+            <h4 className="profile-user-name">{user.fullName || user.username || 'User'}</h4>
+            <p className="profile-join-date">Tham gia: {formatCreatedDate(user.createdAt)}</p>
           </div>
 
           {/* Right side - Personal details */}
@@ -83,44 +189,83 @@ const Profile = () => {
             <div className="profile-info-grid">
               <div className="profile-info-item">
                 <span className="profile-info-label">Ngày sinh</span>
-                <span className="profile-info-value">--/--/---</span>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    name="birthDate"
+                    value={editForm.birthDate}
+                    onChange={handleInputChange}
+                    className="profile-info-input"
+                  />
+                ) : (
+                  <span className="profile-info-value">{formatDate(user.birthDate)}</span>
+                )}
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Giới tính</span>
-                <span className="profile-info-value">---</span>
+                {isEditing ? (
+                  <select
+                    name="gender"
+                    value={editForm.gender}
+                    onChange={handleInputChange}
+                    className="profile-info-input"
+                  >
+                    <option value="">Chọn giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                ) : (
+                  <span className="profile-info-value">{user.gender || '---'}</span>
+                )}
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Số điện thoại</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.phoneNumber || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Địa chỉ</span>
-                <span className="profile-info-value"></span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="address"
+                    value={editForm.address}
+                    onChange={handleInputChange}
+                    className="profile-info-input"
+                  />
+                ) : (
+                  <span className="profile-info-value">{user.address || '---'}</span>
+                )}
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Email</span>
-                <span className="profile-info-value"></span>
-              </div>
-              <div className="profile-info-item">
-                <span className="profile-info-label">Google</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.email || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Facebook</span>
-                <span className="profile-info-value"></span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="facebook"
+                    value={editForm.facebook}
+                    onChange={handleInputChange}
+                    className="profile-info-input"
+                    placeholder="Link Facebook của bạn"
+                  />
+                ) : (
+                  <span className="profile-info-value">{user.facebook || '---'}</span>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Driver License Box */}
+      {/* Driver License Box - CHỈ HIỂN thị, không cho chỉnh sửa */}
       <div className="profile-box">
         <div className="profile-box-header">
           <h3 className="profile-box-title">Giấy phép lái xe</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-edit-icon">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <span style={{ fontSize: '0.85rem', color: '#666' }}>(Cập nhật riêng)</span>
         </div>
 
         <div className="profile-document-grid">
@@ -128,41 +273,45 @@ const Profile = () => {
           <div className="profile-upload-section">
             <label className="profile-upload-label">Hình ảnh</label>
             <div className="profile-upload-area">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#28a745" strokeWidth="2" className="profile-upload-icon">
-                <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="profile-upload-text">Chưa có tập tin</p>
+              {user.licenseImage ? (
+                <img src={user.licenseImage} alt="License" style={{ maxWidth: '100%', maxHeight: '200px' }} />
+              ) : (
+                <>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#28a745" strokeWidth="2" className="profile-upload-icon">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="profile-upload-text">Chưa có tập tin</p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* License info */}
+          {/* License info - CHỈ HIỂN THỊ */}
           <div className="profile-document-info">
             <label className="profile-document-label">Thông tin chung</label>
             <div className="profile-document-grid-info">
               <div className="profile-info-item">
                 <span className="profile-info-label">Số GPLX</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.licenseNumber || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Họ và tên</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.fullName || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Ngày sinh</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{formatDate(user.birthDate)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ID Card Box */}
+      {/* ID Card Box - CHỈ HIỂN thị, không cho chỉnh sửa */}
       <div className="profile-box">
         <div className="profile-box-header">
           <h3 className="profile-box-title">Căn cước công dân</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-edit-icon">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <span style={{ fontSize: '0.85rem', color: '#666' }}>(Cập nhật riêng)</span>
         </div>
 
         <div className="profile-document-grid">
@@ -170,28 +319,34 @@ const Profile = () => {
           <div className="profile-upload-section">
             <label className="profile-upload-label">Hình ảnh</label>
             <div className="profile-upload-area">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#28a745" strokeWidth="2" className="profile-upload-icon">
-                <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="profile-upload-text">Chưa có tập tin</p>
+              {user.identityImage ? (
+                <img src={user.identityImage} alt="ID Card" style={{ maxWidth: '100%', maxHeight: '200px' }} />
+              ) : (
+                <>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#28a745" strokeWidth="2" className="profile-upload-icon">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="profile-upload-text">Chưa có tập tin</p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* ID info */}
+          {/* ID info - CHỈ HIỂN THỊ */}
           <div className="profile-document-info">
             <label className="profile-document-label">Thông tin chung</label>
             <div className="profile-document-grid-info">
               <div className="profile-info-item">
                 <span className="profile-info-label">Số CCCD</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.identityNumber || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Họ và tên</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{user.fullName || '---'}</span>
               </div>
               <div className="profile-info-item">
                 <span className="profile-info-label">Ngày sinh</span>
-                <span className="profile-info-value"></span>
+                <span className="profile-info-value">{formatDate(user.birthDate)}</span>
               </div>
             </div>
           </div>

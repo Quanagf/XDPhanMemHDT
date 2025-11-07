@@ -1,6 +1,8 @@
 package com.evrental.users.service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest; // <-- IMPORT MỚI
+import com.evrental.users.dto.UpdateProfileRequest;
 import com.evrental.users.model.User;
 import com.evrental.users.repository.UserRepository;
 
@@ -43,18 +46,28 @@ public class UserServiceImpl implements IUserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã tồn tại");
         }
 
-        // 2. Xây dựng Entity
+        // 2. Validate tuổi phải >= 18
+        if (request.getBirthDate() != null) {
+            int age = Period.between(request.getBirthDate(), LocalDate.now()).getYears();
+            if (age < 18) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn phải đủ 18 tuổi để đăng ký");
+            }
+        }
+
+        // 3. Xây dựng Entity
         User newUser = User.builder()
                 .email(request.getEmail())
                 .username(request.getUsername())
                 .fullName(request.getFullName())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .birthDate(request.getBirthDate())
                 .role(request.getRole() != null ? request.getRole() : User.Role.RENTER)
                 .status(User.UserStatus.ACTIVE)
                 .isVerified(false)
                 .build();
 
-        // 3. Lưu vào Repository
+        // 4. Lưu vào Repository
         return userRepository.save(newUser);
     }
 
@@ -147,6 +160,33 @@ public class UserServiceImpl implements IUserService {
         }
 
         // 5. Lưu user lại
+        return userRepository.save(user);
+    }
+
+    // === HÀM MỚI (Cập nhật thông tin profile) ===
+    @Override
+    public User updateProfile(String email, UpdateProfileRequest request) {
+        // 1. Tìm user
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // 2. Cập nhật các trường được phép chỉnh sửa
+        if (request.getAddress() != null && !request.getAddress().isEmpty()) {
+            user.setAddress(request.getAddress());
+        }
+        if (request.getBirthDate() != null) {
+            user.setBirthDate(request.getBirthDate());
+        }
+        if (request.getGender() != null && !request.getGender().isEmpty()) {
+            user.setGender(request.getGender());
+        }
+        if (request.getFacebook() != null && !request.getFacebook().isEmpty()) {
+            user.setFacebook(request.getFacebook());
+        }
+        // Lưu ý: email, phoneNumber không cho phép sửa
+        // licenseNumber và identityNumber sẽ được cập nhật qua API upload riêng
+
+        // 3. Lưu và trả về
         return userRepository.save(user);
     }
 }
