@@ -33,4 +33,25 @@ public interface IUserService {
      * @return User đã được cập nhật
      */
     User updateProfile(String email, UpdateProfileRequest request);
+
+    /**
+     * Admin tạo tài khoản Staff.
+     * @param request Thông tin đăng ký Staff
+     * @return User Staff đã được tạo
+     */
+    User createStaffAccount(RegistrationRequest request);
+
+    /**
+     * Admin thay đổi role của user.
+     * @param userId ID của user cần thay đổi role
+     * @param newRole Role mới (ADMIN, STAFF, RENTER)
+     * @return User đã được cập nhật
+     */
+    User updateUserRole(Long userId, String newRole);
+
+    /**
+     * Admin lấy danh sách tất cả user.
+     * @return List các User
+     */
+    java.util.List<User> getAllUsers();
 }

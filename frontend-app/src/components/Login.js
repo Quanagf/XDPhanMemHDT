@@ -62,6 +62,14 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
 
       const data = await response.json();
       
+      // Kiểm tra role - không cho phép Admin và Staff đăng nhập từ trang chủ
+      if (data.role === 'ADMIN') {
+        throw new Error('Tài khoản Admin vui lòng đăng nhập tại /admin/login');
+      }
+      if (data.role === 'STAFF') {
+        throw new Error('Tài khoản Staff vui lòng đăng nhập tại /staff/login');
+      }
+      
       // Lưu token vào localStorage
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('userRole', data.role);
@@ -85,10 +93,10 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
           onLoginSuccess(userProfile, data.token);
         }
         
-
+        // Chỉ RENTER được đăng nhập ở đây
         setTimeout(() => {
           window.location.reload();
-        }, 1); 
+        }, 500); 
       }
       
     } catch (error) {

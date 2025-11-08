@@ -189,4 +189,61 @@ public class UserServiceImpl implements IUserService {
         // 3. Lưu và trả về
         return userRepository.save(user);
     }
+
+    // === HÀM MỚI (Admin tạo tài khoản Staff) ===
+    @Override
+    public User createStaffAccount(RegistrationRequest request) {
+        // 1. Kiểm tra email và username đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+        }
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã tồn tại");
+        }
+
+        // 2. Tạo User với role STAFF
+        User newStaff = User.builder()
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .fullName(request.getFullName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .birthDate(request.getBirthDate())
+                .role(User.Role.STAFF) // Force role là STAFF
+                .status(User.UserStatus.ACTIVE)
+                .isVerified(true) // Staff được tạo bởi admin thì mặc định đã xác thực
+                .build();
+
+        // 3. Lưu và trả về
+        return userRepository.save(newStaff);
+    }
+
+    // === HÀM MỚI (Admin thay đổi role user) ===
+    @Override
+    public User updateUserRole(Long userId, String newRole) {
+        // 1. Tìm user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // 2. Validate role hợp lệ
+        User.Role role;
+        try {
+            role = User.Role.valueOf(newRole.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Role không hợp lệ. Chỉ chấp nhận: ADMIN, STAFF, RENTER");
+        }
+
+        // 3. Cập nhật role
+        user.setRole(role);
+
+        // 4. Lưu và trả về
+        return userRepository.save(user);
+    }
+
+    // === HÀM MỚI (Admin lấy tất cả user) ===
+    @Override
+    public java.util.List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
 }

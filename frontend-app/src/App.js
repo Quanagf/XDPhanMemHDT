@@ -7,6 +7,10 @@ import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import CarDetail from './pages/CarDetail';
 import ChatbotPage from './pages/ChatbotPage';
+import AdminLogin from './pages/AdminLogin';
+import StaffLogin from './pages/StaffLogin';
+import AdminDashboard from './pages/AdminDashboard';
+import StaffDashboard from './pages/StaffDashboard';
 import './styles/main.css';
 
 function App() {
@@ -21,6 +25,10 @@ function App() {
           <Route path="/lien-he" element={<Contact />} />
           <Route path="/car/:carId" element={<CarDetail />} />
           <Route path="/chatbot" element={<ChatbotPage />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/staff/login" element={<StaffLogin />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/staff" element={<StaffDashboard />} />
         </Routes>
       </div>
     </Router>

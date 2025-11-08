@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
@@ -7,6 +7,7 @@ import Login from '../components/Login';
 
 const Profile = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [activeSection, setActiveSection] = useState('account');
@@ -22,9 +23,21 @@ const Profile = () => {
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
-    if (userProfile) {
+    const authToken = localStorage.getItem('authToken');
+    
+    if (userProfile && authToken) {
       try {
         const parsedUser = JSON.parse(userProfile);
+        
+        // Chuyển hướng Admin và Staff đến trang của họ
+        if (parsedUser.role === 'ADMIN') {
+          navigate('/admin');
+          return;
+        } else if (parsedUser.role === 'STAFF') {
+          navigate('/staff');
+          return;
+        }
+        
         setUser(parsedUser);
         // Khởi tạo form với dữ liệu hiện tại (chỉ các trường được phép sửa)
         setEditForm({
@@ -35,9 +48,12 @@ const Profile = () => {
         });
       } catch (error) {
         console.error('Error parsing user profile:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userProfile');
+        localStorage.removeItem('userRole');
       }
     }
-  }, []);
+  }, [navigate]);
 
   // Xử lý URL query parameters để tự động chuyển đến section tương ứng
   useEffect(() => {

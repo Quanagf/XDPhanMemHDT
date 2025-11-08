@@ -106,4 +106,29 @@ public class UserController {
         // 3. Trả về user đã được cập nhật (chứa link URL mới)
         return ResponseEntity.ok(updatedUser);
     }
+
+    // === API ADMIN TẠO TÀI KHOẢN STAFF ===
+    @PostMapping("/admin/create-staff")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi
+    public ResponseEntity<User> createStaffAccount(@RequestBody RegistrationRequest request) {
+        User newStaff = userService.createStaffAccount(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newStaff);
+    }
+
+    // === API ADMIN THAY ĐỔI ROLE USER ===
+    @PutMapping("/admin/update-role/{userId}")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi
+    public ResponseEntity<User> updateUserRole(
+            @PathVariable Long userId,
+            @RequestParam String role) {
+        User updatedUser = userService.updateUserRole(userId, role);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    // === API ADMIN LẤY DANH SÁCH TẤT CẢ USER ===
+    @GetMapping("/admin/all-users")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
 }

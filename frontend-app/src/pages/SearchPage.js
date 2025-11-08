@@ -87,6 +87,35 @@ const SearchPage = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [user, setUser] = useState(null);
 
+  // Kiểm tra role và chuyển hướng
+  useEffect(() => {
+    const userProfile = localStorage.getItem('userProfile');
+    const authToken = localStorage.getItem('authToken');
+    
+    if (userProfile && authToken) {
+      try {
+        const parsedUser = JSON.parse(userProfile);
+        
+        // Chuyển hướng Admin và Staff đến trang của họ
+        if (parsedUser.role === 'ADMIN') {
+          navigate('/admin');
+          return;
+        } else if (parsedUser.role === 'STAFF') {
+          navigate('/staff');
+          return;
+        }
+        
+        // RENTER được ở lại trang này
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user profile:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userProfile');
+        localStorage.removeItem('userRole');
+      }
+    }
+  }, [navigate]);
+
   // Lấy thông tin tìm kiếm từ URL params
   const searchInfo = {
     location: searchParams.get('location') || 'TP Hồ Chí Minh',
