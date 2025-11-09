@@ -1,81 +1,77 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import vehicleService from '../utils/vehicleService';
 
-const CarCard = ({ car, index }) => {
+const statusClass = (status) => {
+  switch (status) {
+    case 'RENTED': return 'badge-rented';
+    case 'RESERVED': return 'badge-reserved';
+    default: return 'badge-available';
+  }
+};
+
+const CarCard = ({ car }) => {
+  const img = car.image_url || '/assets/images/cars/placeholder.webp';
   return (
-    <Link to={`/car/${index + 1}`} className="car-card-link">
-      <article className="car-card">
+    <article className="car-card">
+      <Link to={`/car/${car.id}`} className="car-card-link">
         <img 
-          src="/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp" 
-          alt="VINFAST VF 8 Eco 2024"
+          src={img} 
+          alt={car.description || car.type || 'Xe'}
           className="car-image"
           width="300" 
           height="200"
           loading="lazy"
         />
-        
-        <div className="card-details">
-          <h3>VINFAST VF 8 Eco 2024</h3>
-          
-          <div className="info-group">
-            <div className="info-row">
-              <span className="detail-item">
-                <iconify-icon icon="mdi:wallet-outline" aria-hidden="true"></iconify-icon> số tự động
-              </span>
-              <span className="detail-item">
-                <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon> 4 Ghế
-              </span>
-              <span className="detail-item last-item">
-                <iconify-icon icon="mdi:engine-outline" aria-hidden="true"></iconify-icon> ~87.7 kWh
-              </span>
-            </div>
-            
-            <div className="info-row">
-              <span className="detail-item">
-                <iconify-icon icon="mdi:road-variant" aria-hidden="true"></iconify-icon> Phạm vi di chuyển ~420km
-              </span>
-              <span className="detail-item last-item">
-                <iconify-icon icon="mdi:power-plug-outline" aria-hidden="true"></iconify-icon> Loại cổng sạc: CCS2
-              </span>
-            </div>
-            
-            <div className="info-row">
-              <span className="detail-item">
-                <iconify-icon icon="mdi:lightning-bolt-outline" aria-hidden="true"></iconify-icon> Tốc độ sạc: 10 - 70% trong ~25 mins
-              </span>
-            </div>
-            <div className="info-row location-info">
-              <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
-              <span>Phường 3, Quận Bình Thạnh</span>
-            </div>
-          </div>
-          
-          <div className="card-footer">
-            <span className="rating-reviews">
-              <iconify-icon icon="material-symbols:star" className="star-icon" aria-hidden="true"></iconify-icon> 4.8
-              <span className="separator">•</span> 
-              <iconify-icon icon="material-symbols:work-outline" className="trip-icon" aria-hidden="true"></iconify-icon> 19 Chuyến
-            </span>
-            <span className="price-per-day">
-              783K/<span className="day">ngày</span>
-            </span>
+      </Link>
+      <div className="card-details">
+        <h3>
+          <Link to={`/car/${car.id}`}>{car.description || car.type}</Link>
+        </h3>
+
+        <div className="info-group">
+          <div className="info-row location-info">
+            <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
+            <span>{car.station_id || 'Chưa xác định'}</span>
           </div>
         </div>
-      </article>
-    </Link>
+
+        <div className="card-footer">
+          <span className="price-per-day">
+            {car.price_per_hour ? `${car.price_per_hour.toLocaleString()}đ/giờ` : 'Liên hệ'}
+          </span>
+          <span className={`status-badge ${statusClass(car.status)}`}>
+            {car.status === 'AVAILABLE' ? 'Trống' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước'}
+          </span>
+        </div>
+      </div>
+    </article>
   );
 };
 
 const FeaturedCars = () => {
-  // Tạo array 6 xe giống như trong HTML gốc
-  const cars = Array(6).fill({});
+  const [cars, setCars] = useState([]);
+
+  useEffect(() => {
+    const data = vehicleService.getVehicles();
+    setCars(data || []);
+  }, []);
+
+  if (!cars || cars.length === 0) {
+    return (
+      <section className="featured-cars" aria-labelledby="featured-cars-title">
+        <h2 id="featured-cars-title">Xe Dành Cho Bạn</h2>
+        <p>Hiện chưa có xe hiển thị.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="featured-cars" aria-labelledby="featured-cars-title">
       <h2 id="featured-cars-title">Xe Dành Cho Bạn</h2>
       <div className="car-list-grid">
-        {cars.map((car, index) => (
-          <CarCard key={index} car={car} index={index} />
+        {cars.map((car) => (
+          <CarCard key={car.id} car={car} />
         ))}
       </div>
     </section>

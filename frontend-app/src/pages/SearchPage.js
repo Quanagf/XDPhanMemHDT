@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
+import vehicleService from '../utils/vehicleService';
 
 const SearchFilter = () => {
   return (
@@ -16,13 +17,17 @@ const SearchFilter = () => {
   );
 };
 
-// Sử dụng lại CarCard component từ FeaturedCars
+// CarCard hiển thị xe lấy từ vehicleService
 const CarCard = ({ car }) => {
+  const img = car.image_url || '/assets/images/cars/placeholder.webp';
+  const statusLabel = car.status === 'AVAILABLE' ? 'Trống' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước';
+  const statusClass = car.status === 'AVAILABLE' ? 'badge-available' : car.status === 'RENTED' ? 'badge-rented' : 'badge-reserved';
+
   return (
     <article className="car-card">
       <img 
-        src="/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp" 
-        alt="VINFAST VF 8 Eco 2024"
+        src={img} 
+        alt={car.description || car.type || 'Xe'}
         className="car-image"
         width="300" 
         height="200"
@@ -30,49 +35,21 @@ const CarCard = ({ car }) => {
       />
       
       <div className="card-details">
-        <h3>VINFAST VF 8 Eco 2024</h3>
+        <h3>{car.description || car.type}</h3>
         
         <div className="info-group">
-          <div className="info-row">
-            <span className="detail-item">
-              <iconify-icon icon="mdi:wallet-outline" aria-hidden="true"></iconify-icon> số tự động
-            </span>
-            <span className="detail-item">
-              <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon> 4 Ghế
-            </span>
-            <span className="detail-item last-item">
-              <iconify-icon icon="mdi:engine-outline" aria-hidden="true"></iconify-icon> ~87.7 kWh
-            </span>
-          </div>
-          
-          <div className="info-row">
-            <span className="detail-item">
-              <iconify-icon icon="mdi:road-variant" aria-hidden="true"></iconify-icon> Phạm vi di chuyển ~420km
-            </span>
-            <span className="detail-item last-item">
-              <iconify-icon icon="mdi:power-plug-outline" aria-hidden="true"></iconify-icon> Loại cổng sạc: CCS2
-            </span>
-          </div>
-          
-          <div className="info-row">
-            <span className="detail-item">
-              <iconify-icon icon="mdi:lightning-bolt-outline" aria-hidden="true"></iconify-icon> Tốc độ sạc: 10 - 70% trong ~25 mins
-            </span>
-          </div>
           <div className="info-row location-info">
             <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
-            <span>Phường 3, Quận Bình Thạnh</span>
+            <span>{car.station_id || 'Chưa xác định'}</span>
           </div>
         </div>
         
         <div className="card-footer">
-          <span className="rating-reviews">
-            <iconify-icon icon="material-symbols:star" className="star-icon" aria-hidden="true"></iconify-icon> 4.8
-            <span className="separator">•</span> 
-            <iconify-icon icon="material-symbols:work-outline" className="trip-icon" aria-hidden="true"></iconify-icon> 19 Chuyến
-          </span>
           <span className="price-per-day">
-            783K/<span className="day">ngày</span>
+            {car.price_per_hour ? `${car.price_per_hour.toLocaleString()}đ/giờ` : 'Liên hệ'}
+          </span>
+          <span className={`status-badge ${statusClass}`}>
+            {statusLabel}
           </span>
         </div>
       </div>
@@ -177,21 +154,13 @@ const SearchPage = () => {
     setUser(null);
   };
 
-  // Mock data - 9 xe như trong ảnh
-  const cars = Array(9).fill({
-    id: 1,
-    name: "VINFAST VF 8 Eco 2024",
-    transmission: "Số tự động",
-    seats: 4,
-    battery: "~87.7 kWh",
-    chargingPort: "CCS2",
-    chargingSpeed: "10 - 70% trong ~25 mins",
-    range: "~420km",
-    location: "Phường 3, quận Bình Thạnh",
-    rating: 4.8,
-    trips: 19,
-    price: "783K"
-  });
+    // Lấy dữ liệu xe từ vehicleService
+    const [cars, setCars] = React.useState([]);
+
+    useEffect(() => {
+      const v = vehicleService.getVehicles();
+      setCars(v || []);
+    }, []);
 
   return (
     <div className="SearchPage">
@@ -233,7 +202,7 @@ const SearchPage = () => {
           <div className="search-results-grid car-list-grid">
             {cars.map((car, index) => (
               <CarCard 
-                key={index}
+                key={car.id || index}
                 car={car}
               />
             ))}

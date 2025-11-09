@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
+import vehicleService from '../utils/vehicleService';
 
 const CarDetail = () => {
   const { carId } = useParams();
@@ -17,33 +18,63 @@ const CarDetail = () => {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  // Mock data cho xe
-  const carData = {
-    id: carId,
-    name: "VINFAST VF 8 Eco 2024",
-    images: [
-      "/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp",
-      "/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp",
-      "/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp"
-    ],
-    rating: 4.6,
-    trips: 19,
-    location: "Phường 3, quận Bình Thạnh",
-    pricePerDay: 780000,
-    specs: {
-      transmission: "số tự động",
-      seats: "4 Ghế",
-      battery: "~87.7 kWh",
-      range: "~420km",
-      chargePort: "CCS2",
-      chargeSpeed: "10 - 70% trong ~25 mins"
-    },
-    condition: {
-      pin: "100%",
-      status: "Tình trạng kỹ thuật: Tốt",
-      rental: "Cho thuê: Trống"
+  // Lấy dữ liệu xe từ vehicleService (nếu có), fallback sang mock nhỏ
+  const [carData, setCarData] = useState(null);
+
+  useEffect(() => {
+    const v = vehicleService.getVehicleById(carId);
+    if (v) {
+      setCarData({
+        id: v.id,
+        name: v.type || v.description,
+        images: [v.image_url || '/assets/images/cars/placeholder.webp'],
+        rating: v.rating || 4.6,
+        trips: v.trips || 19,
+        location: v.station_id || 'Chưa xác định',
+        pricePerDay: v.price_per_hour ? v.price_per_hour * 24 : (v.pricePerDay || 780000),
+        specs: {
+          transmission: v.transmission || 'số tự động',
+          seats: v.seats || '4 Ghế',
+          battery: v.battery_level != null ? `${v.battery_level}%` : (v.specs && v.specs.battery) || '~87.7 kWh',
+          range: v.range || '~420km',
+          chargePort: v.chargePort || 'CCS2',
+          chargeSpeed: v.chargeSpeed || '10 - 70% trong ~25 mins'
+        },
+        condition: {
+          pin: v.battery_level != null ? `${v.battery_level}%` : 'N/A',
+          status: v.conditionStatus || 'Tốt',
+          rental: v.status === 'AVAILABLE' ? 'Cho thuê: Trống' : (v.status === 'RENTED' ? 'Cho thuê: Đang cho thuê' : 'Cho thuê: Đã đặt trước')
+        },
+        raw: v
+      });
+    } else {
+      // fallback mock
+      setCarData({
+        id: carId,
+        name: "VINFAST VF 8 Eco 2024",
+        images: [
+          "/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp"
+        ],
+        rating: 4.6,
+        trips: 19,
+        location: "Phường 3, quận Bình Thạnh",
+        pricePerDay: 780000,
+        specs: {
+          transmission: "số tự động",
+          seats: "4 Ghế",
+          battery: "~87.7 kWh",
+          range: "~420km",
+          chargePort: "CCS2",
+          chargeSpeed: "10 - 70% trong ~25 mins"
+        },
+        condition: {
+          pin: "100%",
+          status: "Tình trạng kỹ thuật: Tốt",
+          rental: "Cho thuê: Trống"
+        }
+      });
     }
-  };
+  }, [carId]);
 
   const handleOpenLogin = () => {
     setShowLogin(true);
@@ -100,7 +131,12 @@ const CarDetail = () => {
       alert('Vui lòng đồng ý với các điều khoản để tiếp tục');
       return;
     }
-    // Logic đặt xe
+    // Kiểm tra trạng thái xe
+    const raw = carData && carData.raw;
+    if (raw && raw.status && raw.status !== 'AVAILABLE') {
+      alert('Xe hiện không khả dụng để thuê.');
+      return;
+    }
     console.log('Đặt xe:', { carId, bookingType, agreeToTerms });
   };
 
@@ -384,8 +420,12 @@ const CarDetail = () => {
               </div>
             </div>
 
-            <button className="book-now-button" onClick={handleBooking}>
-              Đặt xe
+            <button 
+              className="book-now-button" 
+              onClick={handleBooking}
+              disabled={!(carData && carData.raw && carData.raw.status === 'AVAILABLE')}
+            >
+              {carData && carData.raw && carData.raw.status === 'AVAILABLE' ? 'Đặt xe' : (carData && carData.raw && carData.raw.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước')}
             </button>
           </div>
           
