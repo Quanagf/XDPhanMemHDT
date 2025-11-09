@@ -50,28 +50,44 @@ const AdminDashboard = () => {
               className={`admin-nav-item ${activeTab === 'vehicles' ? 'active' : ''}`}
               onClick={() => setActiveTab('vehicles')}
             >
-              <span className="icon">🚗</span>
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3C15 2.45 14.55 2 14 2H10C9.45 2 9 2.45 9 3V5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01ZM11 4H13V5H11V4ZM6.5 9.5C7.33 9.5 8 8.83 8 8S7.33 6.5 6.5 6.5 5 7.17 5 8 5.67 9.5 6.5 9.5ZM17.5 9.5C18.33 9.5 19 8.83 19 8S18.33 6.5 17.5 6.5 16 7.17 16 8 16.67 9.5 17.5 9.5Z"/>
+                </svg>
+              </span>
               Quản lý đội xe
             </button>
             <button 
               className={`admin-nav-item ${activeTab === 'customers' ? 'active' : ''}`}
               onClick={() => setActiveTab('customers')}
             >
-              <span className="icon">👥</span>
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16,4C18.21,4 20,5.79 20,8C20,10.21 18.21,12 16,12C13.79,12 12,10.21 12,8C12,5.79 13.79,4 16,4M16,14C18.67,14 24,15.33 24,18V20H8V18C8,15.33 13.33,14 16,14M8.5,14L7,12.5C6.5,11.77 6.5,10.77 7.25,10.25L10.5,7.5L11.5,8.5C11.16,9.34 11,10.26 11,11.25L8.5,14M7.5,12L6,10.5L1.75,14.75L3.25,16.25L7.5,12Z"/>
+                </svg>
+              </span>
               Quản lý khách hàng
             </button>
             <button 
               className={`admin-nav-item ${activeTab === 'staff' ? 'active' : ''}`}
               onClick={() => setActiveTab('staff')}
             >
-              <span className="icon">👔</span>
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                </svg>
+              </span>
               Quản lý nhân viên
             </button>
             <button 
               className={`admin-nav-item ${activeTab === 'reports' ? 'active' : ''}`}
               onClick={() => setActiveTab('reports')}
             >
-              <span className="icon">📊</span>
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2,2H4V20H22V22H2V2M7,10H17V13H7V10M9,16H15V19H9V16M6,7H18V9H6V7Z"/>
+                </svg>
+              </span>
               Báo cáo & phân tích
             </button>
             
@@ -85,7 +101,11 @@ const AdminDashboard = () => {
                 borderTop: '1px solid rgba(255,255,255,0.1)'
               }}
             >
-              <span className="icon">🚪</span>
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+                </svg>
+              </span>
               Đăng xuất
             </button>
           </nav>

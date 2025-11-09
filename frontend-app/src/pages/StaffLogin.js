@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/pages/staff-login.css';
 
@@ -11,6 +11,33 @@ const StaffLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Cập nhật thời gian mỗi giây
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Lấy thời gian hiện tại để hiển thị lời chào
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+  };
+
+  const getCurrentDate = () => {
+    return currentTime.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,30 +118,24 @@ const StaffLogin = () => {
     <div className="staff-login-page">
       <div className="staff-login-container">
         <div className="staff-login-header">
-          <div className="staff-icon">👔</div>
-          <h1>Staff Portal</h1>
-          <p>Đăng nhập hệ thống nhân viên</p>
+          <div className="greeting-section">
+            <h1>Staff Portal</h1>
+            <p className="greeting-text">{getGreeting()}</p>
+            <p className="date-text">{getCurrentDate()}</p>
+          </div>
+          <p className="login-subtitle">Đăng nhập hệ thống nhân viên</p>
         </div>
         
         <form onSubmit={handleSubmit} className="staff-login-form">
           {error && (
             <div className="error-alert">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="15" y1="9" x2="9" y2="15"></line>
-                <line x1="9" y1="9" x2="15" y2="15"></line>
-              </svg>
               {error}
             </div>
           )}
           
           <div className="form-group">
-            <label htmlFor="identifier">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              Tên đăng nhập / Email
+            <label htmlFor="identifier" className="form-label">
+              Tài khoản
             </label>
             <input
               type="text"
@@ -122,61 +143,67 @@ const StaffLogin = () => {
               name="identifier"
               value={formData.identifier}
               onChange={handleInputChange}
-              placeholder="staff1 hoặc staff@evrental.com"
+              className="form-input"
+              placeholder="Nhập username, email hoặc số điện thoại"
               required
               autoFocus
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="password">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
+            <label htmlFor="password" className="form-label">
               Mật khẩu
             </label>
-            <div className="password-input-wrapper">
+            <div className="password-input-container">
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Nhập mật khẩu"
+                className="form-input"
+                placeholder="Nhập mật khẩu của bạn"
                 required
               />
               <button
                 type="button"
-                className="toggle-password"
+                className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19l-6.84-6.84z"></path>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                )}
               </button>
             </div>
           </div>
           
           <button type="submit" className="staff-login-btn" disabled={isLoading}>
             {isLoading ? (
-              <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <div className="spinner"></div>
                 Đang đăng nhập...
-              </>
+              </div>
             ) : (
-              <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                  <polyline points="10 17 15 12 10 7"></polyline>
-                  <line x1="15" y1="12" x2="3" y2="12"></line>
-                </svg>
-                Đăng nhập
-              </>
+              'Đăng nhập'
             )}
           </button>
         </form>
         
         <div className="staff-login-footer">
-          <a href="/">← Quay lại trang chủ</a>
+          <p className="footer-text">
+            Không phải nhân viên? 
+            <a href="/" className="home-link">Trở về trang chủ</a>
+          </p>
         </div>
       </div>
     </div>
