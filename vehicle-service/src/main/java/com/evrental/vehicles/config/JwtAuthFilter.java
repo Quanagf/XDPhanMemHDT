@@ -1,12 +1,8 @@
 package com.evrental.vehicles.config;
 
-import com.evrental.vehicles.service.JwtService;
-import io.jsonwebtoken.Claims;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,8 +12,14 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
+import com.evrental.vehicles.service.JwtService;
+
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -31,6 +33,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+        
+        // Bỏ qua các public endpoints
+        String requestPath = request.getRequestURI();
+        String method = request.getMethod();
+        
+        // Danh sách các path public không cần token
+        if (requestPath.endsWith("/ping")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Cho phép GET stations không cần token (cho trang Contact)
+        if (method.equals("GET") && requestPath.startsWith("/api/stations")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Cho phép GET vehicle by ID không cần token (cho booking service)
+        if (method.equals("GET") && requestPath.matches("/api/vehicles/\\d+")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Cho phép PUT vehicle status không cần token (cho booking service)
+        if (method.equals("PUT") && requestPath.matches("/api/vehicles/\\d+/status/.*")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
