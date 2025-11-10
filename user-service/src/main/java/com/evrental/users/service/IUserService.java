@@ -1,5 +1,7 @@
 package com.evrental.users.service;
 
+import java.util.Map;
+
 import org.springframework.web.multipart.MultipartFile;
 
 import com.evrental.users.dto.LoginRequest;
@@ -17,14 +19,11 @@ public interface IUserService {
     User verifyUser(Long userId);
     User banUser(Long userId);
 
-    /**
-     * Upload tài liệu (GPLX/CMND) cho user.
-     * @param email Email của user (lấy từ Token)
-     * * @param file File được tải lên
-     * @param documentType Loại tài liệu ("license" hoặc "idCard")
-     * @return User đã được cập nhật
-     */
-    User uploadDocument(String email, MultipartFile file, String documentType);
+    public Map<String, Boolean> checkDuplicateFields(String email, String username);
+
+    public User save(User user);
+    public User getCurrentUser();
+    
 
     /**
      * Cập nhật thông tin profile của user.
@@ -54,4 +53,6 @@ public interface IUserService {
      * @return List các User
      */
     java.util.List<User> getAllUsers();
+
+    
 }

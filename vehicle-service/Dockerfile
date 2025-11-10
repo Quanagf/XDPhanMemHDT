@@ -1,5 +1,5 @@
-# Sử dụng base image Java 17
-FROM eclipse-temurin:17-jdk-jammy
+# Use Java 21 base image
+FROM eclipse-temurin:21-jdk-jammy
 
 # Thư mục làm việc bên trong container
 WORKDIR /app

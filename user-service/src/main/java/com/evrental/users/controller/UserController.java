@@ -1,9 +1,10 @@
 package com.evrental.users.controller;
 
 import java.security.Principal;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,10 @@ import com.evrental.users.dto.UpdateProfileRequest;
 import com.evrental.users.model.User;
 import com.evrental.users.service.IUserService;
 
+import jakarta.validation.Valid;
+
+import com.evrental.users.service.IFileStorageService;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -32,6 +37,7 @@ public class UserController {
 
     // Chỉ inject (tiêm) Service Interface
     private final IUserService userService;
+    private final IFileStorageService fileStorageService;
 
     @GetMapping("/ping")
     public String ping() {
@@ -41,8 +47,13 @@ public class UserController {
     // === API ĐĂNG KÝ (1.a) ===
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody RegistrationRequest request) {
-        userService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Đăng ký thành công");
+        
+        try{
+            userService.register(request);
+            return ResponseEntity.ok("Đăng ký thành công!");
+        } catch (Exception e) {
+        return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
     }
 
     // === API ĐĂNG NHẬP ===
@@ -63,13 +74,18 @@ public class UserController {
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()") // Yêu cầu xác thực
     public ResponseEntity<User> updateMyProfile(
-            @RequestBody UpdateProfileRequest request,
-            Principal principal) {
-        String email = principal.getName();
-        User updatedUser = userService.updateProfile(email, request);
-        return ResponseEntity.ok(updatedUser);
-    }
-
+                // 1. Thêm @Valid để kích hoạt các ràng buộc trong DTO
+                @Valid @RequestBody UpdateProfileRequest request, 
+                Principal principal) {
+            
+            String email = principal.getName();
+            
+            // 2. Gọi service. Lưu ý: Service giờ sẽ trả về UserProfileResponse
+            User updatedProfile = userService.updateProfile(email, request);
+            
+            // 3. Trả về DTO, không phải Entity User
+            return ResponseEntity.ok(updatedProfile);
+        }
     // === API XÁC THỰC USER (2.b) ===
     @PutMapping("/verify/{userId}")
     @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // Yêu cầu quyền
@@ -86,24 +102,43 @@ public class UserController {
         return ResponseEntity.ok("User " + userId + " đã bị cấm.");
     }
 
-    // === API MỚI (Upload File - 1.a) ===
-    @PostMapping(
-        path = "/upload/{documentType}",
-        consumes = { MediaType.MULTIPART_FORM_DATA_VALUE } // Báo cho Spring đây là API nhận file
-    )
-    @PreAuthorize("isAuthenticated()") // Chỉ user đã đăng nhập mới được gọi
-    public ResponseEntity<User> uploadDocument(
-            @PathVariable String documentType, // "license" hoặc "idCard"
-            @RequestParam("file") MultipartFile file,
-            Principal principal // Dùng 'Principal' để lấy user đã xác thực
-    ) {
-        // 1. Lấy email của user từ JWT Token
-        String email = principal.getName();
-        
-        // 2. Gọi service để xử lý
-        User updatedUser = userService.uploadDocument(email, file, documentType);
 
-        // 3. Trả về user đã được cập nhật (chứa link URL mới)
+    @PostMapping("/upload/{uploadType}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<User> handleFileUpload(
+            @PathVariable("uploadType") String uploadType, 
+            @RequestParam("file") MultipartFile file) {
+        
+        // 1. Lấy thông tin user hiện tại
+        User currentUser = userService.getCurrentUser(); 
+        
+        // 2. TẠO TÊN FILE DUY NHẤT (objectName)
+        // Cách tốt nhất là tạo một "đường dẫn" ảo để quản lý file
+        // Cấu trúc: [loại_file]/[userId]/[UUID]-[tên_file_gốc]
+        // Ví dụ: "license/123/a1b2c3d4-e5f6-abc.jpg"
+        
+        String originalFileName = file.getOriginalFilename();
+        String uniqueFileName = UUID.randomUUID().toString() + "-" + originalFileName;
+        
+        // objectName sẽ là đường dẫn đầy đủ trên MinIO
+        String objectName = uploadType + "/" + currentUser.getId() + "/" + uniqueFileName;
+
+        // 3. Gọi service upload với 2 tham số
+        String fileUrl = fileStorageService.uploadFile(file, objectName); 
+
+        // 4. Cập nhật URL vào đối tượng user
+        if ("license".equals(uploadType)) {
+            currentUser.setLicenseImage(fileUrl); 
+        } else if ("identity".equals(uploadType)) {
+            currentUser.setIdentityImage(fileUrl); 
+        } else {
+            // Bạn nên có xử lý cho trường hợp uploadType không hợp lệ
+             return ResponseEntity.badRequest().build(); // Hoặc throw exception
+        }
+        
+        // 5. Lưu user đã cập nhật vào DB
+        User updatedUser = userService.save(currentUser); 
+        
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -130,5 +165,15 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    // Kiểm tra Username và gmail có trùng không?
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<Map<String, Boolean>> checkDuplicate(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String username) {
+
+        Map<String, Boolean> result = userService.checkDuplicateFields(email, username);
+        return ResponseEntity.ok(result);
     }
 }

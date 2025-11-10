@@ -1,7 +1,6 @@
 package com.evrental.users.service;
 
 import org.springframework.web.multipart.MultipartFile;
-import java.io.InputStream;
 
 public interface IFileStorageService {
 
@@ -13,6 +12,7 @@ public interface IFileStorageService {
      * @return URL đầy đủ của file đã upload
      */
     String uploadFile(MultipartFile file, String objectName);
+    
     
     // (Chúng ta cũng có thể thêm hàm xóa file, v.v.)
 }

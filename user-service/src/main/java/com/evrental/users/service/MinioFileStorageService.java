@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import io.minio.SetBucketPolicyArgs;
 
 import java.io.InputStream; // <-- DÒNG BỊ THIẾU LÀ ĐÂY
 
@@ -40,6 +41,14 @@ public class MinioFileStorageService implements IFileStorageService {
             } else {
                 System.out.println("Minio bucket '" + bucketName + "' already exists.");
             }
+            // THÊM LOGIC ĐẶT POLICY PUBLIC READ TẠI ĐÂY
+            String policyJson = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::" + bucketName + "/*\"]}]}";
+            
+            minioClient.setBucketPolicy(
+                SetBucketPolicyArgs.builder().bucket(bucketName).config(policyJson).build()
+            );
+            System.out.println("Minio bucket policy set to Public Read.");
+            // KẾT THÚC LOGIC POLICY
         } catch (Exception e) {
             throw new RuntimeException("Không thể khởi tạo Minio bucket", e);
         }

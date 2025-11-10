@@ -3,15 +3,17 @@ package com.evrental.users.service;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.HashMap;
 import java.util.UUID;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.evrental.users.dto.LoginRequest;
@@ -37,6 +39,14 @@ public class UserServiceImpl implements IUserService {
     private final IFileStorageService fileStorageService; // <-- THÊM DÒNG NÀY
 
     @Override
+    public Map<String, Boolean> checkDuplicateFields(String email, String username) {
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("email", email != null && userRepository.existsByEmail(email));
+        result.put("username", username != null && userRepository.existsByUsername(username));
+        return result;
+    }
+
+    @Override
     public User register(RegistrationRequest request) {
         // 1. Kiểm tra nghiệp vụ
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -52,6 +62,13 @@ public class UserServiceImpl implements IUserService {
             if (age < 18) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn phải đủ 18 tuổi để đăng ký");
             }
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email đã được sử dụng!");
+        }
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại!");
         }
 
         // 3. Xây dựng Entity
@@ -122,46 +139,6 @@ public class UserServiceImpl implements IUserService {
         return userRepository.save(user);
     }
 
-    // === HÀM MỚI (Triển khai logic upload) ===
-    @Override
-    public User uploadDocument(String email, MultipartFile file, String documentType) {
-        // 1. Tìm user
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        // 2. Tạo tên file duy nhất (ví dụ: "license-1-abc12345.jpg")
-        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
-        String fileExtension = "";
-        int i = originalFilename.lastIndexOf('.');
-        if (i > 0) {
-            fileExtension = originalFilename.substring(i); // Lấy đuôi file (vd: ".jpg")
-        }
-        
-        String objectName = String.format(
-            "%s-%d-%s%s",
-            documentType,
-            user.getId(),
-            UUID.randomUUID().toString().substring(0, 8),
-            fileExtension
-        );
-
-        // 3. Gọi FileStorageService (Minio) để upload
-        String fileUrl = fileStorageService.uploadFile(file, objectName);
-
-        // 4. Cập nhật đường link vào CSDL
-        if ("license".equalsIgnoreCase(documentType)) {
-            user.setLicenseImage(fileUrl);
-            // user.setLicenseNumber("UPDATING..."); // (Cần 1 API khác để cập nhật số)
-        } else if ("idCard".equalsIgnoreCase(documentType)) {
-            user.setIdentityImage(fileUrl);
-            // user.setIdentityNumber("UPDATING..."); // (Cần 1 API khác)
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại tài liệu không hợp lệ. Chỉ chấp nhận 'license' hoặc 'idCard'.");
-        }
-
-        // 5. Lưu user lại
-        return userRepository.save(user);
-    }
 
     // === HÀM MỚI (Cập nhật thông tin profile) ===
     @Override
@@ -171,20 +148,24 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // 2. Cập nhật các trường được phép chỉnh sửa
-        if (request.getAddress() != null && !request.getAddress().isEmpty()) {
-            user.setAddress(request.getAddress());
-        }
+        user.setAddress(request.getAddress());
         if (request.getBirthDate() != null) {
             user.setBirthDate(request.getBirthDate());
         }
         if (request.getGender() != null && !request.getGender().isEmpty()) {
             user.setGender(request.getGender());
         }
-        if (request.getFacebook() != null && !request.getFacebook().isEmpty()) {
-            user.setFacebook(request.getFacebook());
+        
+        user.setFacebook(request.getFacebook());
+
+        if (request.getLicenseNumber() != null) {
+            user.setLicenseNumber(request.getLicenseNumber());
         }
-        // Lưu ý: email, phoneNumber không cho phép sửa
-        // licenseNumber và identityNumber sẽ được cập nhật qua API upload riêng
+
+        if (request.getIdentityNumber() != null) {
+            user.setIdentityNumber(request.getIdentityNumber());
+        }
+        // Lưu ý: email, phoneNumber không cho phép sửa 
 
         // 3. Lưu và trả về
         return userRepository.save(user);
@@ -245,5 +226,19 @@ public class UserServiceImpl implements IUserService {
     @Override
     public java.util.List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public User save(User user) {
+        // Chỉ cần gọi hàm save() của repository
+        return userRepository.save(user);
+    }
+    public User getCurrentUser() {
+        // Lấy định danh (identifier) từ JWT Token
+        // Giá trị này là email: quantranhoang247@gmail.com
+        String userIdentifier = SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        // Tìm user trong DB bằng email
+        return userRepository.findByEmail(userIdentifier) // <-- Sửa thành findByEmail
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + userIdentifier + ". Vui lòng kiểm tra dữ liệu JWT và DB."));
     }
 }
