@@ -39,11 +39,33 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     });
 
     const response = await fetch(`/api/users/check-duplicate?${queryParams}`);
-    const result = await response.json();
 
+
+    // --- 🔑 FIX: Check for successful response status before parsing JSON ---
+    if (!response.ok) {
+        // Handle API failures (e.g., 403 Forbidden, 500 Internal Server Error)
+        console.error(`Error checking duplicates. Status: ${response.status}`);
+        
+        // Optional: Try to read text for detailed error, but handle empty body
+        try {
+            const errorBody = await response.text();
+            console.error('Server error response body:', errorBody);
+        } catch (e) {
+            console.error('Could not read error response body.', e);
+        }
+
+        // Treat any failed API call as a temporary check failure, 
+        // preventing registration until the API is fixed/accessible.
+        return false; 
+    }
+    // ----------------------------------------------------------------------
+    
+    // If response.ok is true, we proceed to safely parse the JSON
+    const result = await response.json();
     const newErrors = {};
     if (result.email) newErrors.email = 'Email đã được sử dụng';
     if (result.username) newErrors.username = 'Tên đăng nhập đã tồn tại';
+
 
     setErrors(newErrors);
 

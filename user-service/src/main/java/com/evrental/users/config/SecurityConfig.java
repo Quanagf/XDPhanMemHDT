@@ -31,7 +31,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/users/register",
                                 "/api/users/login",
-                                "/api/users/ping"
+                                "/api/users/ping",
+                                "/api/users/check-duplicate"
                         ).permitAll()
 
                         // --- CÁC API CÒN LẠI (Private) ---

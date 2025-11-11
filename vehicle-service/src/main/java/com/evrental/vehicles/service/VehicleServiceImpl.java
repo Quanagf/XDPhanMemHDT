@@ -1,11 +1,5 @@
 package com.evrental.vehicles.service;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.evrental.vehicles.dto.CreateVehicleRequest;
 import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
 import com.evrental.vehicles.model.Station;
@@ -13,8 +7,12 @@ import com.evrental.vehicles.model.Vehicle;
 import com.evrental.vehicles.model.Vehicle.VehicleStatus;
 import com.evrental.vehicles.repository.StationRepository;
 import com.evrental.vehicles.repository.VehicleRepository;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,39 +35,6 @@ public class VehicleServiceImpl implements IVehicleService {
     @Override
     public List<Station> getAllStations() {
         return stationRepository.findAll();
-    }
-
-    @Override
-    public List<Station> getActiveStations() {
-        return stationRepository.findByStatus(Station.StationStatus.OPEN);
-    }
-
-    @Override
-    public Station getStationById(Long id) {
-        return stationRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Station not found"));
-    }
-
-    @Override
-    public Station updateStation(Long id, Station stationDetails) {
-        Station station = getStationById(id);
-        
-        station.setName(stationDetails.getName());
-        station.setAddress(stationDetails.getAddress());
-        station.setPhoneNumber(stationDetails.getPhoneNumber());
-        station.setProvince(stationDetails.getProvince());
-        station.setCity(stationDetails.getCity());
-        station.setCapacity(stationDetails.getCapacity());
-        station.setStatus(stationDetails.getStatus());
-        
-        return stationRepository.save(station);
-    }
-
-    @Override
-    public void deleteStation(Long id) {
-        Station station = getStationById(id);
-        station.setStatus(Station.StationStatus.CLOSED);
-        stationRepository.save(station);
     }
 
     // --- Vehicle Logic ---
