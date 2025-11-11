@@ -2,13 +2,11 @@ package com.evrental.users.service;
 
 import java.util.Map;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest;
 import com.evrental.users.dto.UpdateProfileRequest;
-import com.evrental.users.model.User; // <-- DÒNG BỊ THIẾU LÀ ĐÂY
+import com.evrental.users.model.User;
 
 public interface IUserService {
     

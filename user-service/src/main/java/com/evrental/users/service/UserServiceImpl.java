@@ -1,10 +1,9 @@
 package com.evrental.users.service;
 
-import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
@@ -18,12 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
-import com.evrental.users.dto.RegistrationRequest; // <-- IMPORT MỚI
-import com.evrental.users.dto.UpdateProfileRequest;
+import com.evrental.users.dto.RegistrationRequest;
+import com.evrental.users.dto.UpdateProfileRequest; // <-- IMPORT MỚI
 import com.evrental.users.model.User;
 import com.evrental.users.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor; // <-- IMPORT MỚI (Để tạo tên file)
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
