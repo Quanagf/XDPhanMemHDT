@@ -1,7 +1,9 @@
 package com.evrental.vehicles.dto; // Hoặc package DTO của bạn
 
 import java.math.BigDecimal;
+
 import com.evrental.vehicles.model.Station.StationStatus;
+
 import lombok.Data;
 
 @Data

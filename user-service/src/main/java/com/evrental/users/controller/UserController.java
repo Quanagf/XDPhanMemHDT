@@ -4,35 +4,29 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.RequestMapping; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.evrental.users.dto.ChangePasswordRequest;
+import com.evrental.users.dto.ChangePasswordRequest; // <-- IMPORT MỚI
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest;
 import com.evrental.users.dto.UpdateProfileRequest;
 import com.evrental.users.model.User;
+import com.evrental.users.service.IFileStorageService;
 import com.evrental.users.service.IUserService;
-import com.evrental.users.repository.UserRepository;
 
 import jakarta.validation.Valid;
-
-import com.evrental.users.service.IFileStorageService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
