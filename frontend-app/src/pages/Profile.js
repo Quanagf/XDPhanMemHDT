@@ -21,12 +21,24 @@ const Profile = () => {
     facebook: ''
   });
   const [errors, setErrors] = useState({});
-  
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordSuccess, setPasswordSuccess] = useState(false); // Thêm state thông báo thành công
+    
   const [licenseFile,setLicenseFile] = useState(null);
   const [licensePreview, setLicensePreview] = useState(null);
   // State cho upload CCCD
   const [idFile, setIdFile] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
@@ -121,6 +133,112 @@ const Profile = () => {
     }));
   };
 
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({
+        ...prev,
+        [name]: value
+    }));
+    
+    // Tự động xóa lỗi khi người dùng bắt đầu nhập
+    if (passwordErrors[name]) {
+        setPasswordErrors(prevErrors => ({
+            ...prevErrors,
+            [name]: null
+        }));
+    }
+    setPasswordSuccess(false); // Xóa thông báo thành công khi bắt đầu nhập lại
+  }
+
+  const validatePasswordForm = () => {
+    const { currentPassword, newPassword, confirmNewPassword } = passwordForm;
+    const newErrors = {};
+
+    // 1. Mật khẩu hiện tại
+    if (currentPassword.length < 6) {
+        newErrors.currentPassword = 'Mật khẩu hiện tại phải có ít nhất 6 ký tự';
+    }
+
+    // 2. Mật khẩu mới
+    if (newPassword.length < 6) {
+        newErrors.newPassword = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+    }
+
+    // 3. Xác nhận mật khẩu mới
+    if (newPassword !== confirmNewPassword) {
+        newErrors.confirmNewPassword = 'Mật khẩu xác nhận không khớp';
+    }
+    
+    // 4. Mật khẩu mới không được giống mật khẩu cũ
+    if (newPassword && newPassword === currentPassword) {
+        newErrors.newPassword = 'Mật khẩu mới phải khác mật khẩu hiện tại';
+    }
+
+    setPasswordErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+const handleChangePassword = async () => {
+    // 1. Validate form
+    const isValid = validatePasswordForm();
+    if (!isValid) {
+        console.log('Validation failed, showing errors on form.');
+        return;
+    }
+
+    const { currentPassword, newPassword } = passwordForm;
+    const token = localStorage.getItem('authToken');
+
+    const payload = { currentPassword, newPassword };
+
+    try {
+        const response = await fetch('/api/users/change-password', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        let errorMessage = text;
+
+        // Thử parse JSON nếu backend trả về JSON
+        try {
+            const data = JSON.parse(text);
+            errorMessage = data.message || `Lỗi không xác định: ${response.status}`;
+        } catch {}
+
+        if (response.ok) {
+            // Thành công
+            setPasswordSuccess(true);
+            setPasswordErrors({});
+            setPasswordForm({
+                currentPassword: '',
+                newPassword: '',
+                confirmNewPassword: ''
+            });
+            alert('Đổi mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.');
+            handleLogout();
+        } else {
+            // Lỗi cụ thể từ server
+            if (response.status === 400 && errorMessage.includes('Mật khẩu hiện tại không đúng')) {
+                setPasswordErrors({ currentPassword: 'Mật khẩu hiện tại không đúng' });
+            } else {
+                alert(`Lỗi khi đổi mật khẩu: ${errorMessage}`);
+            }
+            setPasswordSuccess(false);
+        }
+    } catch (error) {
+        console.error('Error changing password:', error);
+        alert(`Có lỗi kết nối xảy ra: ${error.message}`);
+        setPasswordSuccess(false);
+    }
+  };
+
+
+
   // THÊM VÀO: Tự động xóa lỗi khi người dùng nhập
   if (errors[name]) {
     setErrors(prevErrors => ({
@@ -199,7 +317,7 @@ const Profile = () => {
       
       console.log('Sending update request with data:', updateData);
       
-      const response = await fetch('http://localhost:8081/api/users/profile', {
+      const response = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +382,7 @@ const Profile = () => {
 
     // 🚩 QUAN TRỌNG: Đây là API endpoint GIẢ ĐỊNH.
     // Bạn cần thay thế bằng endpoint API thực tế của mình.
-    const endpoint = `http://localhost:8081/api/users/upload/${uploadType}`;
+    const endpoint = `/api/users/upload/${uploadType}`;
     const token = localStorage.getItem('authToken');
 
     console.log(`Đang tải lên ${uploadType} đến ${endpoint}`);
@@ -640,72 +758,98 @@ const Profile = () => {
           </div>
         );
       case 'password':
+        const passwordFields = [
+          { name: 'currentPassword', label: 'Nhập mật khẩu hiện tại', placeholder: 'Nhập mật khẩu hiện tại', show: showCurrentPassword, setter: setShowCurrentPassword },
+          { name: 'newPassword', label: 'Nhập mật khẩu mới', placeholder: 'Nhập mật khẩu mới', show: showNewPassword, setter: setShowNewPassword },
+          { name: 'confirmNewPassword', label: 'Xác nhận mật khẩu mới', placeholder: 'Xác nhận mật khẩu mới', show: showConfirmPassword, setter: setShowConfirmPassword },
+        ];
+
         return (
           <div className="profile-content-container">
             <div className="profile-box password-box">
               <div className="password-header">
                 <h3 className="password-title">Đổi mật khẩu</h3>
-                <p className="password-subtitle">Vui lòng nhập mật khẩu hiện tại để cài đặt lại mật khẩu mới!</p>
+                <p className="password-subtitle">
+                  Vui lòng nhập mật khẩu hiện tại để cài đặt lại mật khẩu mới!
+                </p>
               </div>
-              
+
+              {/* Thông báo thành công */}
+              {passwordSuccess && (
+                <div
+                  style={{
+                    padding: '10px',
+                    backgroundColor: '#d4edda',
+                    color: '#155724',
+                    borderRadius: '5px',
+                    marginBottom: '20px',
+                    textAlign: 'center',
+                  }}
+                >
+                  Đổi mật khẩu thành công!
+                </div>
+              )}
+
               <div className="password-form">
                 <div className="password-section">
-                  <div className="password-field">
-                    <label className="password-label">Nhập mật khẩu hiện tại</label>
-                    <div className="password-input-container">
-                      <input 
-                        type="password" 
-                        className="password-input"
-                        placeholder="Nhập mật khẩu hiện tại"
-                      />
-                      <button type="button" className="password-toggle">
-                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                          <path d="M1 1l22 22"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+                  {/* Render động các input */}
+                  {passwordFields.map((field) => (
+                    <div key={field.name} className="password-field">
+                      <label className="password-label">{field.label}</label>
+                      <div className="password-input-container">
+                        <input
+                          type={field.show ? 'text' : 'password'}
+                          className={`password-input ${
+                            passwordErrors[field.name] ? 'input-error' : ''
+                          }`}
+                          placeholder={field.placeholder}
+                          name={field.name}
+                          value={passwordForm[field.name]}
+                          onChange={handlePasswordInputChange}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => field.setter((prev) => !prev)}
+                        >
+                          <svg
+                            className="password-toggle-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            {field.show ? (
+                              <>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                              </>
+                            ) : (
+                              <>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M1 1l22 22"></path>
+                              </>
+                            )}
+                          </svg>
+                        </button>
+                      </div>
 
-                  <div className="password-field">
-                    <label className="password-label">Nhập mật khẩu mới</label>
-                    <div className="password-input-container">
-                      <input 
-                        type="password" 
-                        className="password-input"
-                        placeholder="Nhập mật khẩu mới"
-                      />
-                      <button type="button" className="password-toggle">
-                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                          <path d="M1 1l22 22"></path>
-                        </svg>
-                      </button>
+                      {/* Hiển thị lỗi */}
+                      {passwordErrors[field.name] && (
+                        <span style={errorStyle}>{passwordErrors[field.name]}</span>
+                      )}
                     </div>
-                  </div>
+                  ))}
 
-                  <div className="password-field">
-                    <label className="password-label">Xác nhận mật khẩu mới</label>
-                    <div className="password-input-container">
-                      <input 
-                        type="password" 
-                        className="password-input"
-                        placeholder="Xác nhận mật khẩu mới"
-                      />
-                      <button type="button" className="password-toggle">
-                        <svg className="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                          <path d="M1 1l22 22"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
+                  {/* Nút xác nhận */}
                   <div className="password-actions">
-                    <button className="password-confirm-btn">Xác nhận</button>
+                    <button 
+                      className="password-confirm-btn"
+                      onClick={handleChangePassword}
+                    >
+                      Xác nhận
+                    </button>
                   </div>
                 </div>
               </div>

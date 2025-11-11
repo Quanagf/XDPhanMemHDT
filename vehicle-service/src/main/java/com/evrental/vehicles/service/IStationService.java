@@ -1,9 +1,10 @@
-package com.evrental.users.service;
+package com.evrental.vehicles.service;
 
 import java.util.List;
 import java.util.Optional;
 
-import com.evrental.users.model.Station;
+import com.evrental.vehicles.dto.StationStatsDTO;
+import com.evrental.vehicles.model.Station;
 
 public interface IStationService {
     
@@ -33,4 +34,6 @@ public interface IStationService {
     
     // Lấy danh sách tỉnh/thành phố có trạm
     List<String> getAvailableProvinces();
+
+    public StationStatsDTO getStationStatistics();
 }

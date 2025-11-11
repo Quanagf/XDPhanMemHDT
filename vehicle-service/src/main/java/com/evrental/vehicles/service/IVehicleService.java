@@ -11,7 +11,6 @@ import java.util.List;
 public interface IVehicleService {
 
     // --- Station Logic ---
-    Station createStation(Station station);
     List<Station> getAllStations();
 
     // --- Vehicle Logic ---

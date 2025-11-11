@@ -4,9 +4,12 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping; // <-- IMPORT MỚI
@@ -17,12 +20,14 @@ import org.springframework.web.bind.annotation.RequestParam; // <-- IMPORT MỚI
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.evrental.users.dto.ChangePasswordRequest;
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest;
 import com.evrental.users.dto.UpdateProfileRequest;
 import com.evrental.users.model.User;
 import com.evrental.users.service.IUserService;
+import com.evrental.users.repository.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -38,6 +43,8 @@ public class UserController {
     // Chỉ inject (tiêm) Service Interface
     private final IUserService userService;
     private final IFileStorageService fileStorageService;
+
+
 
     @GetMapping("/ping")
     public String ping() {
@@ -175,5 +182,40 @@ public class UserController {
 
         Map<String, Boolean> result = userService.checkDuplicateFields(email, username);
         return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            // 1. Lấy JSON body và map vào DTO của bạn
+            @RequestBody ChangePasswordRequest request, 
+            
+            // 2. Lấy user đã đăng nhập từ token JWT
+            Principal principal 
+    ) {
+        try {
+            // 3. Lấy email/username từ Principal (do JwtAuthFilter cung cấp)
+            String username = principal.getName(); 
+
+            // 4. Gọi service để xử lý logic
+            userService.changePassword(
+                username, 
+                request.getCurrentPassword(), 
+                request.getNewPassword()
+            );
+
+            // 5. Nếu thành công, trả về 200 OK (với text)
+            // Frontend (React) sẽ nhận được 'response.ok' là true
+            return ResponseEntity.ok("Đổi mật khẩu thành công.");
+            
+        } catch (IllegalArgumentException e) {
+            // 6. BẮT LỖI (nếu mật khẩu cũ sai)
+            // Trả về 400 Bad Request với thông báo lỗi
+            // Frontend (React) sẽ bắt được lỗi này
+            return ResponseEntity.badRequest().body(e.getMessage());
+            
+        } catch (Exception e) {
+            // 7. Bắt các lỗi chung khác (ví dụ: lỗi 500)
+            return ResponseEntity.status(500).body("Lỗi máy chủ nội bộ: " + e.getMessage());
+        }
     }
 }

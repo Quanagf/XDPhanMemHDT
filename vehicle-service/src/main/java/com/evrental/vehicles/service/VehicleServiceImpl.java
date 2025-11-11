@@ -21,17 +21,7 @@ public class VehicleServiceImpl implements IVehicleService {
     private final StationRepository stationRepository;
     private final VehicleRepository vehicleRepository;
 
-    // --- Station Logic ---
-
-    @Override
-    public Station createStation(Station station) {
-        // Gán trạng thái mặc định nếu chưa có
-        if (station.getStatus() == null) {
-            station.setStatus(Station.StationStatus.OPEN);
-        }
-        return stationRepository.save(station);
-    }
-
+    // --- Station Logic --
     @Override
     public List<Station> getAllStations() {
         return stationRepository.findAll();

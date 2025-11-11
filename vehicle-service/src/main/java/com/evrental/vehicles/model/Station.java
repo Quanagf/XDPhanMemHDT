@@ -1,46 +1,79 @@
 package com.evrental.vehicles.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.ToString;
+import lombok.NoArgsConstructor;
 
-import java.util.List;
-
-@Data
 @Entity
 @Table(name = "stations")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Station {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     @Column(nullable = false)
     private String name;
-    private String address;
-    private Double latitude;
-    private Double longitude;
-
-    // --- Thuộc tính mới ---
-    @Column(length = 50)
-    private String operatingHours; // Ví dụ: "08:00 - 22:00"
-
-    private Integer capacity; // Sức chứa tối đa
-
-    @Enumerated(EnumType.STRING)
-    private StationStatus status; // Trạng thái trạm
     
-    public enum StationStatus {
-        OPEN,
-        CLOSED,
-        TEMPORARILY_UNAVAILABLE
+    @Column(nullable = false, length = 500)
+    private String address;
+    
+    @Column(name = "phone_number", nullable = false, length = 20)
+    private String phoneNumber;
+    
+    @Column(nullable = false, length = 100)
+    private String province; // Tỉnh/Thành phố
+    
+    @Column(precision = 10, scale = 8)
+    private BigDecimal latitude; // Vĩ độ
+    
+    @Column(precision = 11, scale = 8)
+    private BigDecimal longitude; // Kinh độ
+    
+    @Column(name = "opening_time")
+    private LocalTime openingTime; // Giờ mở cửa
+    
+    @Column(name = "closing_time")
+    private LocalTime closingTime; // Giờ đóng cửa
+    
+    @Column
+    private Integer capacity = 0; // Sức chứa xe (số lượng xe tối đa)
+    
+    @Column(name = "is_active")
+    private Boolean isActive = true; // Trạng thái hoạt động
+    
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (isActive == null) {
+            isActive = true;
+        }
     }
-    // --------------------
-
-    // Quan hệ 1-Nhiều: Một trạm có nhiều xe
-    @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    @ToString.Exclude
-    private List<Vehicle> vehicles;
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

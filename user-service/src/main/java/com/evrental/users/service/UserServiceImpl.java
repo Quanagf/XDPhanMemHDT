@@ -241,4 +241,29 @@ public class UserServiceImpl implements IUserService {
         return userRepository.findByEmail(userIdentifier) // <-- Sửa thành findByEmail
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + userIdentifier + ". Vui lòng kiểm tra dữ liệu JWT và DB."));
     }
+
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        
+        // 1. Tìm user trong DB
+        User user = userRepository.findByEmail(username) // Hoặc findByUsername
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+
+        // 2. KIỂM TRA MẬT KHẨU CŨ
+        // Dùng BCrypt để so sánh mật khẩu text (currentPassword) 
+        // với mật khẩu đã hash (user.getPassword())
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            
+            // 3. NÉM LỖI (Quan trọng!)
+            // Controller sẽ bắt lỗi này và trả về 400 Bad Request
+            // Frontend sẽ đọc được chính xác message này
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng");
+        }
+
+        // 4. Mã hóa mật khẩu mới
+        String newHashedPassword = passwordEncoder.encode(newPassword);
+        
+        // 5. Cập nhật và lưu vào DB
+        user.setPassword(newHashedPassword);
+        userRepository.save(user);
+    }
 }

@@ -54,5 +54,5 @@ public interface IUserService {
      */
     java.util.List<User> getAllUsers();
 
-    
+    public void changePassword(String username, String currentPassword, String newPassword);
 }
