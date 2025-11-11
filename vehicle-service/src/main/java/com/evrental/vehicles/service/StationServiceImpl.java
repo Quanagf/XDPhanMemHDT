@@ -45,12 +45,12 @@ public class StationServiceImpl implements IStationService {
         station.setAddress(stationDetails.getAddress());
         station.setPhoneNumber(stationDetails.getPhoneNumber());
         station.setProvince(stationDetails.getProvince());
+        station.setCity(stationDetails.getCity());
         station.setLatitude(stationDetails.getLatitude());
         station.setLongitude(stationDetails.getLongitude());
-        station.setOpeningTime(stationDetails.getOpeningTime());
-        station.setClosingTime(stationDetails.getClosingTime());
+        station.setOperatingHours(stationDetails.getOperatingHours());
         station.setCapacity(stationDetails.getCapacity());
-        station.setIsActive(stationDetails.getIsActive());
+        station.setStatus(stationDetails.getStatus());
         
         return stationRepository.save(station);
     }
@@ -60,19 +60,19 @@ public class StationServiceImpl implements IStationService {
         Station station = stationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Station not found with id: " + id));
         
-        // Soft delete - chỉ đặt isActive = false
-        station.setIsActive(false);
+        // Soft delete - đặt status = CLOSED
+        station.setStatus(Station.StationStatus.CLOSED);
         stationRepository.save(station);
     }
     
     @Override
     public List<Station> getActiveStations() {
-        return stationRepository.findByIsActiveTrue();
+        return stationRepository.findByStatus(Station.StationStatus.OPEN);
     }
     
     @Override
     public List<Station> getStationsByProvince(String province) {
-        return stationRepository.findByProvinceAndIsActive(province, true);
+        return stationRepository.findByProvinceAndStatus(province, Station.StationStatus.OPEN);
     }
     
     @Override
@@ -82,7 +82,7 @@ public class StationServiceImpl implements IStationService {
     
     @Override
     public List<String> getAvailableProvinces() {
-        return stationRepository.findByIsActiveTrue()
+        return stationRepository.findByStatus(Station.StationStatus.OPEN)
                 .stream()
                 .map(Station::getProvince)
                 .distinct()
@@ -93,15 +93,16 @@ public class StationServiceImpl implements IStationService {
     /**
      * Lấy tất cả dữ liệu thống kê cho các trạm.
      */
+    @Override
     public StationStatsDTO getStationStatistics() {
         
         // 1. Lấy tổng số trạm
         long totalStations = stationRepository.count();
         
-        // 2. Lấy số trạm đang hoạt động
-        long activeStations = stationRepository.countByIsActive(true);
+        // 2. Lấy số trạm đang hoạt động (OPEN)
+        long activeStations = stationRepository.countByStatus(Station.StationStatus.OPEN);
         
-        // 3. Số trạm không hoạt động (lấy tổng trừ đi số đang hoạt động)
+        // 3. Số trạm không hoạt động (CLOSED hoặc TEMPORARILY_UNAVAILABLE)
         long inactiveStations = totalStations - activeStations;
         
         // 4. Lấy tổng sức chứa

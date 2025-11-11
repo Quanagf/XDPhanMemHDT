@@ -23,12 +23,10 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return identifier -> {
-            // Thử tìm theo email trước
-            return userRepository.findByEmail(identifier)
-                    .or(() -> userRepository.findByUsername(identifier)) // Nếu không có, thử username
-                    .or(() -> userRepository.findByPhoneNumber(identifier)) // Nếu không có, thử phoneNumber
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + identifier));
+        return username -> {
+            // Chỉ tìm theo username
+            return userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         };
     }
 

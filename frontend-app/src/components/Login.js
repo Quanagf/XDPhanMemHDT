@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
   const [formData, setFormData] = useState({
-    identifier: '', // Có thể là username, email hoặc số điện thoại
+    username: '', // Chỉ dùng username để đăng nhập
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -28,30 +28,16 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
     setError('');
     
     try {
-      // Xác định loại identifier
-      const isEmail = formData.identifier.includes('@');
-      const isPhone = /^(0[3|5|7|8|9])+([0-9]{8})$/.test(formData.identifier);
-      
-      let loginData = {
-        password: formData.password
-      };
-      
-      // Gán đúng trường dựa trên loại identifier
-      if (isEmail) {
-        loginData.email = formData.identifier;
-      } else if (isPhone) {
-        loginData.phoneNumber = formData.identifier;
-      } else {
-        loginData.username = formData.identifier;
-      }
-      
-      // Gọi API đăng nhập
+      // Gọi API đăng nhập với username
       const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        }),
       });
 
       if (!response.ok) {
@@ -159,15 +145,15 @@ const Login = ({ onClose, onSwitchToRegister, onLoginSuccess }) => {
           
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="identifier" className="form-label">Tài khoản</label>
+              <label htmlFor="username" className="form-label">Tên đăng nhập</label>
               <input
                 type="text"
-                id="identifier"
-                name="identifier"
-                value={formData.identifier}
+                id="username"
+                name="username"
+                value={formData.username}
                 onChange={handleInputChange}
                 className="form-input"
-                placeholder="Nhập username, email hoặc số điện thoại"
+                placeholder="Nhập tên đăng nhập của bạn"
                 required
               />
             </div>

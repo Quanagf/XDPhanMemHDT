@@ -4,8 +4,6 @@ import lombok.Data;
 
 @Data
 public class LoginRequest {
-    private String email;
-    private String username;
-    private String phoneNumber;
+    private String username;  // Chỉ dùng username để đăng nhập
     private String password;
 }

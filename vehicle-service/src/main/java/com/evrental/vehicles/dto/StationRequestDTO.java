@@ -1,7 +1,7 @@
 package com.evrental.vehicles.dto; // Hoặc package DTO của bạn
 
 import java.math.BigDecimal;
-import java.time.LocalTime;
+import com.evrental.vehicles.model.Station.StationStatus;
 import lombok.Data;
 
 @Data
@@ -11,12 +11,12 @@ public class StationRequestDTO {
     private String address;
     private String phoneNumber;
     private String province;
+    private String city;
     private Integer capacity = 0;
-    private Boolean isActive = true;
+    private StationStatus status; // Thay isActive bằng status
     
     // Các trường tùy chọn (optional)
     private BigDecimal latitude;
     private BigDecimal longitude;
-    private LocalTime openingTime;
-    private LocalTime closingTime;
+    private String operatingHours; // Thay openingTime/closingTime bằng string
 }

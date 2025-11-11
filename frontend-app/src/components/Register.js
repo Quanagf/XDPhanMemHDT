@@ -36,6 +36,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     const queryParams = new URLSearchParams({
       email: formData.email.trim(),
       username: formData.username.trim(),
+      phoneNumber: formData.phoneNumber.trim()
     });
 
     const response = await fetch(`/api/users/check-duplicate?${queryParams}`);
@@ -65,6 +66,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     const newErrors = {};
     if (result.email) newErrors.email = 'Email đã được sử dụng';
     if (result.username) newErrors.username = 'Tên đăng nhập đã tồn tại';
+    if (result.phoneNumber) newErrors.phoneNumber = 'Số điện thoại đã được sử dụng';
 
 
     setErrors(newErrors);

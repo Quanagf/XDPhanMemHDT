@@ -576,13 +576,23 @@ const StationManagement = () => {
 
   const fetchStations = async () => {
     try {
+      console.log('Fetching stations from /api/stations...');
       const response = await fetch('/api/stations');
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Stations data:', data);
         setStations(data);
+      } else {
+        console.error('Failed to fetch stations:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        alert('Không thể tải danh sách trạm. Vui lòng kiểm tra backend!');
       }
     } catch (error) {
       console.error('Error fetching stations:', error);
+      alert('Lỗi kết nối đến server: ' + error.message);
     }
   };
 

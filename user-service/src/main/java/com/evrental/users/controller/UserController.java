@@ -73,8 +73,8 @@ public class UserController {
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()") // Yêu cầu xác thực
     public ResponseEntity<User> getMyProfile(Principal principal) {
-        String email = principal.getName();
-        return ResponseEntity.ok(userService.getProfile(email));
+        String username = principal.getName();  // Lấy username từ JWT token
+        return ResponseEntity.ok(userService.getProfile(username));
     }
 
     // === API CẬP NHẬT THÔNG TIN CÁ NHÂN ===
@@ -85,10 +85,10 @@ public class UserController {
                 @Valid @RequestBody UpdateProfileRequest request, 
                 Principal principal) {
             
-            String email = principal.getName();
+            String username = principal.getName();  // Lấy username từ JWT token
             
             // 2. Gọi service. Lưu ý: Service giờ sẽ trả về UserProfileResponse
-            User updatedProfile = userService.updateProfile(email, request);
+            User updatedProfile = userService.updateProfile(username, request);
             
             // 3. Trả về DTO, không phải Entity User
             return ResponseEntity.ok(updatedProfile);
@@ -174,13 +174,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // Kiểm tra Username và gmail có trùng không?
+    // Kiểm tra Username, Email và Số điện thoại có trùng không?
     @GetMapping("/check-duplicate")
     public ResponseEntity<Map<String, Boolean>> checkDuplicate(
             @RequestParam(required = false) String email,
-            @RequestParam(required = false) String username) {
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String phoneNumber) {
 
-        Map<String, Boolean> result = userService.checkDuplicateFields(email, username);
+        Map<String, Boolean> result = userService.checkDuplicateFields(email, username, phoneNumber);
         return ResponseEntity.ok(result);
     }
 

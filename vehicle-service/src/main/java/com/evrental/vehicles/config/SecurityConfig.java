@@ -32,6 +32,9 @@ public class SecurityConfig {
                                 "/api/vehicles/ping",
                                 "/api/stations/ping"
                         ).permitAll()
+                        
+                        // Cho phép GET stations (để frontend có thể lấy danh sách)
+                        .requestMatchers(HttpMethod.GET, "/api/stations/**").permitAll()
 
                         // --- CÁC API NỘI BỘ (Cho Service khác gọi) ---
                         .requestMatchers(

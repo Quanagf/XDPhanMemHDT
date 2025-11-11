@@ -15,11 +15,11 @@ public interface IUserService {
     // (Các hàm cũ: register, login, getProfile, verifyUser, banUser)
     User register(RegistrationRequest request);
     LoginResponse login(LoginRequest request);
-    User getProfile(String email);
+    User getProfile(String username);  // Đổi từ email sang username
     User verifyUser(Long userId);
     User banUser(Long userId);
 
-    public Map<String, Boolean> checkDuplicateFields(String email, String username);
+    public Map<String, Boolean> checkDuplicateFields(String email, String username, String phoneNumber);
 
     public User save(User user);
     public User getCurrentUser();
@@ -27,11 +27,11 @@ public interface IUserService {
 
     /**
      * Cập nhật thông tin profile của user.
-     * @param email Email của user (lấy từ Token)
+     * @param username Username của user (lấy từ Token)
      * @param request Thông tin cần cập nhật
      * @return User đã được cập nhật
      */
-    User updateProfile(String email, UpdateProfileRequest request);
+    User updateProfile(String username, UpdateProfileRequest request);
 
     /**
      * Admin tạo tài khoản Staff.

@@ -20,7 +20,7 @@ public interface IStationService {
     // Cập nhật trạm
     Station updateStation(Long id, Station station);
     
-    // Xóa trạm (soft delete - đặt isActive = false)
+    // Xóa trạm (soft delete - đặt status = CLOSED)
     void deleteStation(Long id);
     
     // Lấy các trạm đang hoạt động

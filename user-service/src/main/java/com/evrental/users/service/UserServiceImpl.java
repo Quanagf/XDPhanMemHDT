@@ -39,24 +39,32 @@ public class UserServiceImpl implements IUserService {
     private final IFileStorageService fileStorageService; // <-- THÊM DÒNG NÀY
 
     @Override
-    public Map<String, Boolean> checkDuplicateFields(String email, String username) {
+    public Map<String, Boolean> checkDuplicateFields(String email, String username, String phoneNumber) {
         Map<String, Boolean> result = new HashMap<>();
         result.put("email", email != null && userRepository.existsByEmail(email));
         result.put("username", username != null && userRepository.existsByUsername(username));
+        result.put("phoneNumber", phoneNumber != null && userRepository.existsByPhoneNumber(phoneNumber));
         return result;
     }
 
     @Override
     public User register(RegistrationRequest request) {
-        // 1. Kiểm tra nghiệp vụ
+        // 1. Kiểm tra trùng email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
         }
+        
+        // 2. Kiểm tra trùng username
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã tồn tại");
         }
+        
+        // 3. Kiểm tra trùng số điện thoại
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng");
+        }
 
-        // 2. Validate tuổi phải >= 18
+        // 4. Validate tuổi phải >= 18
         if (request.getBirthDate() != null) {
             int age = Period.between(request.getBirthDate(), LocalDate.now()).getYears();
             if (age < 18) {
@@ -71,7 +79,7 @@ public class UserServiceImpl implements IUserService {
             throw new IllegalArgumentException("Tên đăng nhập đã tồn tại!");
         }
 
-        // 3. Xây dựng Entity
+        // 5. Xây dựng Entity
         User newUser = User.builder()
                 .email(request.getEmail())
                 .username(request.getUsername())
@@ -84,22 +92,22 @@ public class UserServiceImpl implements IUserService {
                 .isVerified(false)
                 .build();
 
-        // 4. Lưu vào Repository
+        // 6. Lưu vào Repository
         return userRepository.save(newUser);
     }
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        // 1. Xác thực
+        // 1. Xác thực bằng username
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        request.getUsername(),
                         request.getPassword()
                 )
         );
 
-        // 2. Lấy thông tin user
-        var user = userRepository.findByEmail(request.getEmail())
+        // 2. Lấy thông tin user theo username
+        var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         // 3. Cập nhật nghiệp vụ (ví dụ: lastLogin)
@@ -116,8 +124,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public User getProfile(String email) {
-        return userRepository.findByEmail(email)
+    public User getProfile(String username) {
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
@@ -142,9 +150,9 @@ public class UserServiceImpl implements IUserService {
 
     // === HÀM MỚI (Cập nhật thông tin profile) ===
     @Override
-    public User updateProfile(String email, UpdateProfileRequest request) {
-        // 1. Tìm user
-        User user = userRepository.findByEmail(email)
+    public User updateProfile(String username, UpdateProfileRequest request) {
+        // 1. Tìm user theo username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // 2. Cập nhật các trường được phép chỉnh sửa
@@ -165,7 +173,7 @@ public class UserServiceImpl implements IUserService {
         if (request.getIdentityNumber() != null) {
             user.setIdentityNumber(request.getIdentityNumber());
         }
-        // Lưu ý: email, phoneNumber không cho phép sửa 
+        // Lưu ý: email, phoneNumber, username không cho phép sửa 
 
         // 3. Lưu và trả về
         return userRepository.save(user);

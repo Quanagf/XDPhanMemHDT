@@ -136,7 +136,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email; // Dùng EMAIL làm username cho Spring Security
+        return username; // Dùng USERNAME để đăng nhập (không phải email)
     }
 
     @Override

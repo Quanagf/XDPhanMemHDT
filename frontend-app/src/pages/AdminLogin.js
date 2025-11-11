@@ -5,7 +5,7 @@ import '../styles/pages/admin-login.css';
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    identifier: '',
+    username: '',  // Đổi từ identifier sang username
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -54,27 +54,16 @@ const AdminLogin = () => {
     setError('');
     
     try {
-      const isEmail = formData.identifier.includes('@');
-      const isPhone = /^(0[3|5|7|8|9])+([0-9]{8})$/.test(formData.identifier);
-      
-      let loginData = {
-        password: formData.password
-      };
-      
-      if (isEmail) {
-        loginData.email = formData.identifier;
-      } else if (isPhone) {
-        loginData.phoneNumber = formData.identifier;
-      } else {
-        loginData.username = formData.identifier;
-      }
-      
+      // Gửi username trực tiếp
       const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        }),
       });
 
       if (!response.ok) {
@@ -134,17 +123,17 @@ const AdminLogin = () => {
           )}
           
           <div className="form-group">
-            <label htmlFor="identifier" className="form-label">
-              Tài khoản
+            <label htmlFor="username" className="form-label">
+              Tên đăng nhập
             </label>
             <input
               type="text"
-              id="identifier"
-              name="identifier"
-              value={formData.identifier}
+              id="username"
+              name="username"
+              value={formData.username}
               onChange={handleInputChange}
               className="form-input"
-              placeholder="Nhập username, email hoặc số điện thoại"
+              placeholder="Nhập tên đăng nhập"
               required
               autoFocus
             />

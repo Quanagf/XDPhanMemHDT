@@ -36,7 +36,7 @@ public class JwtService {
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(subject) // subject là email
+                .setSubject(subject) // subject là username
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Token 24 giờ
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
