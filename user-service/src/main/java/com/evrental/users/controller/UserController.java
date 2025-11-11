@@ -2,6 +2,7 @@ package com.evrental.users.controller;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -217,6 +219,54 @@ public class UserController {
         } catch (Exception e) {
             // 7. Bắt các lỗi chung khác (ví dụ: lỗi 500)
             return ResponseEntity.status(500).body("Lỗi máy chủ nội bộ: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Xác thực mật khẩu của user hiện tại (dành cho các thao tác quan trọng)
+     */
+    @PostMapping("/verify-password")
+    public ResponseEntity<?> verifyCurrentPassword(
+            @RequestBody Map<String, String> request,
+            Principal principal
+    ) {
+        try {
+            String password = request.get("password");
+            if (password == null || password.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Mật khẩu không được để trống");
+            }
+
+            String username = principal.getName();
+            System.out.println("Verifying password for user: " + username);
+            System.out.println("Principal name: " + principal.getName());
+            System.out.println("Password length: " + password.length());
+            
+            boolean isValid = userService.verifyPassword(username, password);
+            System.out.println("Password verification result: " + isValid);
+            
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("valid", isValid);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("Error in verifyCurrentPassword: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi máy chủ nội bộ: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Xóa tài khoản của user hiện tại
+     */
+    @DeleteMapping("/account")
+    @PreAuthorize("isAuthenticated()") // Yêu cầu xác thực
+    public ResponseEntity<?> deleteMyAccount(Principal principal) {
+        try {
+            String username = principal.getName();
+            userService.deleteAccount(username);
+            return ResponseEntity.ok("Tài khoản đã được xóa thành công");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi khi xóa tài khoản: " + e.getMessage());
         }
     }
 }

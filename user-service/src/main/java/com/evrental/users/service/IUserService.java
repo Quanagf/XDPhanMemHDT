@@ -55,4 +55,18 @@ public interface IUserService {
     java.util.List<User> getAllUsers();
 
     public void changePassword(String username, String currentPassword, String newPassword);
+
+    /**
+     * Xác thực mật khẩu của user.
+     * @param username Username của user
+     * @param password Mật khẩu cần xác thực
+     * @return true nếu mật khẩu đúng, false nếu sai
+     */
+    boolean verifyPassword(String username, String password);
+
+    /**
+     * Xóa tài khoản của user.
+     * @param username Username của user cần xóa
+     */
+    void deleteAccount(String username);
 }

@@ -558,6 +558,11 @@ const StationManagement = () => {
   const [stations, setStations] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingStationId, setDeletingStationId] = useState(null);
+  const [deletingStationName, setDeletingStationName] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -645,28 +650,55 @@ const StationManagement = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn vô hiệu hóa trạm này?')) return;
+  const handleDelete = async (station) => {
+    // Hiển thị modal yêu cầu mật khẩu admin
+    setDeletingStationId(station.id);
+    setDeletingStationName(station.name);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!adminPassword.trim()) {
+      alert('Vui lòng nhập mật khẩu admin');
+      return;
+    }
+
+    setIsDeleting(true);
     const token = localStorage.getItem('authToken');
+    
     try {
-      const response = await fetch(`/api/stations/${id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/stations/${deletingStationId}/delete-with-password`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({
+          adminPassword: adminPassword
+        })
       });
 
       if (response.ok) {
-        alert('Đã vô hiệu hóa trạm thành công!');
+        alert('Đã xóa trạm thành công!');
         fetchStations();
+        closeDeleteModal();
       } else {
-        alert('Lỗi: Không thể xóa trạm');
+        const error = await response.json();
+        alert('Lỗi: ' + (error.error || 'Không thể xóa trạm'));
       }
     } catch (error) {
       console.error('Error deleting station:', error);
-      alert('Có lỗi xảy ra');
+      alert('Có lỗi xảy ra khi xóa trạm');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletingStationId(null);
+    setDeletingStationName('');
+    setAdminPassword('');
   };
 
   const resetForm = () => {
@@ -934,7 +966,7 @@ const StationManagement = () => {
                     </svg>
                     Sửa
                   </button>
-                  <button onClick={() => handleDelete(station.id)} className="admin-btn-action danger">
+                  <button onClick={() => handleDelete(station)} className="admin-btn-action danger">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
                       <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
                     </svg>
@@ -946,6 +978,80 @@ const StationManagement = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Modal xóa trạm với xác nhận mật khẩu */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Xóa trạm - Xác nhận mật khẩu Admin</h2>
+              <button className="modal-close" onClick={closeDeleteModal}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="warning-message">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="#e74c3c" style={{marginBottom: '1rem'}}>
+                  <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
+                </svg>
+                <h3>Cảnh báo!</h3>
+                <p>Bạn sắp xóa vĩnh viễn trạm: <strong>{deletingStationName}</strong></p>
+                <p>Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan sẽ bị xóa khỏi hệ thống.</p>
+              </div>
+
+              <div className="form-group" style={{marginTop: '2rem'}}>
+                <label>Mật khẩu Admin *</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu admin để xác nhận"
+                  disabled={isDeleting}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      confirmDelete();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                onClick={closeDeleteModal} 
+                className="admin-btn-action"
+                disabled={isDeleting}
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="admin-btn-action danger"
+                disabled={isDeleting || !adminPassword.trim()}
+              >
+                {isDeleting ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.5rem', animation: 'spin 1s linear infinite'}}>
+                      <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+                    </svg>
+                    Đang xóa...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.5rem'}}>
+                      <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                    </svg>
+                    Xóa vĩnh viễn
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

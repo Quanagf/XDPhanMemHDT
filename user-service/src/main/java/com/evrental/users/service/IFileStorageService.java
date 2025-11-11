@@ -13,6 +13,12 @@ public interface IFileStorageService {
      */
     String uploadFile(MultipartFile file, String objectName);
     
+    /**
+     * Xóa file khỏi Minio storage.
+     *
+     * @param objectName Tên file cần xóa
+     */
+    void deleteFile(String objectName);
     
     // (Chúng ta cũng có thể thêm hàm xóa file, v.v.)
 }

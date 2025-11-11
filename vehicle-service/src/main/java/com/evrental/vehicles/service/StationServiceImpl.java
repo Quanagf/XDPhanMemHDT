@@ -57,12 +57,13 @@ public class StationServiceImpl implements IStationService {
     
     @Override
     public void deleteStation(Long id) {
-        Station station = stationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Station not found with id: " + id));
+        // Kiểm tra trạm có tồn tại không
+        if (!stationRepository.existsById(id)) {
+            throw new RuntimeException("Station not found with id: " + id);
+        }
         
-        // Soft delete - đặt status = CLOSED
-        station.setStatus(Station.StationStatus.CLOSED);
-        stationRepository.save(station);
+        // Hard delete - xóa hoàn toàn khỏi database
+        stationRepository.deleteById(id);
     }
     
     @Override

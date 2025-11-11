@@ -39,6 +39,10 @@ const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // State cho modal xác nhận xóa tài khoản
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
@@ -456,6 +460,48 @@ const handleChangePassword = async () => {
     localStorage.removeItem('userRole');
     setUser(null);
     window.location.href = '/';
+  };
+
+  // Hàm xử lý xác nhận xóa tài khoản
+  const handleDeleteAccount = async () => {
+    // Kiểm tra xem người dùng có nhập đúng "Đồng ý" không
+    if (deleteConfirmText !== 'Đồng ý') {
+      alert('Vui lòng nhập chính xác "Đồng ý" để xác nhận xóa tài khoản');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch('/api/users/account', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        alert('Tài khoản đã được xóa thành công');
+        // Đăng xuất và chuyển về trang chủ
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userProfile');
+        localStorage.removeItem('userRole');
+        window.location.href = '/';
+      } else {
+        const errorText = await response.text();
+        alert(`Lỗi khi xóa tài khoản: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Có lỗi xảy ra khi xóa tài khoản. Vui lòng thử lại sau.');
+    }
+  };
+
+  // Hàm đóng modal xác nhận
+  const handleCloseDeleteModal = () => {
+    setShowDeleteConfirmModal(false);
+    setDeleteConfirmText('');
   };
 
   if (!user) {
@@ -892,7 +938,12 @@ const handleChangePassword = async () => {
               </div>
 
               <div className="delete-account-actions">
-                <button className="delete-account-btn">Xóa tài khoản</button>
+                <button 
+                  className="delete-account-btn"
+                  onClick={() => setShowDeleteConfirmModal(true)}
+                >
+                  Xóa tài khoản
+                </button>
                 <button className="cancel-btn" onClick={() => setShowDeleteAccount(false)}>Hủy</button>
               </div>
             </div>
@@ -900,6 +951,75 @@ const handleChangePassword = async () => {
         </main>
         <Footer />
         {showLogin && <Login onClose={handleCloseLogin} />}
+        
+        {/* Modal xác nhận xóa tài khoản */}
+        {showDeleteConfirmModal && (
+          <div className="delete-modal-overlay" onClick={handleCloseDeleteModal}>
+            <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="delete-modal-header">
+                <h3>Xác nhận xóa tài khoản</h3>
+                <button 
+                  className="delete-modal-close"
+                  onClick={handleCloseDeleteModal}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="delete-modal-body">
+                <div className="delete-warning">
+                  <svg className="delete-warning-icon" viewBox="0 0 24 24" fill="none" stroke="#ff4444" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <h4>CẢNH BÁO: Hành động này không thể hoàn tác!</h4>
+                </div>
+                
+                <p className="delete-description">
+                  Khi xóa tài khoản, tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống bao gồm:
+                </p>
+                
+                <ul className="delete-list">
+                  <li>Thông tin cá nhân và tài khoản</li>
+                  <li>Lịch sử thuê xe và giao dịch</li>
+                  <li>Các file đã tải lên (GPLX, CCCD)</li>
+                  <li>Danh sách xe yêu thích</li>
+                </ul>
+                
+                <div className="delete-confirm-input">
+                  <label htmlFor="deleteConfirm">
+                    Để xác nhận, vui lòng nhập chính xác: <strong>"Đồng ý"</strong>
+                  </label>
+                  <input
+                    type="text"
+                    id="deleteConfirm"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="Nhập: Đồng ý"
+                    className="delete-confirm-text"
+                  />
+                </div>
+              </div>
+              
+              <div className="delete-modal-footer">
+                <button 
+                  className="delete-confirm-btn"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== 'Đồng ý'}
+                >
+                  Xóa tài khoản vĩnh viễn
+                </button>
+                <button 
+                  className="delete-cancel-btn"
+                  onClick={handleCloseDeleteModal}
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1014,6 +1134,75 @@ const handleChangePassword = async () => {
 
       <Footer />
       {showLogin && <Login onClose={handleCloseLogin} />}
+      
+      {/* Modal xác nhận xóa tài khoản */}
+      {showDeleteConfirmModal && (
+        <div className="delete-modal-overlay" onClick={handleCloseDeleteModal}>
+          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <h3>Xác nhận xóa tài khoản</h3>
+              <button 
+                className="delete-modal-close"
+                onClick={handleCloseDeleteModal}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="delete-modal-body">
+              <div className="delete-warning">
+                <svg className="delete-warning-icon" viewBox="0 0 24 24" fill="none" stroke="#ff4444" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <h4>CẢNH BÁO: Hành động này không thể hoàn tác!</h4>
+              </div>
+              
+              <p className="delete-description">
+                Khi xóa tài khoản, tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống bao gồm:
+              </p>
+              
+              <ul className="delete-list">
+                <li>Thông tin cá nhân và tài khoản</li>
+                <li>Lịch sử thuê xe và giao dịch</li>
+                <li>Các file đã tải lên (GPLX, CCCD)</li>
+                <li>Danh sách xe yêu thích</li>
+              </ul>
+              
+              <div className="delete-confirm-input">
+                <label htmlFor="deleteConfirm">
+                  Để xác nhận, vui lòng nhập chính xác: <strong>"Đồng ý"</strong>
+                </label>
+                <input
+                  type="text"
+                  id="deleteConfirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Nhập: Đồng ý"
+                  className="delete-confirm-text"
+                />
+              </div>
+            </div>
+            
+            <div className="delete-modal-footer">
+              <button 
+                className="delete-confirm-btn"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'Đồng ý'}
+              >
+                Xóa tài khoản vĩnh viễn
+              </button>
+              <button 
+                className="delete-cancel-btn"
+                onClick={handleCloseDeleteModal}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

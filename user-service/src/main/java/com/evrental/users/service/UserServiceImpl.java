@@ -252,15 +252,21 @@ public class UserServiceImpl implements IUserService {
 
     public void changePassword(String username, String currentPassword, String newPassword) {
         
-        // 1. Tìm user trong DB
-        User user = userRepository.findByEmail(username) // Hoặc findByUsername
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+        // 1. Tìm user trong DB - thử cả username và email để đảm bảo tìm đúng
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với identifier: " + username));
 
+        System.out.println("DEBUG - Found user: " + user.getUsername() + " (ID: " + user.getId() + ")");
+        System.out.println("DEBUG - Current password hash: " + user.getPassword());
+        
         // 2. KIỂM TRA MẬT KHẨU CŨ
         // Dùng BCrypt để so sánh mật khẩu text (currentPassword) 
         // với mật khẩu đã hash (user.getPassword())
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            
+        boolean passwordMatches = passwordEncoder.matches(currentPassword, user.getPassword());
+        System.out.println("DEBUG - Password matches: " + passwordMatches);
+        
+        if (!passwordMatches) {
             // 3. NÉM LỖI (Quan trọng!)
             // Controller sẽ bắt lỗi này và trả về 400 Bad Request
             // Frontend sẽ đọc được chính xác message này
@@ -269,9 +275,94 @@ public class UserServiceImpl implements IUserService {
 
         // 4. Mã hóa mật khẩu mới
         String newHashedPassword = passwordEncoder.encode(newPassword);
+        System.out.println("DEBUG - New password hash: " + newHashedPassword);
         
         // 5. Cập nhật và lưu vào DB
         user.setPassword(newHashedPassword);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        System.out.println("DEBUG - Saved user password hash: " + savedUser.getPassword());
+    }
+
+    @Override
+    public boolean verifyPassword(String username, String password) {
+        try {
+            // 1. Tìm user trong DB - thử cả username và email
+            User user = userRepository.findByUsername(username)
+                    .or(() -> userRepository.findByEmail(username))
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với identifier: " + username));
+
+            // 2. So sánh mật khẩu bằng BCrypt
+            return passwordEncoder.matches(password, user.getPassword());
+            
+        } catch (Exception e) {
+            // Log lỗi để debug (không dùng log, chỉ print)
+            System.err.println("Error in verifyPassword for user: " + username + " - " + e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public void deleteAccount(String username) {
+        try {
+            // 1. Tìm user theo username
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+            // 2. Xóa các file ảnh trên Minio (nếu có)
+            if (user.getLicenseImage() != null && !user.getLicenseImage().isEmpty()) {
+                try {
+                    // Extract object name from URL để xóa trên Minio
+                    String licenseObjectName = extractObjectNameFromUrl(user.getLicenseImage());
+                    fileStorageService.deleteFile(licenseObjectName);
+                } catch (Exception e) {
+                    System.err.println("Error deleting license image: " + e.getMessage());
+                }
+            }
+
+            if (user.getIdentityImage() != null && !user.getIdentityImage().isEmpty()) {
+                try {
+                    String identityObjectName = extractObjectNameFromUrl(user.getIdentityImage());
+                    fileStorageService.deleteFile(identityObjectName);
+                } catch (Exception e) {
+                    System.err.println("Error deleting identity image: " + e.getMessage());
+                }
+            }
+
+            // 3. Xóa user khỏi database
+            userRepository.delete(user);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi xóa tài khoản: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Helper method để extract object name từ URL
+     */
+    private String extractObjectNameFromUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            return null;
+        }
+        
+        // URL format: http://localhost:9000/bucket-name/object-path
+        // Ta cần lấy phần object-path (có thể bao gồm folder/subfolder/filename)
+        try {
+            // Tìm vị trí của bucket name trong URL
+            String[] urlParts = fileUrl.split("/");
+            if (urlParts.length >= 5) {
+                // urlParts[0] = "http:", urlParts[1] = "", urlParts[2] = "localhost:9000", 
+                // urlParts[3] = "bucket-name", urlParts[4...] = object path parts
+                StringBuilder objectName = new StringBuilder();
+                for (int i = 4; i < urlParts.length; i++) {
+                    if (i > 4) objectName.append("/");
+                    objectName.append(urlParts[i]);
+                }
+                return objectName.toString();
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting object name from URL: " + fileUrl);
+        }
+        
+        return null;
     }
 }

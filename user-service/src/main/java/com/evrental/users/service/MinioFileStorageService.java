@@ -4,6 +4,7 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -77,6 +78,22 @@ public class MinioFileStorageService implements IFileStorageService {
 
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi upload file", e);
+        }
+    }
+
+    @Override
+    public void deleteFile(String objectName) {
+        try {
+            minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .build()
+            );
+            System.out.println("File deleted successfully: " + objectName);
+        } catch (Exception e) {
+            System.err.println("Error deleting file: " + objectName + " - " + e.getMessage());
+            // Không throw exception để không làm fail quá trình xóa user
         }
     }
 }

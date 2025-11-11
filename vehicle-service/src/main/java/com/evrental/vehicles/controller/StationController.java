@@ -7,6 +7,8 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,7 +20,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import com.evrental.vehicles.dto.DeleteStationRequest;
 import com.evrental.vehicles.dto.StationStatsDTO;
 import com.evrental.vehicles.model.Station;
 import com.evrental.vehicles.service.IStationService;
@@ -123,7 +129,7 @@ public class StationController {
     }
     
     /**
-     * Xóa trạm (Soft delete - Chỉ ADMIN)
+     * Xóa trạm (Hard delete - Chỉ ADMIN)
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -131,12 +137,113 @@ public class StationController {
         try {
             stationService.deleteStation(id);
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Đã vô hiệu hóa trạm thành công");
+            response.put("message", "Đã xóa trạm thành công");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+    }
+
+    /**
+     * Xóa trạm với xác nhận mật khẩu admin (Hard delete - Chỉ ADMIN)
+     */
+    @PostMapping("/{id}/delete-with-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteStationWithPassword(
+            @PathVariable Long id, 
+            @RequestBody DeleteStationRequest request,
+            HttpServletRequest httpRequest) {
+        try {
+            // Gọi user-service để xác thực mật khẩu admin
+            boolean isValidPassword = verifyAdminPassword(request.getAdminPassword(), httpRequest);
+            
+            if (!isValidPassword) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Mật khẩu admin không đúng");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Nếu mật khẩu đúng, thực hiện xóa trạm
+            stationService.deleteStation(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Đã xóa trạm thành công");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Có lỗi xảy ra khi xóa trạm: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * Xác thực mật khẩu admin bằng cách gọi user-service
+     */
+    private boolean verifyAdminPassword(String password, HttpServletRequest httpRequest) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            // Thử cả hai URL: docker internal và localhost
+            String[] userServiceUrls = {
+                "http://user-service:8080/api/users/verify-password",  // Docker internal
+                "http://localhost:8081/api/users/verify-password"      // Localhost fallback
+            };
+            
+            // Tạo request body
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("password", password);
+            
+            // Lấy Authorization header từ request
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                System.err.println("Missing or invalid Authorization header");
+                return false;
+            }
+            
+            // Tạo headers với Authorization
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Content-Type", "application/json");
+            headers.set("Authorization", authHeader);
+            
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
+            
+            // Thử từng URL
+            for (String userServiceUrl : userServiceUrls) {
+                try {
+                    System.out.println("Trying URL: " + userServiceUrl);
+                    
+                    ResponseEntity<String> response = restTemplate.postForEntity(
+                        userServiceUrl, 
+                        entity, 
+                        String.class
+                    );
+                    
+                    System.out.println("Response status: " + response.getStatusCode());
+                    System.out.println("Response body: " + response.getBody());
+                    
+                    if (response.getStatusCode() == HttpStatus.OK) {
+                        String responseBody = response.getBody();
+                        boolean isValid = responseBody != null && 
+                                         (responseBody.contains("\"valid\":true") || responseBody.contains("\"valid\": true"));
+                        System.out.println("Password validation result: " + isValid);
+                        return isValid;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed with URL " + userServiceUrl + ": " + e.getMessage());
+                    // Continue to next URL
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("Error verifying admin password: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
