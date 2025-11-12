@@ -1000,7 +1000,7 @@
   backdrop-filter: blur(2px);
 }
 
-.modal-content {
+.admin-dashboard .modal-content {
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
