@@ -2,10 +2,15 @@ package com.evrental.vehicles.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.ToString;
 
-import java.time.LocalDate; // Thêm import này
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -17,12 +22,24 @@ public class Vehicle {
     private Long id;
 
     @Column(unique = true, nullable = false)
+    @NotBlank(message = "Biển số không được trống")
+    @Pattern(regexp = "^[A-Z0-9\\-]+$", message = "Biển số phải chứa chữ cái, chữ số và dấu gạch ngang")
     private String licensePlate;
+
+    @NotBlank(message = "Loại xe không được trống")
     private String type;
+
+    @NotNull(message = "Pin không được null")
+    @Min(value = 0, message = "Pin phải >= 0")
+    @Max(value = 100, message = "Pin phải <= 100")
     private Integer batteryLevel;
+
+    @NotNull(message = "Giá không được null")
+    @Min(value = 0, message = "Giá phải >= 0")
     private Double pricePerHour;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Trạng thái không được null")
     private VehicleStatus status;
     
     public enum VehicleStatus {
@@ -31,14 +48,13 @@ public class Vehicle {
         MAINTENANCE
     }
 
-    // --- Thuộc tính mới ---
-    private String imageUrl; // Link ảnh xe
+    // URL ảnh xe
+    private String imageUrl;
 
     @Column(columnDefinition = "TEXT")
-    private String description; // Mô tả tình trạng kỹ thuật
+    private String description;
     
-    private LocalDate lastMaintenanceDate; // Ngày bảo trì cuối
-    // --------------------
+    private LocalDate lastMaintenanceDate;
 
     // Quan hệ Nhiều-1: Nhiều xe thuộc 1 trạm
     @ManyToOne(fetch = FetchType.LAZY)

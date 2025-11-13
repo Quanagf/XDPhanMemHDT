@@ -1106,3 +1106,210 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========================================
+   MODAL FORM STYLES
+   ======================================== */
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+  padding: 2rem;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal h3 {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal label {
+  display: block;
+  color: #374151;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.modal label span {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.modal input[type="text"],
+.modal input[type="number"],
+.modal input[type="file"],
+.modal input[type="date"],
+.modal select,
+.modal textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.modal input[type="text"]:focus,
+.modal input[type="number"]:focus,
+.modal input[type="file"]:focus,
+.modal input[type="date"]:focus,
+.modal select:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #f0f9ff;
+}
+
+.modal input[type="text"]:hover,
+.modal input[type="number"]:hover,
+.modal input[type="date"]:hover,
+.modal select:hover {
+  border-color: #9ca3af;
+}
+
+.modal input[type="file"] {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.modal select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+
+.modal textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+/* Image preview in modal */
+.modal div[style*="marginTop"] img {
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Form action buttons */
+.modal div[style*="marginTop"]:last-of-type {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  margin-top: 2rem !important;
+  border-top: 1px solid #e5e7eb;
+}
+
+.admin-btn {
+  padding: 0.75rem 1.5rem;
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+/* Table thumbnails */
+.vehicles-table img,
+.customers-table img,
+.stations-table img {
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ========================================
+   TABLE IMAGE PREVIEW STYLING
+   ======================================== */
+
+.vehicles-table td img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: cover;
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    max-width: calc(100% - 2rem);
+    max-height: 95vh;
+    padding: 1.5rem;
+  }
+
+  .modal h3 {
+    font-size: 1.25rem;
+  }
+
+  .modal form {
+    gap: 1rem;
+  }
+
+  .modal label {
+    font-size: 0.9rem;
+  }
+
+  .modal input,
+  .modal select,
+  .modal textarea {
+    font-size: 1rem;
+  }
+
+  .modal div[style*="marginTop"]:last-of-type {
+    flex-direction: column-reverse;
+  }
+
+  .admin-btn,
+  .admin-btn-primary {
+    width: 100%;
+  }
+}
+

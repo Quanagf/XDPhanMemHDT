@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/pages/admin.css';
+import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -135,91 +136,386 @@ const VehicleManagement = () => {
   const [vehicles, setVehicles] = useState([]);
   const [stations, setStations] = useState([]);
   const [selectedStation, setSelectedStation] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({
+    licensePlate: '',
+    type: '',
+    batteryLevel: 100,
+    pricePerHour: 0,
+    status: 'AVAILABLE',
+    imageUrl: '',
+    description: '',
+    lastMaintenanceDate: '',
+    stationId: ''
+  });
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    // TODO: Fetch vehicles from API
-    // fetch('/api/vehicles').then(res => res.json()).then(setVehicles);
+    fetchStations();
+    fetchVehicles();
+    fetchStats();
   }, []);
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const fetchStations = async () => {
+    try {
+      const res = await fetch('/api/stations', { headers: getAuthHeader() });
+      if (res.ok) {
+        const data = await res.json();
+        setStations(data || []);
+      }
+    } catch (err) {
+      console.error('fetchStations', err);
+    }
+  };
+
+  const fetchVehicles = async (stationId) => {
+    setLoading(true);
+    try {
+      const q = stationId && stationId !== 'all' ? `?stationId=${stationId}` : '';
+      const res = await fetch(`/api/vehicles${q}`, { headers: getAuthHeader() });
+      if (res.ok) {
+        const data = await res.json();
+        setVehicles(data || []);
+      }
+    } catch (err) {
+      console.error('fetchVehicles', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/vehicles/stats', { headers: getAuthHeader() });
+      if (res.ok) setStats(await res.json());
+    } catch (err) {
+      console.error('fetchStats', err);
+    }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({
+      licensePlate: '', type: '', batteryLevel: 100, pricePerHour: 0,
+      status: 'AVAILABLE', imageUrl: '', description: '', lastMaintenanceDate: '', stationId: ''
+    });
+    setShowForm(true);
+  };
+
+  const openEdit = (vehicle) => {
+    setEditing(vehicle);
+    setForm({
+      licensePlate: vehicle.licensePlate || '',
+      type: vehicle.type || '',
+      batteryLevel: vehicle.batteryLevel || 0,
+      pricePerHour: vehicle.pricePerHour || 0,
+      status: vehicle.status || 'AVAILABLE',
+      imageUrl: vehicle.imageUrl || '',
+      description: vehicle.description || '',
+      lastMaintenanceDate: vehicle.lastMaintenanceDate || '',
+      stationId: vehicle.station ? vehicle.station.id : ''
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editing) {
+        // Gửi tất cả các trường khi cập nhật
+        const payload = {
+          licensePlate: form.licensePlate,
+          type: form.type,
+          pricePerHour: form.pricePerHour,
+          batteryLevel: form.batteryLevel,
+          status: form.status,
+          description: form.description,
+          lastMaintenanceDate: form.lastMaintenanceDate || null,
+          stationId: Number(form.stationId)
+        };
+        await updateVehicle(editing.id, payload);
+        // upload image if any
+        if (fileToUpload) {
+          const fd = new FormData();
+          fd.append('file', fileToUpload);
+          const token = localStorage.getItem('authToken');
+          const res = await fetch(`/api/vehicles/${editing.id}/image`, {
+            method: 'POST',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: fd
+          });
+          if (!res.ok) throw new Error('Upload failed');
+        }
+        alert('Cập nhật thành công');
+      } else {
+        const payload = {
+          licensePlate: form.licensePlate,
+          type: form.type,
+          batteryLevel: form.batteryLevel,
+          pricePerHour: form.pricePerHour,
+          status: form.status,
+          imageUrl: form.imageUrl,
+          description: form.description,
+          lastMaintenanceDate: form.lastMaintenanceDate || null,
+          stationId: Number(form.stationId)
+        };
+        const created = await createVehicle(payload);
+        // upload file if selected
+        if (fileToUpload && created && created.id) {
+          const fd = new FormData();
+          fd.append('file', fileToUpload);
+          const token = localStorage.getItem('authToken');
+          const res = await fetch(`/api/vehicles/${created.id}/image`, {
+            method: 'POST',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: fd
+          });
+          if (!res.ok) throw new Error('Upload failed');
+        }
+        alert('Tạo xe thành công');
+      }
+      setFileToUpload(null);
+      setShowForm(false);
+      fetchVehicles(selectedStation === 'all' ? null : selectedStation);
+      fetchStats();
+    } catch (err) {
+      console.error('submit vehicle', err);
+      alert('Lỗi khi lưu xe');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Xác nhận xóa xe này?')) return;
+    try {
+      await deleteVehicle(id);
+      fetchVehicles(selectedStation === 'all' ? null : selectedStation);
+      fetchStats();
+    } catch (err) {
+      console.error('delete vehicle', err);
+      alert('Không thể xóa xe');
+    }
+  };
+
+  const onStationChange = (val) => {
+    setSelectedStation(val);
+    fetchVehicles(val === 'all' ? null : val);
+  };
 
   return (
     <div className="admin-section">
       <h1>Quản lý đội xe & điểm thuê</h1>
-      
-      {/* Statistics Cards */}
+
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Tổng số xe</h3>
-          <p className="stat-number">150</p>
+          <p className="stat-number">{stats ? stats.totalVehicles : '—'}</p>
         </div>
         <div className="stat-card">
           <h3>Xe đang cho thuê</h3>
-          <p className="stat-number">85</p>
+          <p className="stat-number">{stats ? stats.rented : '—'}</p>
         </div>
         <div className="stat-card">
           <h3>Xe khả dụng</h3>
-          <p className="stat-number">60</p>
+          <p className="stat-number">{stats ? stats.available : '—'}</p>
         </div>
         <div className="stat-card">
           <h3>Xe bảo trì</h3>
-          <p className="stat-number text-danger">5</p>
+          <p className="stat-number text-danger">{stats ? stats.maintenance : '—'}</p>
         </div>
       </div>
 
-      {/* Station Filter */}
       <div className="filter-section">
         <label>Chọn điểm thuê:</label>
-        <select 
-          value={selectedStation} 
-          onChange={(e) => setSelectedStation(e.target.value)}
-          className="filter-select"
-        >
+        <select value={selectedStation} onChange={(e) => onStationChange(e.target.value)} className="filter-select">
           <option value="all">Tất cả điểm</option>
-          <option value="1">Hà Nội - Hoàn Kiếm</option>
-          <option value="2">TP.HCM - Quận 1</option>
-          <option value="3">Đà Nẵng - Hải Châu</option>
+          {stations.map(s => (
+            <option key={s.id} value={s.id}>{s.name} - {s.province}</option>
+          ))}
         </select>
+
+        <button className="admin-btn-primary" onClick={openCreate} style={{ marginLeft: 12 }}>Thêm xe mới</button>
       </div>
 
-      {/* Vehicle Table */}
       <div className="vehicles-table-container">
+        {loading ? <p>Đang tải...</p> : (
         <table className="vehicles-table">
           <thead>
             <tr>
-              <th>Mã xe</th>
+              <th>ID</th>
+              <th>Ảnh</th>
               <th>Biển số</th>
               <th>Loại xe</th>
-              <th>Điểm thuê</th>
-              <th>Pin (%)</th>
+              <th>Giá/giờ</th>
+              <th>Pin</th>
               <th>Trạng thái</th>
+              <th>Ngày bảo trì</th>
+              <th>Mô tả</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>#V001</td>
-              <td>30A-12345</td>
-              <td>VinFast VF3</td>
-              <td>Hà Nội - Hoàn Kiếm</td>
-              <td>85%</td>
-              <td><span className="badge badge-success">Khả dụng</span></td>
-              <td>
-                <button className="admin-btn-action">Chi tiết</button>
-              </td>
-            </tr>
-            <tr>
-              <td>#V002</td>
-              <td>51F-67890</td>
-              <td>VinFast VF5</td>
-              <td>TP.HCM - Quận 1</td>
-              <td>45%</td>
-              <td><span className="badge badge-warning">Đang thuê</span></td>
-              <td>
-                <button className="admin-btn-action">Chi tiết</button>
-              </td>
-            </tr>
+            {vehicles.map(v => (
+              <tr key={v.id}>
+                <td>{v.id}</td>
+                <td>
+                  {v.imageUrl ? <img src={v.imageUrl} alt="vehicle" style={{ maxWidth: 80, maxHeight: 60, borderRadius: 4 }} /> : <span style={{color: '#999'}}>-</span>}
+                </td>
+                <td><strong>{v.licensePlate}</strong></td>
+                <td>{v.type}</td>
+                <td>{v.pricePerHour ? `${v.pricePerHour.toLocaleString('vi-VN')} VNĐ` : '-'}</td>
+                <td>{v.batteryLevel}%</td>
+                <td>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    backgroundColor: v.status === 'AVAILABLE' ? '#d1fae5' : v.status === 'RENTED' ? '#fef3c7' : '#fee2e2',
+                    color: v.status === 'AVAILABLE' ? '#065f46' : v.status === 'RENTED' ? '#92400e' : '#991b1b'
+                  }}>
+                    {v.status === 'AVAILABLE' ? 'Khả dụng' : v.status === 'RENTED' ? 'Đang thuê' : 'Bảo trì'}
+                  </span>
+                </td>
+                <td>{v.lastMaintenanceDate ? new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN') : '-'}</td>
+                <td style={{maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={v.description}>{v.description || '-'}</td>
+                <td style={{whiteSpace: 'nowrap'}}>
+                  <button className="admin-btn-action" onClick={() => openEdit(v)}>Sửa</button>
+                  <button className="admin-btn-action" onClick={() => handleDelete(v.id)}>Xóa</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
+        )}
       </div>
+
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>{editing ? 'Cập nhật xe' : 'Tạo xe mới'}</h3>
+            <form onSubmit={handleSubmit}>
+              {/* Biển số */}
+              <label>Biển số <span>*</span></label>
+              <input 
+                type="text"
+                required 
+                placeholder="VD: 29A-12345" 
+                value={form.licensePlate} 
+                onChange={e => setForm({ ...form, licensePlate: e.target.value.toUpperCase() })} 
+                title="Chữ cái, chữ số và dấu gạch ngang"
+              />
+
+              {/* Loại xe */}
+              <label>Loại xe <span>*</span></label>
+              <input 
+                type="text"
+                required 
+                placeholder="VD: VinFast VF3" 
+                value={form.type} 
+                onChange={e => setForm({ ...form, type: e.target.value })} 
+              />
+
+              {/* Trạm */}
+              <label>Trạm <span>*</span></label>
+              <select 
+                required 
+                value={form.stationId} 
+                onChange={e => setForm({ ...form, stationId: e.target.value })}
+              >
+                <option value="">-- Chọn --</option>
+                {stations.map(s => <option key={s.id} value={s.id}>{s.name} - {s.province}</option>)}
+              </select>
+
+              {/* Giá/giờ */}
+              <label>Giá/giờ (VNĐ) <span>*</span></label>
+              <input 
+                type="number" 
+                required 
+                min="0" 
+                step="0.01"
+                placeholder="0"
+                value={form.pricePerHour} 
+                onChange={e => setForm({ ...form, pricePerHour: Number(e.target.value) })}
+              />
+
+              {/* Pin */}
+              <label>Pin (%) <span>*</span></label>
+              <input 
+                type="number" 
+                min="0" 
+                max="100" 
+                required 
+                placeholder="0"
+                value={form.batteryLevel} 
+                onChange={e => setForm({ ...form, batteryLevel: Number(e.target.value) })} 
+                title="Từ 0 đến 100"
+              />
+
+              {/* Trạng thái */}
+              <label>Trạng thái <span>*</span></label>
+              <select 
+                required 
+                value={form.status} 
+                onChange={e => setForm({ ...form, status: e.target.value })}
+              >
+                <option value="">-- Chọn --</option>
+                <option value="AVAILABLE">Khả dụng</option>
+                <option value="RENTED">Đang thuê</option>
+                <option value="MAINTENANCE">Bảo trì</option>
+              </select>
+
+              {/* Mô tả */}
+              <label>Mô tả tình trạng kỹ thuật</label>
+              <textarea 
+                placeholder="Ghi chú về tình trạng xe, các vấn đề cần lưu ý..." 
+                value={form.description} 
+                onChange={e => setForm({ ...form, description: e.target.value })} 
+              />
+
+              {/* Ngày bảo trì */}
+              <label>Ngày bảo trì gần nhất</label>
+              <input 
+                type="date" 
+                value={form.lastMaintenanceDate} 
+                onChange={e => setForm({ ...form, lastMaintenanceDate: e.target.value })} 
+              />
+
+              {/* Ảnh xe */}
+              <label>Ảnh xe</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={e => { setFileToUpload(e.target.files[0]); }} 
+              />
+              {fileToUpload && (
+                <div style={{ marginTop: 8 }}>
+                  <img src={URL.createObjectURL(fileToUpload)} alt="preview" style={{ maxWidth: 160, maxHeight: 90 }} />
+                </div>
+              )}
+              {editing && form.imageUrl && !fileToUpload && (
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 4 }}>Ảnh hiện tại:</p>
+                  <img src={form.imageUrl} alt="current" style={{ maxWidth: 160, maxHeight: 90 }} />
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div style={{ marginTop: 24, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="submit" className="admin-btn-primary">Lưu</button>
+                <button type="button" className="admin-btn" onClick={() => setShowForm(false)}>Hủy</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

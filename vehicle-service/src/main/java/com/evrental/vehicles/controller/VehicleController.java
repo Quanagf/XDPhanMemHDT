@@ -2,6 +2,8 @@ package com.evrental.vehicles.controller;
 
 import com.evrental.vehicles.dto.CreateVehicleRequest;
 import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
+import com.evrental.vehicles.dto.VehicleStatsDTO;
+import jakarta.validation.Valid;
 import com.evrental.vehicles.model.Vehicle;
 import com.evrental.vehicles.model.Vehicle.VehicleStatus;
 import com.evrental.vehicles.service.IVehicleService;
@@ -19,6 +21,7 @@ import java.util.List;
 public class VehicleController {
 
     private final IVehicleService vehicleService;
+    private final com.evrental.vehicles.service.IFileStorageService fileStorageService;
 
     @GetMapping("/ping")
     public String ping() {
@@ -28,7 +31,7 @@ public class VehicleController {
     // API cho Admin: Thêm xe mới (3.a)
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Vehicle> createVehicle(@RequestBody CreateVehicleRequest request) {
+    public ResponseEntity<Vehicle> createVehicle(@Valid @RequestBody CreateVehicleRequest request) {
         Vehicle newVehicle = vehicleService.createVehicle(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(newVehicle);
     }
@@ -56,7 +59,7 @@ public class VehicleController {
     @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<Vehicle> updateVehicleDetails(
             @PathVariable("id") Long vehicleId,
-            @RequestBody UpdateVehicleDetailsRequest request) {
+            @Valid @RequestBody UpdateVehicleDetailsRequest request) {
         
         Vehicle updatedVehicle = vehicleService.updateVehicleDetails(vehicleId, request);
         return ResponseEntity.ok(updatedVehicle);
@@ -77,5 +80,31 @@ public class VehicleController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build(); // Nếu gửi statusName bậy (vd: "abc")
         }
+    }
+
+    // Xóa xe (Admin)
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteVehicle(@PathVariable Long id) {
+        vehicleService.deleteVehicle(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Thống kê đội xe
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VehicleStatsDTO> getStats() {
+        VehicleStatsDTO stats = vehicleService.getVehicleStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    // Upload image for vehicle (Staff/Admin)
+    @PostMapping("/{id}/image")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<Vehicle> uploadVehicleImage(@PathVariable Long id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        String objectName = "vehicles/" + id + "/" + System.currentTimeMillis() + "-" + file.getOriginalFilename();
+        String url = fileStorageService.uploadFile(file, objectName);
+        Vehicle updated = vehicleService.updateVehicleImage(id, url);
+        return ResponseEntity.ok(updated);
     }
 }

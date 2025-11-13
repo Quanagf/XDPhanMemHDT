@@ -28,7 +28,7 @@ export async function createVehicle(payload) {
 }
 
 export async function updateVehicle(id, payload) {
-  const res = await fetch(`${base}/${id}`, {
+  const res = await fetch(`${base}/${id}/details`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     body: JSON.stringify(payload)

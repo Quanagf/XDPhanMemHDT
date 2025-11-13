@@ -384,12 +384,13 @@ const handleChangePassword = async () => {
     const formData = new FormData();
     formData.append('file', file); // Backend của bạn (và MinIO) sẽ nhận key 'file'
 
-    // 🚩 QUAN TRỌNG: Đây là API endpoint GIẢ ĐỊNH.
-    // Bạn cần thay thế bằng endpoint API thực tế của mình.
-    const endpoint = `/api/users/upload/${uploadType}`;
+    // Endpoint API - LUÔN gọi trực tiếp đến backend (không proxy)
+    const endpoint = `http://localhost:8080/api/users/upload/${uploadType}`;
     const token = localStorage.getItem('authToken');
 
     console.log(`Đang tải lên ${uploadType} đến ${endpoint}`);
+    console.log(`Token: ${token ? token.substring(0, 20) + '...' : 'không'}`);
+    console.log(`Authorization Header: Bearer ${token ? token.substring(0, 20) + '...' : 'không'}`);
 
     try {
       const response = await fetch(endpoint, {
@@ -400,6 +401,8 @@ const handleChangePassword = async () => {
         },
         body: formData
       });
+
+      console.log(`Response status: ${response.status}`);
 
       if (response.ok) {
         // Giả sử server trả về thông tin user đã cập nhật (với URL ảnh mới)
@@ -422,7 +425,7 @@ const handleChangePassword = async () => {
       } else {
         const errorText = await response.text();
         console.error('Lỗi khi tải lên:', errorText);
-        alert(`Lỗi khi tải lên: ${errorText}`);
+        alert(`Lỗi khi tải lên (${response.status}): ${errorText || 'Unknown error'}`);
       }
     } catch (error) {
       console.error(`Error uploading ${uploadType}:`, error);
