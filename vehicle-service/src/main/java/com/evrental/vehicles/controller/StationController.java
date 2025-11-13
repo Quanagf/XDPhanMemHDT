@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,12 +22,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import com.evrental.vehicles.dto.DeleteStationRequest;
 import com.evrental.vehicles.dto.StationStatsDTO;
 import com.evrental.vehicles.model.Station;
 import com.evrental.vehicles.service.IStationService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/stations")
@@ -39,10 +39,27 @@ public class StationController {
     
     /**
      * Lấy tất cả trạm (Public - cho trang liên hệ)
+     * Hỗ trợ filter theo query param `province`.
+     * Ví dụ: GET /api/stations?province=H%C3%A0%20N%E1%BB%99i
      */
     @GetMapping
-    public ResponseEntity<List<Station>> getAllStations() {
-        List<Station> stations = stationService.getAllStations();
+    public ResponseEntity<List<Station>> getAllStations(@RequestParam(required = false) String province) {
+        List<Station> stations;
+        if (province != null && !province.trim().isEmpty()) {
+            String prov = province.trim();
+            stations = stationService.getStationsByProvince(prov);
+            // Fallback: if service returned empty (possible mismatch in formatting),
+            // try a case-insensitive contains filter on all stations.
+            if ((stations == null || stations.isEmpty())) {
+                List<Station> all = stationService.getAllStations();
+                String lower = prov.toLowerCase();
+                stations = all.stream()
+                    .filter(s -> s.getProvince() != null && s.getProvince().toLowerCase().contains(lower))
+                    .toList();
+            }
+        } else {
+            stations = stationService.getAllStations();
+        }
         return ResponseEntity.ok(stations);
     }
     

@@ -556,6 +556,8 @@ const StaffManagement = () => {
 
 const StationManagement = () => {
   const [stations, setStations] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editingStation, setEditingStation] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -576,19 +578,48 @@ const StationManagement = () => {
   });
 
   useEffect(() => {
+    fetchProvinces();
+    // initial load: all stations
     fetchStations();
   }, []);
 
-  const fetchStations = async () => {
+  useEffect(() => {
+    // when selectedProvince changes, reload stations from backend
+    if (selectedProvince === 'all') {
+      fetchStations();
+    } else {
+      fetchStations(typeof selectedProvince === 'string' ? selectedProvince.trim() : selectedProvince);
+    }
+  }, [selectedProvince]);
+
+  const fetchProvinces = async () => {
     try {
-      console.log('Fetching stations from /api/stations...');
-      const response = await fetch('/api/stations');
-      console.log('Response status:', response.status);
-      
+      console.log('Fetching provinces from /api/stations/provinces');
+      const res = await fetch('/api/stations/provinces');
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Provinces response:', data);
+        setProvinces(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch provinces', err);
+    }
+  };
+
+  const fetchStations = async (province) => {
+    try {
+      let url = '/api/stations';
+      if (province && String(province).trim()) {
+        const prov = String(province).trim();
+        url += `?province=${encodeURIComponent(prov)}`;
+      }
+      console.log('Fetching stations from', url);
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        console.log('Stations data:', data);
-        setStations(data);
+        console.log('Stations response count:', (data || []).length);
+        if ((data || []).length > 0) console.log('First station province:', data[0].province);
+        setStations(data || []);
       } else {
         console.error('Failed to fetch stations:', response.status, response.statusText);
         const errorText = await response.text();
@@ -729,15 +760,30 @@ const StationManagement = () => {
     <div className="admin-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1>Quản lý trạm thuê xe</h1>
-        <button 
-          className="admin-btn-primary"
-          onClick={() => setShowForm(!showForm)}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.5rem'}}>
-            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-          </svg>
-          {showForm ? 'Đóng' : 'Thêm trạm mới'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <label style={{ margin: 0, fontWeight: 600 }}>Lọc theo Tỉnh/Thành:</label>
+          <select
+            value={selectedProvince}
+            onChange={(e) => setSelectedProvince(e.target.value)}
+            className="filter-select"
+            style={{ minWidth: 220 }}
+          >
+            <option value="all">Tất cả thành phố</option>
+            {provinces.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+
+          <button 
+            className="admin-btn-primary"
+            onClick={() => setShowForm(!showForm)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.5rem'}}>
+              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+            </svg>
+            {showForm ? 'Đóng' : 'Thêm trạm mới'}
+          </button>
+        </div>
       </div>
 
       <div className="stats-grid" style={{ marginBottom: '24px' }}>

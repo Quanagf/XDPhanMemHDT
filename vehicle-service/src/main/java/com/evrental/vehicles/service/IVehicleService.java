@@ -1,12 +1,12 @@
 package com.evrental.vehicles.service;
 
+import java.util.List;
+
 import com.evrental.vehicles.dto.CreateVehicleRequest;
 import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
 import com.evrental.vehicles.model.Station;
 import com.evrental.vehicles.model.Vehicle;
 import com.evrental.vehicles.model.Vehicle.VehicleStatus;
-
-import java.util.List;
 
 public interface IVehicleService {
 
@@ -19,4 +19,5 @@ public interface IVehicleService {
     Vehicle getVehicleById(Long vehicleId);
     Vehicle updateVehicleDetails(Long vehicleId, UpdateVehicleDetailsRequest request);
     Vehicle updateVehicleStatus(Long vehicleId, Vehicle.VehicleStatus status);
+    
 }
