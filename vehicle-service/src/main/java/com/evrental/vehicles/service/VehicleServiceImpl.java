@@ -1,19 +1,21 @@
 package com.evrental.vehicles.service;
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.evrental.vehicles.dto.CreateVehicleRequest;
 import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
+import com.evrental.vehicles.dto.VehicleStatsDTO;
 import com.evrental.vehicles.model.Station;
 import com.evrental.vehicles.model.Vehicle;
 import com.evrental.vehicles.model.Vehicle.VehicleStatus;
 import com.evrental.vehicles.repository.StationRepository;
 import com.evrental.vehicles.repository.VehicleRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import com.evrental.vehicles.dto.VehicleStatsDTO;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +44,19 @@ public class VehicleServiceImpl implements IVehicleService {
         vehicle.setPricePerHour(request.getPricePerHour());
         vehicle.setStatus(request.getStatus() != null ? request.getStatus() : VehicleStatus.AVAILABLE);
         
-        // Gán các trường mới
+        // Gán các trường cơ bản
         vehicle.setImageUrl(request.getImageUrl());
         vehicle.setDescription(request.getDescription());
         vehicle.setLastMaintenanceDate(request.getLastMaintenanceDate());
+        
+        // Gán các trường thông số kỹ thuật
+        vehicle.setSeats(request.getSeats());
+        vehicle.setBatteryCapacity(request.getBatteryCapacity());
+        vehicle.setRange(request.getRange());
+        vehicle.setChargingType(request.getChargingType());
+        vehicle.setChargingSpeed(request.getChargingSpeed());
+        vehicle.setLocation(request.getLocation());
+        vehicle.setTripCount(request.getTripCount());
         
         vehicle.setStation(station);
 
@@ -113,6 +124,29 @@ public class VehicleServiceImpl implements IVehicleService {
             Station station = stationRepository.findById(request.getStationId())
                 .orElseThrow(() -> new RuntimeException("Station not found"));
             vehicle.setStation(station);
+        }
+        
+        // Cập nhật thông số kỹ thuật nếu được cung cấp
+        if (request.getSeats() != null) {
+            vehicle.setSeats(request.getSeats());
+        }
+        if (request.getBatteryCapacity() != null) {
+            vehicle.setBatteryCapacity(request.getBatteryCapacity());
+        }
+        if (request.getRange() != null) {
+            vehicle.setRange(request.getRange());
+        }
+        if (request.getChargingType() != null) {
+            vehicle.setChargingType(request.getChargingType());
+        }
+        if (request.getChargingSpeed() != null) {
+            vehicle.setChargingSpeed(request.getChargingSpeed());
+        }
+        if (request.getLocation() != null) {
+            vehicle.setLocation(request.getLocation());
+        }
+        if (request.getTripCount() != null) {
+            vehicle.setTripCount(request.getTripCount());
         }
 
         return vehicleRepository.save(vehicle);

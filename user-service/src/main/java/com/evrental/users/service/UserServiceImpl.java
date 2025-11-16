@@ -48,12 +48,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public User register(RegistrationRequest request) {
-        // 1. Kiểm tra trùng email
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
-        }
-        
-        // 2. Kiểm tra trùng username
+        // 1. Kiểm tra trùng username
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã tồn tại");
         }
@@ -181,10 +176,7 @@ public class UserServiceImpl implements IUserService {
     // === HÀM MỚI (Admin tạo tài khoản Staff) ===
     @Override
     public User createStaffAccount(RegistrationRequest request) {
-        // 1. Kiểm tra email và username đã tồn tại chưa
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
-        }
+        // 1. Kiểm tra username đã tồn tại chưa
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username đã tồn tại");
         }
@@ -235,26 +227,28 @@ public class UserServiceImpl implements IUserService {
         return userRepository.findAll();
     }
 
+    @Override
     public User save(User user) {
         // Chỉ cần gọi hàm save() của repository
         return userRepository.save(user);
     }
+    @Override
     public User getCurrentUser() {
         // Lấy định danh (identifier) từ JWT Token
-        // Giá trị này là email: quantranhoang247@gmail.com
+        // Giá trị này là username (đã đổi từ email sang username)
         String userIdentifier = SecurityContextHolder.getContext().getAuthentication().getName();
         
-        // Tìm user trong DB bằng email
-        return userRepository.findByEmail(userIdentifier) // <-- Sửa thành findByEmail
+        // Tìm user trong DB bằng username
+        return userRepository.findByUsername(userIdentifier)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + userIdentifier + ". Vui lòng kiểm tra dữ liệu JWT và DB."));
     }
 
+    @Override
     public void changePassword(String username, String currentPassword, String newPassword) {
         
-        // 1. Tìm user trong DB - thử cả username và email để đảm bảo tìm đúng
+        // 1. Tìm user trong DB bằng username
         User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với identifier: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với username: " + username));
 
         System.out.println("DEBUG - Found user: " + user.getUsername() + " (ID: " + user.getId() + ")");
         System.out.println("DEBUG - Current password hash: " + user.getPassword());
@@ -285,10 +279,9 @@ public class UserServiceImpl implements IUserService {
     @Override
     public boolean verifyPassword(String username, String password) {
         try {
-            // 1. Tìm user trong DB - thử cả username và email
+            // 1. Tìm user trong DB bằng username
             User user = userRepository.findByUsername(username)
-                    .or(() -> userRepository.findByEmail(username))
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với identifier: " + username));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với username: " + username));
 
             // 2. So sánh mật khẩu bằng BCrypt
             return passwordEncoder.matches(password, user.getPassword());

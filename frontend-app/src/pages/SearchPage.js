@@ -1,52 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
-import vehicleService from '../utils/vehicleService';
+import { getVehicles } from '../api/vehicles';
+import { checkAvailability } from '../api/bookings';
 
-const SearchFilter = () => {
-  return (
-    <div className="search-filter">
-      <button className="filter-btn">
-        <iconify-icon icon="mdi:tune"></iconify-icon>
-        Bộ lọc
-      </button>
-    </div>
-  );
-};
-
-// CarCard hiển thị xe lấy từ vehicleService
+// CarCard hiển thị xe từ API
 const CarCard = ({ car }) => {
-  const img = car.image_url || '/assets/images/cars/placeholder.webp';
-  const statusLabel = car.status === 'AVAILABLE' ? 'Trống' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước';
+  const img = car.imageUrl || '/assets/images/cars/placeholder.webp';
+  const statusLabel = car.status === 'AVAILABLE' ? 'Có sẵn' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước';
   const statusClass = car.status === 'AVAILABLE' ? 'badge-available' : car.status === 'RENTED' ? 'badge-rented' : 'badge-reserved';
+  const stationName = car.station ? `${car.station.name} - ${car.station.province}` : 'Chưa xác định';
 
   return (
     <article className="car-card">
-      <img 
-        src={img} 
-        alt={car.description || car.type || 'Xe'}
-        className="car-image"
-        width="300" 
-        height="200"
-        loading="lazy"
-      />
+      <Link to={`/car/${car.id}`} className="car-card-link">
+        <img 
+          src={img} 
+          alt={car.description || car.type || 'Xe'}
+          className="car-image"
+          width="300" 
+          height="200"
+          loading="lazy"
+        />
+      </Link>
       
       <div className="card-details">
-        <h3>{car.description || car.type}</h3>
+        <h3>
+          <Link to={`/car/${car.id}`}>{car.description || car.type}</Link>
+        </h3>
         
         <div className="info-group">
           <div className="info-row location-info">
             <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
-            <span>{car.station_id || 'Chưa xác định'}</span>
+            <span>{stationName}</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon>
+            <span>{car.seats || 'N/A'} chỗ</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:battery-charging" aria-hidden="true"></iconify-icon>
+            <span>{car.batteryLevel}%</span>
           </div>
         </div>
         
         <div className="card-footer">
           <span className="price-per-day">
-            {car.price_per_hour ? `${car.price_per_hour.toLocaleString()}đ/giờ` : 'Liên hệ'}
+            {car.pricePerHour ? `${car.pricePerHour.toLocaleString()}đ/giờ` : 'Liên hệ'}
           </span>
           <span className={`status-badge ${statusClass}`}>
             {statusLabel}
@@ -96,10 +99,14 @@ const SearchPage = () => {
   // Lấy thông tin tìm kiếm từ URL params
   const searchInfo = {
     location: searchParams.get('location') || 'TP Hồ Chí Minh',
+    station: searchParams.get('station') || '',
+    stationId: searchParams.get('stationId') || '',
     startDate: searchParams.get('startDate') || '',
     endDate: searchParams.get('endDate') || '',
     startTime: searchParams.get('startTime') || '',
-    endTime: searchParams.get('endTime') || ''
+    endTime: searchParams.get('endTime') || '',
+    rentalType: searchParams.get('rentalType') || 'day',
+    duration: searchParams.get('duration') || ''
   };
 
   // Format hiển thị thời gian
@@ -154,13 +161,56 @@ const SearchPage = () => {
     setUser(null);
   };
 
-    // Lấy dữ liệu xe từ vehicleService
-    const [cars, setCars] = React.useState([]);
+  // State cho cars
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-      const v = vehicleService.getVehicles();
-      setCars(v || []);
-    }, []);
+  // Fetch vehicles - lọc theo trạm và thời gian
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setLoading(true);
+      try {
+        const params = { status: 'AVAILABLE' };
+        
+        // Thêm stationId nếu có
+        if (searchInfo.stationId) {
+          params.stationId = searchInfo.stationId;
+        }
+        
+        // Lấy tất cả xe AVAILABLE tại trạm
+        const allVehicles = await getVehicles(params);
+        
+        // Nếu có startDate và endDate, kiểm tra xe nào đã được booking
+        if (searchInfo.startDate && searchInfo.endDate) {
+          try {
+            const bookedVehicleIds = await checkAvailability(
+              searchInfo.startDate,
+              searchInfo.endDate
+            );
+            
+            // Lọc bỏ các xe đã được booking
+            const availableVehicles = allVehicles.filter(
+              vehicle => !bookedVehicleIds.includes(vehicle.id)
+            );
+            setCars(availableVehicles || []);
+          } catch (error) {
+            console.error('Error checking availability:', error);
+            // Nếu lỗi khi check availability, vẫn hiển thị tất cả xe
+            setCars(allVehicles || []);
+          }
+        } else {
+          // Không có thời gian, hiển thị tất cả xe
+          setCars(allVehicles || []);
+        }
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+        setCars([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVehicles();
+  }, [searchInfo.stationId, searchInfo.startDate, searchInfo.endDate]);
 
   return (
     <div className="SearchPage">
@@ -180,14 +230,13 @@ const SearchPage = () => {
             <div className="search-summary-info">
               <div className="search-location">
                 <iconify-icon icon="material-symbols:location-on"></iconify-icon>
-                {searchInfo.location}
+                {searchInfo.station || searchInfo.location}
               </div>
               <div className="search-datetime">
                 <iconify-icon icon="mdi:calendar"></iconify-icon>
                 {formatSearchDisplay()}
               </div>
             </div>
-            <SearchFilter />
           </div>
         </div>
 
@@ -196,17 +245,24 @@ const SearchPage = () => {
           <div className="search-results-header">
             <div className="results-title">
               <h2>Chi tiết tìm kiếm xe</h2>
+              <p className="results-count">{cars.length} xe được tìm thấy</p>
             </div>
           </div>
 
-          <div className="search-results-grid car-list-grid">
-            {cars.map((car, index) => (
-              <CarCard 
-                key={car.id || index}
-                car={car}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <p className="loading-text">Đang tải xe...</p>
+          ) : !cars || cars.length === 0 ? (
+            <p className="no-results">Không có xe nào có sẵn.</p>
+          ) : (
+            <div className="search-results-grid car-list-grid">
+              {cars.map((car) => (
+                <CarCard 
+                  key={car.id}
+                  car={car}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

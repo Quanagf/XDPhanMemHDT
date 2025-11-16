@@ -1,19 +1,29 @@
 package com.evrental.vehicles.controller;
 
-import com.evrental.vehicles.dto.CreateVehicleRequest;
-import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
-import com.evrental.vehicles.dto.VehicleStatsDTO;
-import jakarta.validation.Valid;
-import com.evrental.vehicles.model.Vehicle;
-import com.evrental.vehicles.model.Vehicle.VehicleStatus;
-import com.evrental.vehicles.service.IVehicleService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.evrental.vehicles.dto.CreateVehicleRequest;
+import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
+import com.evrental.vehicles.dto.VehicleStatsDTO;
+import com.evrental.vehicles.model.Vehicle;
+import com.evrental.vehicles.model.Vehicle.VehicleStatus;
+import com.evrental.vehicles.service.IVehicleService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/vehicles") // Tiền tố cho API Xe
@@ -38,7 +48,6 @@ public class VehicleController {
 
     // API cho Renter/Staff: Lấy danh sách xe (1.b / 2.a)
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Vehicle>> findVehicles(
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) VehicleStatus status) {

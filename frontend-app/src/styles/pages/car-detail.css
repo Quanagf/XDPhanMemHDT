@@ -1093,3 +1093,107 @@
     padding: 0.75rem;
   }
 }
+
+/* ========================================================= */
+/* LOADING, ERROR & NOT FOUND STATES */
+/* ========================================================= */
+
+.loading-container,
+.error-container,
+.not-found-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 400px;
+  gap: 1rem;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #47C778;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container iconify-icon,
+.not-found-container iconify-icon {
+  font-size: 3rem;
+  color: #ff6b6b;
+}
+
+.retry-button,
+.back-button-large {
+  background: #47C778;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover,
+.back-button-large:hover {
+  background: #3ba865;
+}
+
+/* ========================================================= */
+/* ADDITIONAL VEHICLE DETAILS */
+/* ========================================================= */
+
+.vehicle-details {
+  background: #f8fffe;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e6f7f1;
+}
+
+.vehicle-details h3 {
+  color: #2d5a45;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e6f7f1;
+}
+
+.detail-item iconify-icon {
+  color: #47C778;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.detail-item span {
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

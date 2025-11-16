@@ -1,25 +1,27 @@
 package com.evrental.booking.service;
 
-import com.evrental.booking.dto.CheckInRequest;
-import com.evrental.booking.dto.CheckOutRequest;
-import com.evrental.booking.dto.CreateBookingRequest;
-import com.evrental.booking.dto.VehicleDTO;
-import com.evrental.booking.dto.PaymentRequestDTO; // <-- DÒNG MỚI (Import DTO để gửi đi)
-import com.evrental.booking.model.Booking;
-import com.evrental.booking.model.BookingContract;
-import com.evrental.booking.repository.BookingRepository;
-import com.evrental.booking.repository.BookingContractRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate; // Import công cụ gọi API
-import org.springframework.web.server.ResponseStatusException;
-
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value; // <-- DÒNG MỚI (Import DTO để gửi đi)
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.evrental.booking.dto.CheckInRequest;
+import com.evrental.booking.dto.CheckOutRequest;
+import com.evrental.booking.dto.CreateBookingRequest;
+import com.evrental.booking.dto.PaymentRequestDTO;
+import com.evrental.booking.dto.VehicleDTO; // Import công cụ gọi API
+import com.evrental.booking.model.Booking;
+import com.evrental.booking.model.BookingContract;
+import com.evrental.booking.repository.BookingContractRepository;
+import com.evrental.booking.repository.BookingRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -198,6 +200,12 @@ public class BookingServiceImpl implements IBookingService {
     public List<Booking> getBookingsByUserId(Long userId) {
         // (Chức năng 3.a)
         return bookingRepository.findByUserIdOrderByBookingTimeDesc(userId);
-    }  
+    }
+    
+    @Override
+    public List<Long> getBookedVehicleIds(LocalDateTime startTime, LocalDateTime endTime) {
+        // Lấy danh sách vehicleId đã được booking trong khoảng thời gian
+        return bookingRepository.findBookedVehicleIds(startTime, endTime);
+    }
     
 }

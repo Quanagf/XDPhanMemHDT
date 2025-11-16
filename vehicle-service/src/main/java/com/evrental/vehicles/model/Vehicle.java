@@ -1,16 +1,27 @@
 package com.evrental.vehicles.model;
 
+import java.time.LocalDate;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.ToString;
-
-import java.time.LocalDate;
 
 @Data
 @Entity
@@ -23,7 +34,7 @@ public class Vehicle {
 
     @Column(unique = true, nullable = false)
     @NotBlank(message = "Biển số không được trống")
-    @Pattern(regexp = "^[A-Z0-9\\-]+$", message = "Biển số phải chứa chữ cái, chữ số và dấu gạch ngang")
+    @Pattern(regexp = "^[A-Z0-9\\-\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang và khoảng trắng")
     private String licensePlate;
 
     @NotBlank(message = "Loại xe không được trống")
@@ -55,6 +66,18 @@ public class Vehicle {
     private String description;
     
     private LocalDate lastMaintenanceDate;
+
+    // Thông số kỹ thuật bổ sung
+    private Integer seats; // Số ghế
+    private Double batteryCapacity; // Dung lượng pin (kWh)
+    
+    @Column(name = "`range`") // Escape reserved keyword
+    private Integer range; // Phạm vi di chuyển (km)
+    
+    private String chargingType; // Loại cổng sạc (CCS2, CHAdeMO, Type 2, etc.)
+    private String chargingSpeed; // Tốc độ sạc (ví dụ: "10-70% trong ~25 mins")
+    private String location; // Vị trí hiện tại
+    private Integer tripCount; // Số chuyến đã thực hiện
 
     // Quan hệ Nhiều-1: Nhiều xe thuộc 1 trạm
     @ManyToOne(fetch = FetchType.LAZY)

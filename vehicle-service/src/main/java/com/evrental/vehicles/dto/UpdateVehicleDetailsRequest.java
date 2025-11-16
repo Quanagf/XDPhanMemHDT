@@ -1,19 +1,20 @@
 package com.evrental.vehicles.dto;
 
+import java.time.LocalDate;
+
 import com.evrental.vehicles.model.Vehicle;
-import lombok.Data;
-import jakarta.validation.constraints.Min;
+
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-
-import java.time.LocalDate;
+import lombok.Data;
 
 @Data
 public class UpdateVehicleDetailsRequest {
     @NotBlank(message = "Biển số không được trống")
-    @Pattern(regexp = "^[A-Z0-9\\-]+$", message = "Biển số phải chứa chữ cái, chữ số và dấu gạch ngang")
+    @Pattern(regexp = "^[A-Z0-9\\-\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang và khoảng trắng")
     private String licensePlate;
 
     @NotBlank(message = "Loại xe không được trống")
@@ -33,4 +34,13 @@ public class UpdateVehicleDetailsRequest {
     private LocalDate lastMaintenanceDate;
     
     private Long stationId;
+    
+    // Thông số kỹ thuật bổ sung
+    private Integer seats;
+    private Double batteryCapacity;
+    private Integer range;
+    private String chargingType;
+    private String chargingSpeed;
+    private String location;
+    private Integer tripCount;
 }

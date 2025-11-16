@@ -4,17 +4,17 @@ import java.time.LocalDate;
 
 import com.evrental.vehicles.model.Vehicle;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
 public class CreateVehicleRequest {
     @NotBlank(message = "Biển số không được trống")
-    @Pattern(regexp = "^[A-Z0-9\\-]+$", message = "Biển số phải chứa chữ cái, chữ số và dấu gạch ngang")
+    @Pattern(regexp = "^[A-Z0-9\\-\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang và khoảng trắng")
     private String licensePlate;
 
     @NotBlank(message = "Loại xe không được trống")
@@ -37,5 +37,14 @@ public class CreateVehicleRequest {
     private LocalDate lastMaintenanceDate;
     
     @NotNull(message = "ID trạm không được null")
-    private Long stationId; 
+    private Long stationId;
+    
+    // Thông số kỹ thuật bổ sung
+    private Integer seats; // Số ghế
+    private Double batteryCapacity; // Dung lượng pin (kWh)
+    private Integer range; // Phạm vi di chuyển (km)
+    private String chargingType; // Loại cổng sạc
+    private String chargingSpeed; // Tốc độ sạc
+    private String location; // Vị trí hiện tại
+    private Integer tripCount; // Số chuyến đã thực hiện
 }

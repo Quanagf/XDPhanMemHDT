@@ -1,20 +1,29 @@
 package com.evrental.booking.controller;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.PathVariable; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping; // <-- IMPORT MỚI
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
 import com.evrental.booking.model.Booking;
 import com.evrental.booking.service.IBookingService;
-import com.evrental.booking.service.JwtService; // <-- IMPORT MỚI
-import io.jsonwebtoken.Claims; // <-- IMPORT MỚI
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // <-- IMPORT MỚI
-import org.springframework.web.bind.annotation.*;
+import com.evrental.booking.service.JwtService;
 
-import java.util.List;
-import java.security.Principal;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
 
 
 @RestController
@@ -111,6 +120,19 @@ public class BookingController {
         
         List<Booking> bookings = bookingService.getStationBookings(stationId);
         return ResponseEntity.ok(bookings);
+    }
+    
+    // === API 7: Kiểm tra xe đã được booking (Public - cho tìm kiếm) ===
+    @GetMapping("/check-availability")
+    public ResponseEntity<List<Long>> checkAvailability(
+            @RequestParam String startTime,
+            @RequestParam String endTime) {
+        
+        LocalDateTime start = LocalDateTime.parse(startTime);
+        LocalDateTime end = LocalDateTime.parse(endTime);
+        
+        List<Long> bookedVehicleIds = bookingService.getBookedVehicleIds(start, end);
+        return ResponseEntity.ok(bookedVehicleIds);
     }
 }
 

@@ -34,13 +34,12 @@ public class SecurityConfig {
                                 "/api/stations/ping"
                         ).permitAll()
                         
-                        // Cho phép GET stations (để frontend có thể lấy danh sách)
+                        // Cho phép GET stations và vehicles (để frontend có thể lấy danh sách công khai)
                         .requestMatchers(HttpMethod.GET, "/api/stations/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/vehicles").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/vehicles/{id}").permitAll()
 
                         // --- CÁC API NỘI BỘ (Cho Service khác gọi) ---
-                        .requestMatchers(
-                            HttpMethod.GET, "/api/vehicles/{id}"
-                        ).permitAll() // (Cho booking-service lấy giá)
                         .requestMatchers(
                             HttpMethod.PUT, "/api/vehicles/{id}/status/{statusName}"
                         ).permitAll() // (Cho booking-service cập nhật status)

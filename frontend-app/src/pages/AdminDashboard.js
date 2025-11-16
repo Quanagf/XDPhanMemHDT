@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/pages/admin.css';
+import '../styles/components/verification.css';
+import '../styles/components/handover.css';
+import '../styles/components/form.css';
+import vehicleService from '../utils/vehicleService';
 import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
 
 const AdminDashboard = () => {
@@ -135,10 +139,11 @@ const AdminDashboard = () => {
 const VehicleManagement = () => {
   const [vehicles, setVehicles] = useState([]);
   const [stations, setStations] = useState([]);
-  const [selectedStation, setSelectedStation] = useState('all');
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [expandedVehicle, setExpandedVehicle] = useState(null);
+  const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  
   const [form, setForm] = useState({
     licensePlate: '',
     type: '',
@@ -148,15 +153,21 @@ const VehicleManagement = () => {
     imageUrl: '',
     description: '',
     lastMaintenanceDate: '',
-    stationId: ''
+    stationId: '',
+    // Thông số kỹ thuật bổ sung
+    seats: '',
+    batteryCapacity: '',
+    range: '',
+    chargingType: '',
+    chargingSpeed: '',
+    location: '',
+    tripCount: ''
   });
   const [fileToUpload, setFileToUpload] = useState(null);
-  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     fetchStations();
     fetchVehicles();
-    fetchStats();
   }, []);
 
   const getAuthHeader = () => {
@@ -176,11 +187,10 @@ const VehicleManagement = () => {
     }
   };
 
-  const fetchVehicles = async (stationId) => {
+  const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const q = stationId && stationId !== 'all' ? `?stationId=${stationId}` : '';
-      const res = await fetch(`/api/vehicles${q}`, { headers: getAuthHeader() });
+      const res = await fetch('/api/vehicles', { headers: getAuthHeader() });
       if (res.ok) {
         const data = await res.json();
         setVehicles(data || []);
@@ -192,55 +202,45 @@ const VehicleManagement = () => {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch('/api/vehicles/stats', { headers: getAuthHeader() });
-      if (res.ok) setStats(await res.json());
-    } catch (err) {
-      console.error('fetchStats', err);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Auto-fill địa chỉ khi chọn stationId
+    if (name === 'stationId') {
+      const selectedStation = stations.find(station => station.id === Number(value));
+      setForm(prev => ({ 
+        ...prev, 
+        [name]: value,
+        location: selectedStation ? `${selectedStation.address}, ${selectedStation.province}` : ''
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm({
-      licensePlate: '', type: '', batteryLevel: 100, pricePerHour: 0,
-      status: 'AVAILABLE', imageUrl: '', description: '', lastMaintenanceDate: '', stationId: ''
-    });
-    setShowForm(true);
-  };
-
-  const openEdit = (vehicle) => {
-    setEditing(vehicle);
-    setForm({
-      licensePlate: vehicle.licensePlate || '',
-      type: vehicle.type || '',
-      batteryLevel: vehicle.batteryLevel || 0,
-      pricePerHour: vehicle.pricePerHour || 0,
-      status: vehicle.status || 'AVAILABLE',
-      imageUrl: vehicle.imageUrl || '',
-      description: vehicle.description || '',
-      lastMaintenanceDate: vehicle.lastMaintenanceDate || '',
-      stationId: vehicle.station ? vehicle.station.id : ''
-    });
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e) => {
+  const handleAddOrUpdate = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        licensePlate: form.licensePlate,
+        type: form.type,
+        batteryLevel: Number(form.batteryLevel) || 0,
+        pricePerHour: Number(form.pricePerHour) || 0,
+        status: form.status,
+        description: form.description,
+        lastMaintenanceDate: form.lastMaintenanceDate || null,
+        stationId: Number(form.stationId),
+        // Thông số kỹ thuật
+        seats: Number(form.seats) || null,
+        batteryCapacity: Number(form.batteryCapacity) || null,
+        range: Number(form.range) || null,
+        chargingType: form.chargingType || null,
+        chargingSpeed: form.chargingSpeed || null,
+        location: form.location || null,
+        tripCount: Number(form.tripCount) || null
+      };
+
       if (editing) {
-        // Gửi tất cả các trường khi cập nhật
-        const payload = {
-          licensePlate: form.licensePlate,
-          type: form.type,
-          pricePerHour: form.pricePerHour,
-          batteryLevel: form.batteryLevel,
-          status: form.status,
-          description: form.description,
-          lastMaintenanceDate: form.lastMaintenanceDate || null,
-          stationId: Number(form.stationId)
-        };
         await updateVehicle(editing.id, payload);
         // upload image if any
         if (fileToUpload) {
@@ -255,18 +255,8 @@ const VehicleManagement = () => {
           if (!res.ok) throw new Error('Upload failed');
         }
         alert('Cập nhật thành công');
+        setEditing(null);
       } else {
-        const payload = {
-          licensePlate: form.licensePlate,
-          type: form.type,
-          batteryLevel: form.batteryLevel,
-          pricePerHour: form.pricePerHour,
-          status: form.status,
-          imageUrl: form.imageUrl,
-          description: form.description,
-          lastMaintenanceDate: form.lastMaintenanceDate || null,
-          stationId: Number(form.stationId)
-        };
         const created = await createVehicle(payload);
         // upload file if selected
         if (fileToUpload && created && created.id) {
@@ -282,240 +272,475 @@ const VehicleManagement = () => {
         }
         alert('Tạo xe thành công');
       }
+      
+      // Reset form
+      setForm({ 
+        licensePlate: '', type: '', batteryLevel: 100, pricePerHour: 0,
+        status: 'AVAILABLE', imageUrl: '', description: '', lastMaintenanceDate: '', stationId: '',
+        seats: '', batteryCapacity: '', range: '', chargingType: '', chargingSpeed: '',
+        location: '', tripCount: ''
+      });
       setFileToUpload(null);
-      setShowForm(false);
-      fetchVehicles(selectedStation === 'all' ? null : selectedStation);
-      fetchStats();
+      fetchVehicles();
     } catch (err) {
-      console.error('submit vehicle', err);
-      alert('Lỗi khi lưu xe');
+      console.error('handleAddOrUpdate', err);
+      alert('Lỗi khi lưu xe: ' + (err.message || err.toString()));
     }
   };
 
+  const handleEdit = (v) => {
+    setEditing(v);
+    setForm({
+      licensePlate: v.licensePlate || '',
+      type: v.type || '',
+      batteryLevel: v.batteryLevel || 0,
+      pricePerHour: v.pricePerHour || 0,
+      status: v.status || 'AVAILABLE',
+      imageUrl: v.imageUrl || '',
+      description: v.description || '',
+      lastMaintenanceDate: v.lastMaintenanceDate || '',
+      stationId: v.station ? v.station.id : '',
+      // Thông số kỹ thuật
+      seats: v.seats || '',
+      batteryCapacity: v.batteryCapacity || '',
+      range: v.range || '',
+      chargingType: v.chargingType || '',
+      chargingSpeed: v.chargingSpeed || '',
+      location: v.location || '',
+      tripCount: v.tripCount || ''
+    });
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Xác nhận xóa xe này?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa xe này không?')) return;
     try {
       await deleteVehicle(id);
-      fetchVehicles(selectedStation === 'all' ? null : selectedStation);
-      fetchStats();
+      fetchVehicles();
     } catch (err) {
-      console.error('delete vehicle', err);
+      console.error('handleDelete', err);
       alert('Không thể xóa xe');
     }
   };
 
-  const onStationChange = (val) => {
-    setSelectedStation(val);
-    fetchVehicles(val === 'all' ? null : val);
-  };
-
   return (
-    <div className="admin-section">
-      <h1>Quản lý đội xe & điểm thuê</h1>
+    <div className="staff-section">
+      <h1>Quản lý xe tại điểm</h1>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Tổng số xe</h3>
-          <p className="stat-number">{stats ? stats.totalVehicles : '—'}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Xe đang cho thuê</h3>
-          <p className="stat-number">{stats ? stats.rented : '—'}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Xe khả dụng</h3>
-          <p className="stat-number">{stats ? stats.available : '—'}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Xe bảo trì</h3>
-          <p className="stat-number text-danger">{stats ? stats.maintenance : '—'}</p>
-        </div>
-      </div>
-
-      <div className="filter-section">
-        <label>Chọn điểm thuê:</label>
-        <select value={selectedStation} onChange={(e) => onStationChange(e.target.value)} className="filter-select">
-          <option value="all">Tất cả điểm</option>
-          {stations.map(s => (
-            <option key={s.id} value={s.id}>{s.name} - {s.province}</option>
-          ))}
-        </select>
-
-        <button className="admin-btn-primary" onClick={openCreate} style={{ marginLeft: 12 }}>Thêm xe mới</button>
-      </div>
-
-      <div className="vehicles-table-container">
+      <div className="vehicle-status-table">
+        <h2>Danh sách xe tại điểm</h2>
         {loading ? <p>Đang tải...</p> : (
-        <table className="vehicles-table">
+        <table className="staff-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Ảnh</th>
+              <th>Chi tiết</th>
               <th>Biển số</th>
-              <th>Loại xe</th>
-              <th>Giá/giờ</th>
-              <th>Pin</th>
+              <th>Loại</th>
+              <th>Pin (%)</th>
               <th>Trạng thái</th>
-              <th>Ngày bảo trì</th>
-              <th>Mô tả</th>
+              <th>Giá/giờ</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
             {vehicles.map(v => (
-              <tr key={v.id}>
-                <td>{v.id}</td>
-                <td>
-                  {v.imageUrl ? <img src={v.imageUrl} alt="vehicle" style={{ maxWidth: 80, maxHeight: 60, borderRadius: 4 }} /> : <span style={{color: '#999'}}>-</span>}
-                </td>
-                <td><strong>{v.licensePlate}</strong></td>
-                <td>{v.type}</td>
-                <td>{v.pricePerHour ? `${v.pricePerHour.toLocaleString('vi-VN')} VNĐ` : '-'}</td>
-                <td>{v.batteryLevel}%</td>
-                <td>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: 4,
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    backgroundColor: v.status === 'AVAILABLE' ? '#d1fae5' : v.status === 'RENTED' ? '#fef3c7' : '#fee2e2',
-                    color: v.status === 'AVAILABLE' ? '#065f46' : v.status === 'RENTED' ? '#92400e' : '#991b1b'
-                  }}>
-                    {v.status === 'AVAILABLE' ? 'Khả dụng' : v.status === 'RENTED' ? 'Đang thuê' : 'Bảo trì'}
-                  </span>
-                </td>
-                <td>{v.lastMaintenanceDate ? new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN') : '-'}</td>
-                <td style={{maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={v.description}>{v.description || '-'}</td>
-                <td style={{whiteSpace: 'nowrap'}}>
-                  <button className="admin-btn-action" onClick={() => openEdit(v)}>Sửa</button>
-                  <button className="admin-btn-action" onClick={() => handleDelete(v.id)}>Xóa</button>
-                </td>
-              </tr>
+              <React.Fragment key={v.id}>
+                <tr>
+                  <td>
+                    <button 
+                      className="expand-btn"
+                      onClick={() => setExpandedVehicle(expandedVehicle === v.id ? null : v.id)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d={expandedVehicle === v.id 
+                          ? "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" 
+                          : "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"} 
+                        />
+                      </svg>
+                    </button>
+                  </td>
+                  <td>{v.licensePlate}</td>
+                  <td>{v.type}</td>
+                  <td>
+                    <div className="battery-indicator">
+                      <div className="battery-container">
+                        <div 
+                          className={`battery-bar ${
+                            v.batteryLevel >= 60 ? 'battery-high' :
+                            v.batteryLevel >= 30 ? 'battery-medium' : 
+                            'battery-low'
+                          }`} 
+                          style={{
+                            width: `${Math.min(Math.max(v.batteryLevel || 0, 0), 100)}%`
+                          }}
+                        ></div>
+                      </div>
+                      <span className={`battery-text ${
+                        v.batteryLevel >= 60 ? 'text-green-600' :
+                        v.batteryLevel >= 30 ? 'text-yellow-600' : 
+                        'text-red-600'
+                      }`}>
+                        {v.batteryLevel != null ? `${v.batteryLevel}%` : 'N/A'}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${v.status.toLowerCase()}`}>
+                      {v.status === 'AVAILABLE' ? 'Có sẵn' : 
+                       v.status === 'RESERVED' ? 'Đã đặt trước' :
+                       v.status === 'RENTED' ? 'Đang cho thuê' :
+                       v.status === 'MAINTENANCE' ? 'Bảo trì' : v.status}
+                    </span>
+                  </td>
+                  <td>{v.pricePerHour ? `${v.pricePerHour.toLocaleString()}đ` : '-'}</td>
+                  <td>
+                    <button className="btn-action" onClick={() => handleEdit(v)}>Sửa</button>
+                    <button className="btn-action" onClick={() => handleDelete(v.id)}>Xóa</button>
+                  </td>
+                </tr>
+                
+                {/* Expanded Details Row */}
+                {expandedVehicle === v.id && (
+                  <tr className="expanded-details">
+                    <td colSpan="7">
+                      <div className="vehicle-details-container">
+                        <div className="details-header">
+                          <h4>Chi tiết xe {v.licensePlate}</h4>
+                        </div>
+                        
+                        <div className="details-content">
+                          <div className="details-section">
+                            <h5>Thông số kỹ thuật</h5>
+                            <div className="details-grid">
+                              <div className="detail-row">
+                                <span className="label">Số ghế:</span>
+                                <span className="value">{v.seats || 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Dung lượng pin:</span>
+                                <span className="value">{v.batteryCapacity ? `${v.batteryCapacity} kWh` : 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Phạm vi di chuyển:</span>
+                                <span className="value">{v.range ? `${v.range} km` : 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Loại cổng sạc:</span>
+                                <span className="value">{v.chargingType || 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Tốc độ sạc:</span>
+                                <span className="value">{v.chargingSpeed || 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Số chuyến:</span>
+                                <span className="value">{v.tripCount || '0'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="details-section">
+                            <h5>Thông tin quản lý</h5>
+                            <div className="details-grid">
+                              <div className="detail-row">
+                                <span className="label">Trạm:</span>
+                                <span className="value">{v.station ? `${v.station.name} - ${v.station.province}` : 'N/A'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Vị trí hiện tại:</span>
+                                <span className="value">{v.location || (v.station ? `${v.station.address}, ${v.station.province}` : 'N/A')}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Ngày bảo trì cuối:</span>
+                                <span className="value">{
+                                  v.lastMaintenanceDate ? 
+                                    new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN', {
+                                      day: '2-digit',
+                                      month: '2-digit', 
+                                      year: 'numeric'
+                                    }) : 'N/A'
+                                }</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Mô tả:</span>
+                                <span className="value">{v.description || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {v.imageUrl && (
+                            <div className="details-section image-section">
+                              <h5>Ảnh xe</h5>
+                              <div className="vehicle-image">
+                                <img src={v.imageUrl} alt={`Xe ${v.licensePlate}`} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
         )}
       </div>
 
-      {showForm && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>{editing ? 'Cập nhật xe' : 'Tạo xe mới'}</h3>
-            <form onSubmit={handleSubmit}>
-              {/* Biển số */}
-              <label>Biển số <span>*</span></label>
-              <input 
-                type="text"
-                required 
-                placeholder="VD: 29A-12345" 
-                value={form.licensePlate} 
-                onChange={e => setForm({ ...form, licensePlate: e.target.value.toUpperCase() })} 
-                title="Chữ cái, chữ số và dấu gạch ngang"
-              />
-
-              {/* Loại xe */}
-              <label>Loại xe <span>*</span></label>
-              <input 
-                type="text"
-                required 
-                placeholder="VD: VinFast VF3" 
-                value={form.type} 
-                onChange={e => setForm({ ...form, type: e.target.value })} 
-              />
-
-              {/* Trạm */}
-              <label>Trạm <span>*</span></label>
-              <select 
-                required 
-                value={form.stationId} 
-                onChange={e => setForm({ ...form, stationId: e.target.value })}
-              >
-                <option value="">-- Chọn --</option>
-                {stations.map(s => <option key={s.id} value={s.id}>{s.name} - {s.province}</option>)}
-              </select>
-
-              {/* Giá/giờ */}
-              <label>Giá/giờ (VNĐ) <span>*</span></label>
-              <input 
-                type="number" 
-                required 
-                min="0" 
-                step="0.01"
-                placeholder="0"
-                value={form.pricePerHour} 
-                onChange={e => setForm({ ...form, pricePerHour: Number(e.target.value) })}
-              />
-
-              {/* Pin */}
-              <label>Pin (%) <span>*</span></label>
-              <input 
-                type="number" 
-                min="0" 
-                max="100" 
-                required 
-                placeholder="0"
-                value={form.batteryLevel} 
-                onChange={e => setForm({ ...form, batteryLevel: Number(e.target.value) })} 
-                title="Từ 0 đến 100"
-              />
-
-              {/* Trạng thái */}
-              <label>Trạng thái <span>*</span></label>
-              <select 
-                required 
-                value={form.status} 
-                onChange={e => setForm({ ...form, status: e.target.value })}
-              >
-                <option value="">-- Chọn --</option>
-                <option value="AVAILABLE">Khả dụng</option>
-                <option value="RENTED">Đang thuê</option>
-                <option value="MAINTENANCE">Bảo trì</option>
-              </select>
-
-              {/* Mô tả */}
-              <label>Mô tả tình trạng kỹ thuật</label>
-              <textarea 
-                placeholder="Ghi chú về tình trạng xe, các vấn đề cần lưu ý..." 
-                value={form.description} 
-                onChange={e => setForm({ ...form, description: e.target.value })} 
-              />
-
-              {/* Ngày bảo trì */}
-              <label>Ngày bảo trì gần nhất</label>
-              <input 
-                type="date" 
-                value={form.lastMaintenanceDate} 
-                onChange={e => setForm({ ...form, lastMaintenanceDate: e.target.value })} 
-              />
-
-              {/* Ảnh xe */}
-              <label>Ảnh xe</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={e => { setFileToUpload(e.target.files[0]); }} 
-              />
-              {fileToUpload && (
-                <div style={{ marginTop: 8 }}>
-                  <img src={URL.createObjectURL(fileToUpload)} alt="preview" style={{ maxWidth: 160, maxHeight: 90 }} />
-                </div>
-              )}
-              {editing && form.imageUrl && !fileToUpload && (
-                <div style={{ marginTop: 8 }}>
-                  <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 4 }}>Ảnh hiện tại:</p>
-                  <img src={form.imageUrl} alt="current" style={{ maxWidth: 160, maxHeight: 90 }} />
-                </div>
-              )}
-
-              {/* Buttons */}
-              <div style={{ marginTop: 24, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="submit" className="admin-btn-primary">Lưu</button>
-                <button type="button" className="admin-btn" onClick={() => setShowForm(false)}>Hủy</button>
-              </div>
-            </form>
+      <div className="issue-report-form">
+        <h2>{editing ? 'Cập nhật xe' : 'Thêm xe mới'}</h2>
+        <form onSubmit={handleAddOrUpdate}>
+          <div className="form-group">
+            <label>Biển số xe</label>
+            <input 
+              name="licensePlate" 
+              value={form.licensePlate} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 30A-12345"
+              required 
+            />
           </div>
-        </div>
-      )}
+          <div className="form-group">
+            <label>Loại xe</label>
+            <input 
+              name="type" 
+              value={form.type} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: VF3, VF5, VF8"
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label>Mô tả chi tiết</label>
+            <input 
+              name="description" 
+              value={form.description} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: VINFAST VF3 - Màu trắng"
+            />
+          </div>
+          <div className="form-group">
+            <label>Ảnh xe</label>
+            <input 
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                  setFileToUpload(file);
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    setForm(prev => ({
+                      ...prev,
+                      imageUrl: ev.target.result
+                    }));
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+              {form.imageUrl && (
+                <div className="image-preview photo-item" style={{ marginTop: '10px', maxWidth: 200 }}>
+                  <img
+                    src={form.imageUrl}
+                    alt="Vehicle preview"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="remove-photo"
+                    onClick={() => {
+                      setForm(prev => ({ ...prev, imageUrl: '' }));
+                      setFileToUpload(null);
+                      try { if (fileInputRef.current) fileInputRef.current.value = null; } catch (e) { }
+                    }}
+                    aria-label="Xóa ảnh"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+          </div>
+          
+          <h3 style={{ margin: '2rem 0 1rem 0', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+            Thông số kỹ thuật
+          </h3>
+          
+          <div className="form-group">
+            <label>Số ghế</label>
+            <input 
+              name="seats" 
+              type="number" 
+              min="2" 
+              max="8" 
+              value={form.seats} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 4"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Dung lượng pin (kWh)</label>
+            <input 
+              name="batteryCapacity" 
+              type="number" 
+              step="0.1" 
+              value={form.batteryCapacity} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 87.7"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Phạm vi di chuyển (km)</label>
+            <input 
+              name="range" 
+              type="number" 
+              value={form.range} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 420"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Loại cổng sạc</label>
+            <select name="chargingType" value={form.chargingType} onChange={handleChange}>
+              <option value="">-- Chọn loại cổng sạc --</option>
+              <option value="CCS2">CCS2</option>
+              <option value="CHAdeMO">CHAdeMO</option>
+              <option value="Type 2">Type 2</option>
+              <option value="Tesla Supercharger">Tesla Supercharger</option>
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label>Tốc độ sạc</label>
+            <input 
+              name="chargingSpeed" 
+              value={form.chargingSpeed} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 10 - 70% trong ~25 mins"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Số chuyến đã thực hiện</label>
+            <input 
+              name="tripCount" 
+              type="number" 
+              min="0" 
+              value={form.tripCount} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 19"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Mức pin (%)</label>
+            <input 
+              name="batteryLevel" 
+              type="number" 
+              min="0" 
+              max="100" 
+              value={form.batteryLevel} 
+              onChange={handleChange} 
+              placeholder="0-100"
+              required
+            />
+          </div>
+          
+          <h3 style={{ margin: '2rem 0 1rem 0', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+            Thông tin quản lý
+          </h3>
+          
+          <div className="form-group">
+            <label>Ngày bảo trì cuối</label>
+            <input 
+              name="lastMaintenanceDate" 
+              type="date" 
+              value={form.lastMaintenanceDate} 
+              onChange={handleChange} 
+            />
+          </div>
+          <div className="form-group">
+            <label>Giá thuê mỗi giờ (VND)</label>
+            <input 
+              name="pricePerHour" 
+              type="number" 
+              value={form.pricePerHour} 
+              onChange={handleChange} 
+              placeholder="Ví dụ: 50000"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Trạm</label>
+            <select
+              name="stationId" 
+              value={form.stationId} 
+              onChange={handleChange}
+              required
+            >
+              <option value="">Chọn trạm</option>
+              {stations.map(station => (
+                <option key={station.id} value={station.id}>
+                  {station.name} - {station.province}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label>Vị trí hiện tại</label>
+            <input 
+              name="location" 
+              value={form.location} 
+              onChange={handleChange} 
+              placeholder="Địa chỉ sẽ tự động điền khi chọn trạm"
+              readOnly
+              style={{
+                background: '#f8fafc',
+                color: '#64748b',
+                cursor: 'not-allowed'
+              }}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Trạng thái</label>
+            <select name="status" value={form.status} onChange={handleChange}>
+              <option value="AVAILABLE">Có sẵn</option>
+              <option value="RESERVED">Đã đặt trước</option>
+              <option value="RENTED">Đang cho thuê</option>
+              <option value="MAINTENANCE">Bảo trì</option>
+            </select>
+          </div>
+
+          {editing ? (
+            <>
+              <button className="btn-success" type="submit">Cập nhật</button>
+              <button type="button" className="btn-danger" onClick={() => { 
+                setEditing(null); 
+                setFileToUpload(null);
+                setForm({ 
+                  licensePlate: '', type: '', batteryLevel: 100, pricePerHour: 0,
+                  status: 'AVAILABLE', imageUrl: '', description: '', lastMaintenanceDate: '', stationId: '',
+                  seats: '', batteryCapacity: '', range: '', chargingType: '', chargingSpeed: '',
+                  location: '', tripCount: ''
+                }); 
+              }} style={{marginLeft: '8px'}}>Hủy</button>
+            </>
+          ) : (
+            <button className="btn-success" type="submit">Thêm xe</button>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

@@ -9,7 +9,7 @@
     }
 
     .form-inputs {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         width: 100%;
         gap: 15px;
     }
@@ -17,11 +17,11 @@
     .input-group.location,
     .input-group.station,
     .input-group.datetime-picker {
-        flex: 1; /* Reset flex trên mobile */
+        /* Reset styles trên mobile */
     }
 
     .datetime-display {
-        font-size: 0.9rem; /* Giảm font size trên mobile */
+        font-size: 0.9rem;
     }
 
     .search-btn {

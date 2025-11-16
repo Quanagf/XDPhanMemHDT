@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getStations, getProvinces } from '../api/stations';
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -12,6 +13,46 @@ const Hero = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10)); // Tháng 11/2025
   const [hourRentalDuration, setHourRentalDuration] = useState(4); // Số giờ thuê
   const [hourRentalStartTime, setHourRentalStartTime] = useState('07:00'); // Giờ bắt đầu cho thuê theo giờ
+  
+  // State cho provinces và stations
+  const [provinces, setProvinces] = useState([]);
+  const [stations, setStations] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedStation, setSelectedStation] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Load provinces và stations từ database
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [provincesData, stationsData] = await Promise.all([
+          getProvinces(),
+          getStations()
+        ]);
+        setProvinces(provincesData || []);
+        setStations(stationsData || []);
+        
+        // Set giá trị mặc định
+        if (provincesData && provincesData.length > 0) {
+          setSelectedProvince(provincesData[0]);
+        }
+        if (stationsData && stationsData.length > 0) {
+          setSelectedStation(stationsData[0].id.toString());
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Filter stations theo province
+  const filteredStations = selectedProvince 
+    ? stations.filter(s => s.province === selectedProvince)
+    : stations;
 
   const formatDateTime = (date, time) => {
     if (!date) return '';
@@ -181,10 +222,14 @@ const Hero = () => {
       }
     }
 
+    // Tìm thông tin station đã chọn
+    const selectedStationData = stations.find(s => s.id.toString() === selectedStation);
+    
     // Tạo URL params để chuyển sang trang search
     const searchParams = new URLSearchParams({
-      location: 'TP Hồ Chí Minh',
-      station: '70 Đ. Tố Ký, Quận 12',
+      location: selectedProvince || '',
+      station: selectedStationData ? selectedStationData.name : '',
+      stationId: selectedStation || '',
       startDate: selectedStartDate.toISOString(),
       endDate: activeTab === 'day' ? selectedEndDate.toISOString() : selectedStartDate.toISOString(),
       startTime: activeTab === 'day' ? startTime : hourRentalStartTime,
@@ -227,8 +272,26 @@ const Hero = () => {
               <label htmlFor="location">Địa điểm</label>
               <div className="input-field">
                 <iconify-icon icon="material-symbols:location-on" aria-hidden="true"></iconify-icon>
-                <select name="location" id="location" required>
-                  <option value="hcm">TP. Hồ Chí Minh</option>
+                <select
+                  id="location"
+                  value={selectedProvince}
+                  onChange={(e) => {
+                    const newProvince = e.target.value;
+                    setSelectedProvince(newProvince);
+                    // Reset station when province changes
+                    const stationsInProvince = stations.filter(s => s.province === newProvince);
+                    if (stationsInProvince.length > 0) {
+                      setSelectedStation(stationsInProvince[0].id.toString());
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <option value="">Chọn tỉnh/thành</option>
+                  {provinces.map(province => (
+                    <option key={province} value={province}>
+                      {province}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -237,8 +300,18 @@ const Hero = () => {
               <label htmlFor="station">Trạm thuê</label>
               <div className="input-field">
                 <iconify-icon icon="mdi:bus-stop" aria-hidden="true"></iconify-icon>
-                <select name="station" id="station" required>
-                  <option value="station-12">70 Đ. Tô Ký, Quận 12</option>
+                <select
+                  id="station"
+                  value={selectedStation}
+                  onChange={(e) => setSelectedStation(e.target.value)}
+                  disabled={loading || filteredStations.length === 0}
+                >
+                  <option value="">Chọn trạm thuê</option>
+                  {filteredStations.map(station => (
+                    <option key={station.id} value={station.id}>
+                      {station.name} - {station.address}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

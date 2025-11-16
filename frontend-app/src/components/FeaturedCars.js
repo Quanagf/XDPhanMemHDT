@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import vehicleService from '../utils/vehicleService';
+import { getVehicles } from '../api/vehicles';
+import { getStations } from '../api/stations';
 
 const statusClass = (status) => {
   switch (status) {
@@ -11,7 +12,9 @@ const statusClass = (status) => {
 };
 
 const CarCard = ({ car }) => {
-  const img = car.image_url || '/assets/images/cars/placeholder.webp';
+  const img = car.imageUrl || '/assets/images/cars/placeholder.webp';
+  const stationName = car.station ? `${car.station.name} - ${car.station.province}` : 'Chưa xác định';
+  
   return (
     <article className="car-card">
       <Link to={`/car/${car.id}`} className="car-card-link">
@@ -32,16 +35,24 @@ const CarCard = ({ car }) => {
         <div className="info-group">
           <div className="info-row location-info">
             <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
-            <span>{car.station_id || 'Chưa xác định'}</span>
+            <span>{stationName}</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon>
+            <span>{car.seats || 'N/A'} chỗ</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:battery-charging" aria-hidden="true"></iconify-icon>
+            <span>{car.batteryLevel}%</span>
           </div>
         </div>
 
         <div className="card-footer">
           <span className="price-per-day">
-            {car.price_per_hour ? `${car.price_per_hour.toLocaleString()}đ/giờ` : 'Liên hệ'}
+            {car.pricePerHour ? `${car.pricePerHour.toLocaleString()}đ/giờ` : 'Liên hệ'}
           </span>
           <span className={`status-badge ${statusClass(car.status)}`}>
-            {car.status === 'AVAILABLE' ? 'Trống' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước'}
+            {car.status === 'AVAILABLE' ? 'Có sẵn' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước'}
           </span>
         </div>
       </div>
@@ -51,29 +62,43 @@ const CarCard = ({ car }) => {
 
 const FeaturedCars = () => {
   const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  // Fetch 9 vehicles có sẵn cho trang chủ (KHÔNG có filter)
   useEffect(() => {
-    const data = vehicleService.getVehicles();
-    setCars(data || []);
+    const fetchVehicles = async () => {
+      setLoading(true);
+      try {
+        const data = await getVehicles({ status: 'AVAILABLE' });
+        // Giới hạn 9 xe cho trang chủ
+        setCars((data || []).slice(0, 9));
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+        setCars([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVehicles();
   }, []);
-
-  if (!cars || cars.length === 0) {
-    return (
-      <section className="featured-cars" aria-labelledby="featured-cars-title">
-        <h2 id="featured-cars-title">Xe Dành Cho Bạn</h2>
-        <p>Hiện chưa có xe hiển thị.</p>
-      </section>
-    );
-  }
 
   return (
     <section className="featured-cars" aria-labelledby="featured-cars-title">
-      <h2 id="featured-cars-title">Xe Dành Cho Bạn</h2>
-      <div className="car-list-grid">
-        {cars.map((car) => (
-          <CarCard key={car.id} car={car} />
-        ))}
+      <div className="section-header">
+        <h2 id="featured-cars-title">Xe Có Sẵn</h2>
       </div>
+
+      {loading ? (
+        <p className="loading-text">Đang tải xe...</p>
+      ) : !cars || cars.length === 0 ? (
+        <p className="no-results">Không có xe nào có sẵn.</p>
+      ) : (
+        <div className="car-list-grid">
+          {cars.map((car) => (
+            <CarCard key={car.id} car={car} />
+          ))}
+        </div>
+      )}
     </section>
   );
 };

@@ -384,8 +384,8 @@ const handleChangePassword = async () => {
     const formData = new FormData();
     formData.append('file', file); // Backend của bạn (và MinIO) sẽ nhận key 'file'
 
-    // Endpoint API - LUÔN gọi trực tiếp đến backend (không proxy)
-    const endpoint = `http://localhost:8080/api/users/upload/${uploadType}`;
+    // Endpoint API - Dùng relative URL qua Nginx proxy
+    const endpoint = `/api/users/upload/${uploadType}`;
     const token = localStorage.getItem('authToken');
 
     console.log(`Đang tải lên ${uploadType} đến ${endpoint}`);
