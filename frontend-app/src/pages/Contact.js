@@ -321,11 +321,11 @@ const Contact = () => {
       
       {/* Location Picker Modal */}
       {showLocationPicker && (
-        <div className="location-modal-overlay" onClick={handleCloseLocationPicker}>
-          <div className="location-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="location-modal-header">
+        <div className="contact-location-modal-overlay" onClick={handleCloseLocationPicker}>
+          <div className="contact-location-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="contact-location-modal-header">
               <h3>Các chi nhánh FEV</h3>
-              <button className="close-location-btn" onClick={handleCloseLocationPicker}>
+              <button className="contact-close-location-btn" onClick={handleCloseLocationPicker}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -333,19 +333,19 @@ const Contact = () => {
               </button>
             </div>
             
-            <div className="location-modal-content">
+            <div className="contact-location-modal-content">
               {!selectedProvince ? (
                 // Hiển thị danh sách tỉnh
-                <div className="province-grid">
+                <div className="contact-province-grid">
                   <h4>Chọn tỉnh/thành phố để xem chi nhánh:</h4>
-                  <div className="province-list">
+                  <div className="contact-province-list">
                     {Object.entries(provinces).map(([key, province]) => (
                       <div 
                         key={key}
-                        className="province-card"
+                        className="contact-province-card"
                         onClick={() => handleProvinceSelect(key)}
                       >
-                        <div className="province-icon">
+                        <div className="contact-province-icon">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
@@ -353,7 +353,7 @@ const Contact = () => {
                         </div>
                         <h5>{province.name}</h5>
                         <p>{province.stations.length} chi nhánh</p>
-                        <div className="province-arrow">
+                        <div className="contact-province-arrow">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="9,18 15,12 9,6"></polyline>
                           </svg>
@@ -364,10 +364,10 @@ const Contact = () => {
                 </div>
               ) : (
                 // Hiển thị danh sách chi nhánh của tỉnh đã chọn
-                <div className="station-grid">
-                  <div className="station-header">
+                <div className="contact-station-grid">
+                  <div className="contact-station-header">
                     <button 
-                      className="back-btn"
+                      className="contact-back-btn"
                       onClick={() => setSelectedProvince(null)}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -377,13 +377,13 @@ const Contact = () => {
                     <h4>Các chi nhánh tại {provinces[selectedProvince].name}:</h4>
                   </div>
                   
-                  <div className="station-list">
+                  <div className="contact-station-list">
                     {provinces[selectedProvince].stations.map((station) => (
                       <div 
                         key={station.id}
-                        className="station-card info-only"
+                        className="contact-station-card info-only"
                       >
-                        <div className="station-icon">
+                        <div className="contact-station-icon">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10"></circle>
                             <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
@@ -391,10 +391,10 @@ const Contact = () => {
                             <line x1="15" y1="9" x2="15.01" y2="9"></line>
                           </svg>
                         </div>
-                        <div className="station-info">
+                        <div className="contact-station-info">
                           <h5>{station.name}</h5>
-                          <p className="station-address">{station.address}</p>
-                          <p className="station-phone">{station.phone}</p>
+                          <p className="contact-station-address">{station.address}</p>
+                          <p className="contact-station-phone">{station.phone}</p>
                         </div>
                       </div>
                     ))}

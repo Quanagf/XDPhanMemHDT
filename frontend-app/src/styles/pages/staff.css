@@ -200,7 +200,7 @@
   margin-bottom: 2rem;
 }
 
-.tab-btn {
+.staff-tabs .tab-btn {
   padding: 0.75rem 2rem;
   background: white;
   border: 2px solid #e2e8f0;
@@ -215,7 +215,7 @@
   overflow: hidden;
 }
 
-.tab-btn:before {
+.staff-tabs .tab-btn:before {
   content: '';
   position: absolute;
   top: 0;
@@ -226,23 +226,23 @@
   transition: left 0.5s;
 }
 
-.tab-btn:hover:before {
+.staff-tabs .tab-btn:hover:before {
   left: 100%;
 }
 
-.tab-btn:hover {
+.staff-tabs .tab-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 /* Giao xe - màu xanh lá dễ chịu như user page */
-.tab-btn:hover:first-child {
+.staff-tabs .tab-btn:hover:first-child {
   border-color: #5FCF86;
   color: #5FCF86;
   box-shadow: 0 4px 15px rgba(95, 207, 134, 0.2);
 }
 
-.tab-btn.active:first-child {
+.staff-tabs .tab-btn.active:first-child {
   background: linear-gradient(135deg, #5FCF86 0%, #4CBB7A 100%);
   border-color: #5FCF86;
   color: white;
@@ -250,13 +250,13 @@
 }
 
 /* Nhận xe - cùng màu xanh để thống nhất */
-.tab-btn:hover:last-child {
+.staff-tabs .tab-btn:hover:last-child {
   border-color: #5FCF86;
   color: #5FCF86;
   box-shadow: 0 4px 15px rgba(95, 207, 134, 0.2);
 }
 
-.tab-btn.active:last-child {
+.staff-tabs .tab-btn.active:last-child {
   background: linear-gradient(135deg, #5FCF86 0%, #4CBB7A 100%);
   border-color: #5FCF86;
   color: white;

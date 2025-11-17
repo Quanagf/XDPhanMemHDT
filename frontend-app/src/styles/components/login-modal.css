@@ -34,9 +34,7 @@
 }
 
 .login-modal::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  background: transparent; /* Chrome/Safari/Webkit */
+  display: none; /* WebKit - ẩn hoàn toàn thanh cuộn */
 }
 
 @keyframes modalSlideIn {

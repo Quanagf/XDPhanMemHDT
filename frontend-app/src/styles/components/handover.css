@@ -196,7 +196,7 @@
   margin-top: 16px;
 }
 
-.tab-btn {
+.handover-tabs .tab-btn {
   padding: 8px 16px;
   border: none;
   background: #e2e8f0;
@@ -206,7 +206,7 @@
   font-weight: 500;
 }
 
-.tab-btn.active {
+.handover-tabs .tab-btn.active {
   background: #3182ce;
   color: white;
 }

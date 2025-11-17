@@ -115,3 +115,33 @@
 .transition { transition: all 0.3s ease; }
 .transition-fast { transition: all 0.15s ease; }
 .transition-slow { transition: all 0.5s ease; }
+
+/* Scrollbar utilities */
+.hide-scrollbar {
+  /* Ẩn thanh cuộn cho tất cả trình duyệt */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit (Chrome, Safari, Opera) */
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

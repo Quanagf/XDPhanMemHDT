@@ -322,8 +322,8 @@
   height: 16px;
 }
 
-/* Location Modal */
-.location-modal-overlay {
+/* Contact Location Modal - CSS riêng để tránh xung đột */
+.contact-location-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -337,17 +337,19 @@
   padding: 1rem;
 }
 
-.location-modal {
+.contact-location-modal {
   background: white;
   border-radius: 20px;
   width: 90vw;
-  max-width: 750px;
+  max-width: 800px;
   max-height: 85vh;
   overflow: hidden;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
 }
 
-.location-modal-header {
+.contact-location-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -357,13 +359,13 @@
   color: white;
 }
 
-.location-modal-header h3 {
+.contact-location-modal-header h3 {
   font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
 }
 
-.close-location-btn {
+.contact-close-location-btn {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
@@ -376,25 +378,33 @@
   justify-content: center;
 }
 
-.close-location-btn:hover {
+.contact-close-location-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: scale(1.1);
 }
 
-.close-location-btn svg {
+.contact-close-location-btn svg {
   width: 18px;
   height: 18px;
 }
 
-.location-modal-content {
+.contact-location-modal-content {
   padding: 2.5rem;
-  max-height: 65vh;
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #fafbfc;
+  /* Ẩn thanh cuộn */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
-/* Province Grid */
-.province-grid h4 {
+.contact-location-modal-content::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Contact Province Grid - CSS riêng */
+.contact-province-grid h4 {
   margin: 0 0 2rem 0;
   color: var(--color-dark, #1a1a1a);
   font-size: 1.2rem;
@@ -402,17 +412,19 @@
   text-align: center;
 }
 
-.province-list {
+.contact-province-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
+  align-items: stretch;
+  max-width: 100%;
 }
 
-.province-card {
+.contact-province-card {
   background: white;
   border: 2px solid #e8eef3;
   border-radius: 16px;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -421,15 +433,19 @@
   text-align: center;
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-height: 180px;
+  aspect-ratio: 1 / 1;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.province-card:hover {
+.contact-province-card:hover {
   border-color: var(--color-fev-green, #5FCF86);
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(95, 207, 134, 0.2);
 }
 
-.province-icon {
+.contact-province-icon {
   width: 60px;
   height: 60px;
   background: linear-gradient(135deg, rgba(95, 207, 134, 0.1), rgba(95, 207, 134, 0.2));
@@ -441,27 +457,29 @@
   border: 2px solid rgba(95, 207, 134, 0.2);
 }
 
-.province-icon svg {
+.contact-province-icon svg {
   width: 28px;
   height: 28px;
   color: var(--color-fev-green, #5FCF86);
 }
 
-.province-card h5 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-dark, #1a1a1a);
-}
+  .contact-province-card h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-dark, #1a1a1a);
+    line-height: 1.2;
+  }
 
-.province-card p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-muted, #666666);
-  font-weight: 500;
-}
+  .contact-province-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #666666);
+    font-weight: 500;
+    line-height: 1.3;
+  }
 
-.province-arrow {
+.contact-province-arrow {
   position: absolute;
   right: 1rem;
   top: 1rem;
@@ -470,17 +488,17 @@
   transition: opacity 0.3s ease;
 }
 
-.province-card:hover .province-arrow {
+.contact-province-card:hover .contact-province-arrow {
   opacity: 1;
 }
 
-.province-arrow svg {
+.contact-province-arrow svg {
   width: 18px;
   height: 18px;
 }
 
-/* Station Grid */
-.station-header {
+/* Contact Station Grid - CSS riêng */
+.contact-station-header {
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -489,7 +507,7 @@
   border-bottom: 1px solid #e8eef3;
 }
 
-.back-btn {
+.contact-back-btn {
   background: white;
   border: 2px solid #e8eef3;
   color: var(--color-text-muted, #666666);
@@ -505,19 +523,19 @@
   flex-shrink: 0;
 }
 
-.back-btn:hover {
+.contact-back-btn:hover {
   border-color: var(--color-fev-green, #5FCF86);
   color: var(--color-fev-green, #5FCF86);
   transform: translateX(-2px);
   background: rgba(95, 207, 134, 0.05);
 }
 
-.back-btn svg {
+.contact-back-btn svg {
   width: 18px;
   height: 18px;
 }
 
-.station-header h4 {
+.contact-station-header h4 {
   margin: 0;
   color: var(--color-dark, #1a1a1a);
   font-size: 1.2rem;
@@ -525,13 +543,20 @@
   flex: 1;
 }
 
-.station-list {
+.contact-station-list {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  /* Ẩn thanh cuộn nếu có */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
-.station-card {
+.contact-station-list::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+.contact-station-card {
   background: white;
   border: 2px solid #e8eef3;
   border-radius: 16px;
@@ -544,17 +569,17 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.station-card.info-only {
+.contact-station-card.info-only {
   cursor: default;
 }
 
-.station-card.info-only:hover {
+.contact-station-card.info-only:hover {
   border-color: #e8eef3;
   transform: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.station-icon {
+.contact-station-icon {
   width: 60px;
   height: 60px;
   background: linear-gradient(135deg, rgba(95, 207, 134, 0.1), rgba(95, 207, 134, 0.2));
@@ -566,31 +591,31 @@
   border: 2px solid rgba(95, 207, 134, 0.2);
 }
 
-.station-icon svg {
+.contact-station-icon svg {
   width: 28px;
   height: 28px;
   color: var(--color-fev-green, #5FCF86);
 }
 
-.station-info {
+.contact-station-info {
   flex: 1;
 }
 
-.station-info h5 {
+.contact-station-info h5 {
   margin: 0 0 0.75rem 0;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-dark, #1a1a1a);
 }
 
-.station-address {
+.contact-station-address {
   margin: 0 0 0.75rem 0;
   font-size: 1rem;
   color: var(--color-text-muted, #666666);
   line-height: 1.5;
 }
 
-.station-phone {
+.contact-station-phone {
   margin: 0;
   font-size: 1rem;
   color: var(--color-fev-green, #5FCF86);
@@ -600,12 +625,12 @@
   gap: 0.5rem;
 }
 
-.station-phone::before {
+.contact-station-phone::before {
   content: "📞";
   font-size: 1rem;
 }
 
-.station-select {
+.contact-station-select {
   position: absolute;
   right: 1rem;
   top: 50%;
@@ -615,23 +640,38 @@
   transition: opacity 0.3s ease;
 }
 
-.station-card:hover .station-select {
+.contact-station-card:hover .contact-station-select {
   opacity: 1;
 }
 
-.station-card.info-only {
+.contact-station-card.info-only {
   cursor: default;
 }
 
-.station-card.info-only:hover {
+.contact-station-card.info-only:hover {
   border-color: #e0e0e0;
   transform: none;
   box-shadow: none;
 }
 
-.station-select svg {
+.contact-station-select svg {
   width: 20px;
   height: 20px;
+}
+
+/* Large screens optimization */
+@media (min-width: 1200px) {
+  .contact-province-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 100%;
+  }
+  
+  .contact-province-card {
+    padding: 2rem 1.5rem;
+    min-height: 200px;
+    aspect-ratio: 1 / 1;
+  }
 }
 
 /* Responsive Design */
@@ -772,98 +812,101 @@
     font-size: 0.85rem;
   }
 
-  .location-modal {
+  .contact-location-modal {
     width: 95vw;
     max-height: 90vh;
     border-radius: 16px;
   }
 
-  .location-modal-header {
+  .contact-location-modal-header {
     padding: 1.5rem 1.5rem;
   }
 
-  .location-modal-header h3 {
+  .contact-location-modal-header h3 {
     font-size: 1.1rem;
   }
 
-  .location-modal-content {
+  .contact-location-modal-content {
     padding: 1.5rem;
   }
 
-  .province-grid h4 {
+  .contact-province-grid h4 {
     font-size: 1rem;
     margin-bottom: 1.5rem;
   }
 
-  .province-list {
-    grid-template-columns: 1fr;
+  .contact-province-list {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+    max-width: 100%;
   }
 
-  .province-card {
+  .contact-province-card {
     padding: 1.5rem 1rem;
     flex-direction: row;
     text-align: left;
+    min-height: auto;
+    justify-content: flex-start;
   }
 
-  .province-icon {
+  .contact-province-icon {
     width: 50px;
     height: 50px;
     margin-bottom: 0;
     margin-right: 1rem;
   }
 
-  .province-icon svg {
+  .contact-province-icon svg {
     width: 24px;
     height: 24px;
   }
 
-  .province-arrow {
+  .contact-province-arrow {
     right: 1rem;
     top: 50%;
     transform: translateY(-50%);
   }
 
-  .station-header {
+  .contact-station-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
 
-  .station-header h4 {
+  .contact-station-header h4 {
     font-size: 1rem;
   }
 
-  .station-card {
+  .contact-station-card {
     padding: 1.5rem;
     flex-direction: column;
     text-align: center;
     align-items: center;
   }
 
-  .station-icon {
+  .contact-station-icon {
     width: 50px;
     height: 50px;
     margin-bottom: 1rem;
   }
 
-  .station-icon svg {
+  .contact-station-icon svg {
     width: 24px;
     height: 24px;
   }
 
-  .station-info h5 {
+  .contact-station-info h5 {
     font-size: 1rem;
     margin-bottom: 0.5rem;
   }
 
-  .station-address {
+  .contact-station-address {
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
   }
 
-  .station-phone {
+  .contact-station-phone {
     font-size: 0.9rem;
     justify-content: center;
   }

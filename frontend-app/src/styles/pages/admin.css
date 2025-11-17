@@ -238,8 +238,9 @@
 
 .admin-dashboard .admin-main .search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  transition: all 0.3s ease;
 }
 
 /* Admin Table Container */
@@ -627,6 +628,54 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* CSS hiệu ứng focus màu xanh dương riêng cho admin quản lý đội xe */
+.admin-dashboard .form-group input:focus,
+.admin-dashboard .form-group select:focus,
+.admin-dashboard .form-group textarea:focus,
+.admin-dashboard .modal input[type="text"]:focus,
+.admin-dashboard .modal input[type="number"]:focus,
+.admin-dashboard .modal input[type="file"]:focus,
+.admin-dashboard .modal input[type="date"]:focus,
+.admin-dashboard .modal select:focus,
+.admin-dashboard .modal textarea:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Hiệu ứng hover cho các input trong admin */
+.admin-dashboard .form-group input:hover,
+.admin-dashboard .form-group select:hover,
+.admin-dashboard .form-group textarea:hover,
+.admin-dashboard .modal input[type="text"]:hover,
+.admin-dashboard .modal input[type="number"]:hover,
+.admin-dashboard .modal input[type="date"]:hover,
+.admin-dashboard .modal select:hover,
+.admin-dashboard .modal textarea:hover {
+  border-color: #60a5fa !important;
+  transition: all 0.3s ease;
+}
+
+/* Override btn-success color cho admin - màu xanh dương thay vì xanh lá */
+.admin-dashboard .btn-success {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: white !important;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+}
+
+.admin-dashboard .btn-success:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3) !important;
+}
+
 .form-group textarea {
   resize: vertical;
   min-height: 100px;
@@ -717,6 +766,19 @@
 .filter-select:hover {
   border-color: #9ca3af;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Hiệu ứng focus màu xanh dương cho filter select trong admin */
+.admin-dashboard .filter-select:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .filter-select:hover {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08) !important;
 }
 
 /* Admin Section */

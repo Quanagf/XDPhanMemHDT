@@ -852,7 +852,7 @@
   }
 }
 
-.modal-header {
+.car-detail .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -861,7 +861,7 @@
   background: #f8fffe;
 }
 
-.modal-header h3 {
+.car-detail .modal-header h3 {
   color: #47C778;
   font-weight: 700;
   font-size: 1.25rem;
@@ -904,13 +904,13 @@
 }
 
 /* Ensure consistent text alignment for all modal content */
-.modal-content * {
+.car-detail.modal-content * {
   text-align: left !important;
 }
 
-.modal-content p,
-.modal-content li,
-.modal-content ul {
+.car-detail.modal-content  p,
+.car-detail.modal-content  li,
+.car-detail.modal-content  ul {
   text-align: left !important;
   word-break: break-word;
   hyphens: auto;
@@ -1041,11 +1041,11 @@
     border-radius: 12px;
   }
   
-  .modal-header {
+  .car-detail .modal-header h3 {
     padding: 1rem;
   }
   
-  .modal-header h3 {
+  .car-detail .modal-header h3 {
     font-size: 1.125rem;
   }
   

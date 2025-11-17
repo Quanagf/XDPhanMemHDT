@@ -5,6 +5,7 @@ import { getStations, getProvinces } from '../api/stations';
 const Hero = () => {
   const navigate = useNavigate();
   const [showDateModal, setShowDateModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [activeTab, setActiveTab] = useState('day'); // 'day' hoặc 'hour'
   const [selectedStartDate, setSelectedStartDate] = useState(null);
   const [selectedEndDate, setSelectedEndDate] = useState(null);
@@ -19,6 +20,8 @@ const Hero = () => {
   const [stations, setStations] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedStation, setSelectedStation] = useState('');
+  const [tempProvince, setTempProvince] = useState(''); // Lưu tạm khi chọn trong modal
+  const [tempStation, setTempStation] = useState(''); // Lưu tạm khi chọn trong modal
   const [loading, setLoading] = useState(true);
 
   // Load provinces và stations từ database
@@ -36,9 +39,11 @@ const Hero = () => {
         // Set giá trị mặc định
         if (provincesData && provincesData.length > 0) {
           setSelectedProvince(provincesData[0]);
+          setTempProvince(provincesData[0]);
         }
         if (stationsData && stationsData.length > 0) {
           setSelectedStation(stationsData[0].id.toString());
+          setTempStation(stationsData[0].id.toString());
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -53,6 +58,48 @@ const Hero = () => {
   const filteredStations = selectedProvince 
     ? stations.filter(s => s.province === selectedProvince)
     : stations;
+
+  // Filter stations theo temp province cho modal
+  const tempFilteredStations = tempProvince 
+    ? stations.filter(s => s.province === tempProvince)
+    : stations;
+
+  // Hàm để lấy text hiển thị cho location và station
+  const getLocationStationDisplayText = () => {
+    if (selectedProvince && selectedStation) {
+      const stationData = stations.find(s => s.id.toString() === selectedStation);
+      if (stationData) {
+        return `${selectedProvince} - ${stationData.name}`;
+      }
+    }
+    return 'Chọn địa điểm và trạm thuê';
+  };
+
+  // Xử lý khi confirm chọn location
+  const handleConfirmLocation = () => {
+    setSelectedProvince(tempProvince);
+    setSelectedStation(tempStation);
+    setShowLocationModal(false);
+  };
+
+  // Xử lý khi mở location modal
+  const handleOpenLocationModal = () => {
+    setTempProvince(selectedProvince);
+    setTempStation(selectedStation);
+    setShowLocationModal(true);
+  };
+
+  // Xử lý khi chọn province trong modal
+  const handleProvinceSelect = (province) => {
+    setTempProvince(province);
+    // Reset station khi đổi province
+    const stationsInProvince = stations.filter(s => s.province === province);
+    if (stationsInProvince.length > 0) {
+      setTempStation(stationsInProvince[0].id.toString());
+    } else {
+      setTempStation('');
+    }
+  };
 
   const formatDateTime = (date, time) => {
     if (!date) return '';
@@ -268,51 +315,12 @@ const Hero = () => {
       <div className="booking-form-wrapper">
         <form className="booking-form" onSubmit={handleSearch}>
           <div className="form-inputs">
-            <div className="input-group location">
-              <label htmlFor="location">Địa điểm</label>
-              <div className="input-field">
+            <div className="input-group location-station">
+              <label htmlFor="location-station">Địa điểm và trạm thuê</label>
+              <div className="input-field location-station-selector" onClick={handleOpenLocationModal}>
                 <iconify-icon icon="material-symbols:location-on" aria-hidden="true"></iconify-icon>
-                <select
-                  id="location"
-                  value={selectedProvince}
-                  onChange={(e) => {
-                    const newProvince = e.target.value;
-                    setSelectedProvince(newProvince);
-                    // Reset station when province changes
-                    const stationsInProvince = stations.filter(s => s.province === newProvince);
-                    if (stationsInProvince.length > 0) {
-                      setSelectedStation(stationsInProvince[0].id.toString());
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  <option value="">Chọn tỉnh/thành</option>
-                  {provinces.map(province => (
-                    <option key={province} value={province}>
-                      {province}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="input-group station">
-              <label htmlFor="station">Trạm thuê</label>
-              <div className="input-field">
-                <iconify-icon icon="mdi:bus-stop" aria-hidden="true"></iconify-icon>
-                <select
-                  id="station"
-                  value={selectedStation}
-                  onChange={(e) => setSelectedStation(e.target.value)}
-                  disabled={loading || filteredStations.length === 0}
-                >
-                  <option value="">Chọn trạm thuê</option>
-                  {filteredStations.map(station => (
-                    <option key={station.id} value={station.id}>
-                      {station.name} - {station.address}
-                    </option>
-                  ))}
-                </select>
+                <span className="location-station-display">{getLocationStationDisplayText()}</span>
+                <iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
               </div>
             </div>
             
@@ -490,6 +498,110 @@ const Hero = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Modal */}
+      {showLocationModal && (
+        <div className="location-modal-overlay" onClick={() => setShowLocationModal(false)}>
+          <div className="location-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowLocationModal(false)}>
+              <iconify-icon icon="mdi:close"></iconify-icon>
+            </button>
+            
+            <div className="modal-header">
+              <h2>Chọn địa điểm và trạm</h2>
+            </div>
+
+            <div className="location-modal-content">
+              <div className="location-step">
+                <h3>1. Chọn tỉnh/thành phố</h3>
+                <div className="province-grid">
+                  {provinces.map(province => (
+                    <div 
+                      key={province}
+                      className={`province-card ${tempProvince === province ? 'selected' : ''}`}
+                      onClick={() => handleProvinceSelect(province)}
+                    >
+                      <iconify-icon icon="material-symbols:location-on"></iconify-icon>
+                      <span>{province}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {tempProvince && (
+                <div className="location-step">
+                  <h3>2. Chọn trạm thuê</h3>
+                  {tempFilteredStations.length > 0 ? (
+                    <div className="station-list">
+                      {tempFilteredStations.map(station => (
+                        <div 
+                          key={station.id}
+                          className={`station-card ${tempStation === station.id.toString() ? 'selected' : ''}`}
+                          onClick={() => setTempStation(station.id.toString())}
+                        >
+                          <div className="station-info">
+                            <h4 className="station-name">{station.name}</h4>
+                            <p className="station-address">{station.address}</p>
+                            <div className="station-details">
+                              <span className="station-phone">
+                                <iconify-icon icon="material-symbols:phone"></iconify-icon>
+                                {station.phoneNumber || 'Chưa có thông tin'}
+                              </span>
+                              <span className="station-capacity">
+                                <iconify-icon icon="mdi:car-multiple"></iconify-icon>
+                                {station.capacity || 0} xe
+                              </span>
+                            </div>
+                          </div>
+                          <div className="station-status">
+                            <span className={`status-badge ${station.status === 'OPEN' ? 'open' : 'closed'}`}>
+                              {station.status === 'OPEN' ? 'Đang hoạt động' : 'Tạm đóng'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-stations">
+                      <p>Không có trạm nào tại {tempProvince}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="location-summary">
+                <div className="summary-text">
+                  {tempProvince && tempStation && (() => {
+                    const stationData = stations.find(s => s.id.toString() === tempStation);
+                    return (
+                      <div className="selected-location">
+                        <div className="location-info">
+                          <strong>{tempProvince}</strong>
+                          {stationData && (
+                            <>
+                              <br />
+                              <span>{stationData.name}</span>
+                              <br />
+                              <small>{stationData.address}</small>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <button 
+                  className="confirm-btn"
+                  disabled={!tempProvince || !tempStation}
+                  onClick={handleConfirmLocation}
+                >
+                  Xác nhận
+                </button>
+              </div>
             </div>
           </div>
         </div>
