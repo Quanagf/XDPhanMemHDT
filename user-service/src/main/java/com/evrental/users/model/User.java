@@ -66,6 +66,9 @@ public class User implements UserDetails {
     @Column(length = 255)
     private String facebook; // Link Facebook
 
+    @Column(length = 500)
+    private String avatarUrl; // URL ảnh avatar trong Minio
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

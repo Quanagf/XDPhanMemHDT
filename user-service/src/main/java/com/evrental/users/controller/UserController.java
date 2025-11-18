@@ -184,6 +184,59 @@ public class UserController {
                     .body("Lỗi khi tải lên: " + e.getMessage());
         }
     }
+
+    // === API UPLOAD AVATAR ===
+    @PostMapping("/upload-avatar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> uploadAvatar(
+            @RequestParam("file") MultipartFile file,
+            Principal principal) {
+        
+        try {
+            // 1. Lấy thông tin user hiện tại
+            String username = principal.getName();
+            User currentUser = userService.getProfile(username);
+            
+            // 2. Validate file
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File không được để trống");
+            }
+            
+            // 3. Kiểm tra định dạng file (chỉ cho phép ảnh)
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Chỉ cho phép upload file ảnh");
+            }
+            
+            // 4. Kiểm tra kích thước file (tối đa 5MB)
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body("Kích thước file không được vượt quá 5MB");
+            }
+            
+            // 5. Tạo tên file duy nhất và upload vào MinIO
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            String uniqueFileName = "avatar-" + currentUser.getId() + "-" + UUID.randomUUID().toString() + fileExtension;
+            String objectName = "avatars/" + uniqueFileName;
+            
+            String avatarUrl = fileStorageService.uploadFile(file, objectName);
+            
+            // 6. Cập nhật avatar URL vào database
+            currentUser.setAvatarUrl(avatarUrl);
+            userService.updateProfile(username, currentUser);
+            
+            // 7. Trả về thông báo thành công
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Avatar đã được cập nhật thành công");
+            response.put("avatarUrl", avatarUrl);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi upload avatar: " + e.getMessage());
+        }
+    }
     
     // === API LẤY TRẠNG THÁI VERIFICATION CỦA USER ===
     @GetMapping("/my-verifications")

@@ -26,6 +26,31 @@ const Header = ({ onOpenLogin }) => {
     }
   }, []);
 
+  // Lắng nghe thay đổi localStorage để cập nhật user profile
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const userProfile = localStorage.getItem('userProfile');
+      if (userProfile) {
+        try {
+          setUser(JSON.parse(userProfile));
+        } catch (error) {
+          console.error('Error parsing user profile:', error);
+        }
+      }
+    };
+
+    // Lắng nghe storage events
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event cho local changes
+    window.addEventListener('userProfileUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userProfileUpdated', handleStorageChange);
+    };
+  }, []);
+
   // Đóng dropdown khi click bên ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -408,21 +433,35 @@ const Header = ({ onOpenLogin }) => {
                   onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   {/* Avatar */}
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: '#666',
-                    backgroundImage: 'linear-gradient(45deg, #666, #999)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: '#fff'
-                  }}>
-                    {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
-                  </div>
+                  {user.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt="Avatar"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #e0e0e0'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: '#666',
+                      backgroundImage: 'linear-gradient(45deg, #666, #999)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      color: '#fff'
+                    }}>
+                      {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   
                   {/* User name display */}
                   <span style={{ fontWeight: '500', fontSize: '14px' }}>
@@ -459,21 +498,35 @@ const Header = ({ onOpenLogin }) => {
                       alignItems: 'center',
                       gap: '12px'
                     }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: '#666',
-                        backgroundImage: 'linear-gradient(45deg, #666, #999)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#fff'
-                      }}>
-                        {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
-                      </div>
+                      {user.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl} 
+                          alt="Avatar"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '2px solid #e0e0e0'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          backgroundColor: '#666',
+                          backgroundImage: 'linear-gradient(45deg, #666, #999)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#fff'
+                        }}>
+                          {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <div style={{ fontWeight: '600', color: '#333', fontSize: '14px' }}>
                           {user.fullName || user.username}

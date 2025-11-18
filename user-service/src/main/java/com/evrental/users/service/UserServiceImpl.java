@@ -172,6 +172,28 @@ public class UserServiceImpl implements IUserService {
         return userRepository.save(user);
     }
 
+    @Override
+    public User updateProfile(String username, User updatedUser) {
+        // 1. Tìm user hiện tại
+        User existingUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User không tồn tại"));
+        
+        // 2. Cập nhật các field được phép thay đổi
+        existingUser.setFullName(updatedUser.getFullName());
+        existingUser.setAddress(updatedUser.getAddress());
+        existingUser.setBirthDate(updatedUser.getBirthDate());
+        existingUser.setGender(updatedUser.getGender());
+        existingUser.setFacebook(updatedUser.getFacebook());
+        
+        // Cập nhật avatar URL nếu có
+        if (updatedUser.getAvatarUrl() != null) {
+            existingUser.setAvatarUrl(updatedUser.getAvatarUrl());
+        }
+        
+        // 3. Lưu và trả về
+        return userRepository.save(existingUser);
+    }
+
     // === HÀM MỚI (Admin tạo tài khoản Staff) ===
     @Override
     public User createStaffAccount(RegistrationRequest request) {

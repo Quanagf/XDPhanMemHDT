@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
+import ImageCropper from '../components/ImageCropper';
 
 
 const Profile = () => {
@@ -49,6 +50,12 @@ const Profile = () => {
   // State cho modal xác nhận xóa tài khoản
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // State cho avatar upload
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [cropperImage, setCropperImage] = useState(null);
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
@@ -143,7 +150,6 @@ const Profile = () => {
         setUser(userData);
         // Cập nhật localStorage
         localStorage.setItem('userProfile', JSON.stringify(userData));
-        console.log('User data refreshed:', userData);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -411,6 +417,111 @@ const handleChangePassword = async () => {
       alert(`Có lỗi xảy ra khi cập nhật thông tin: ${error.message}`);
     }
   };
+
+  // === XỬ LÝ AVATAR MODAL VÀ UPLOAD ===
+  const handleAvatarClick = () => {
+    if (user.avatarUrl) {
+      setShowImageViewer(true);
+    }
+  };
+
+  const handleCameraIconClick = (e) => {
+    e.stopPropagation(); // Ngăn trigger avatar click
+    document.getElementById('avatar-upload-input').click();
+  };
+
+  const handleAvatarFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Kiểm tra định dạng file
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh');
+        return;
+      }
+      
+      // Kiểm tra kích thước file (tối đa 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước file không được vượt quá 5MB');
+        return;
+      }
+      
+      setAvatarFile(file);
+      
+      // Tạo URL để hiển thị trong cropper
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCropperImage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropAndUpload = async (croppedBlob) => {
+    if (!croppedBlob) {
+      alert('Vui lòng chọn vùng ảnh');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert('Bạn cần đăng nhập lại');
+        return;
+      }
+      
+      // Tạo FormData với blob đã crop
+      const formData = new FormData();
+      formData.append('file', croppedBlob, `avatar-${Date.now()}.jpg`);
+      
+      const response = await fetch('/api/users/upload-avatar', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Cập nhật user state với avatar URL mới
+        const updatedUser = { ...user, avatarUrl: result.avatarUrl };
+        setUser(updatedUser);
+        localStorage.setItem('userProfile', JSON.stringify(updatedUser));
+        
+        // Trigger custom event để Header cập nhật
+        window.dispatchEvent(new Event('userProfileUpdated'));
+        
+        // Reset form
+        setAvatarFile(null);
+        setCropperImage(null);
+        
+        alert('Cập nhật avatar thành công!');
+      } else {
+        const errorText = await response.text();
+        
+        if (response.status === 401) {
+          alert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+        } else if (response.status === 403) {
+          alert('Không có quyền thực hiện hành động này');
+        } else {
+          alert(`Có lỗi xảy ra: ${errorText || 'Không thể upload avatar'}`);
+        }
+      }
+    } catch (error) {
+      alert(`Có lỗi xảy ra khi upload avatar: ${error.message}`);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const cancelAvatarCrop = () => {
+    setAvatarFile(null);
+    setCropperImage(null);
+  };
+
   // === BẮT ĐẦU: THÊM HÀM TỔNG QUÁT NÀY VÀO ===
   // Hàm xử lý file tổng quát (thay thế cho 2 hàm cũ)
   const handleFileChange = (e, doc) => {
@@ -613,9 +724,41 @@ const handleChangePassword = async () => {
         <div className="profile-account-grid">
           {/* Avatar Section */}
           <div className="profile-avatar-section">
-            <div className="profile-avatar">{(user.fullName || user.username || 'U').charAt(0).toUpperCase()}</div>
+            <div className="profile-avatar-container" onClick={handleAvatarClick}>
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt="Avatar" 
+                  className="profile-avatar-image"
+                />
+              ) : (
+                <div className="profile-avatar-placeholder">
+                  {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+              
+              {/* Camera Icon để upload */}
+              <div 
+                className="profile-camera-icon-overlay"
+                onClick={handleCameraIconClick}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M9 2C7.9 2 7 2.9 7 4v1H4C2.9 5 2 5.9 2 7v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3V4c0-1.1-.9-2-2-2H9zm3 15c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/>
+                </svg>
+              </div>
+            </div>
+            
             <h4 className="profile-user-name">{user.fullName || user.username || 'User'}</h4>
             <p className="profile-join-date">Tham gia: {formatCreatedDate(user.createdAt)}</p>
+            
+            {/* Hidden file input */}
+            <input
+              type="file"
+              id="avatar-upload-input"
+              accept="image/*"
+              onChange={handleAvatarFileSelect}
+              style={{ display: 'none' }}
+            />
           </div>
 
           {/* Info Section */}
@@ -1229,6 +1372,32 @@ const handleChangePassword = async () => {
 
       <Footer />
       {showLogin && <Login onClose={handleCloseLogin} />}
+      
+
+
+      {/* Image Viewer Modal */}
+      {showImageViewer && user.avatarUrl && (
+        <div className="image-viewer-overlay" onClick={() => setShowImageViewer(false)}>
+          <div className="image-viewer-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowImageViewer(false)}
+              className="image-viewer-close"
+            >
+              ×
+            </button>
+            <img src={user.avatarUrl} alt="Avatar" className="image-viewer-img" />
+          </div>
+        </div>
+      )}
+
+      {/* Image Cropper */}
+      {cropperImage && (
+        <ImageCropper
+          src={cropperImage}
+          onCrop={handleCropAndUpload}
+          onCancel={cancelAvatarCrop}
+        />
+      )}
       
       {/* Modal xác nhận xóa tài khoản */}
       {showDeleteConfirmModal && (

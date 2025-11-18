@@ -33,6 +33,14 @@ public interface IUserService {
     User updateProfile(String username, UpdateProfileRequest request);
 
     /**
+     * Cập nhật User object trực tiếp (dùng cho upload avatar).
+     * @param username Username của user
+     * @param user User object đã được cập nhật
+     * @return User đã được lưu
+     */
+    User updateProfile(String username, User user);
+
+    /**
      * Admin tạo tài khoản Staff.
      * @param request Thông tin đăng ký Staff
      * @return User Staff đã được tạo
