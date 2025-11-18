@@ -22,3 +22,15 @@ export async function getProvinces() {
   if (!res.ok) throw new Error('Failed to fetch provinces');
   return res.json();
 }
+
+export async function getStationsByProvince(province) {
+  const res = await fetch(`${base}/province/${encodeURIComponent(province)}`, { headers: getAuthHeader() });
+  if (!res.ok) throw new Error('Failed to fetch stations by province');
+  return res.json();
+}
+
+export async function getActiveStations() {
+  const res = await fetch(`${base}/active`, { headers: getAuthHeader() });
+  if (!res.ok) throw new Error('Failed to fetch active stations');
+  return res.json();
+}

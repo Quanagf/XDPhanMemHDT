@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
+import { getStations, getProvinces } from '../api/stations';
 import '../styles/pages/contact.css';
 
 const Contact = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState(null);
+  const [provinces, setProvinces] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -16,83 +20,57 @@ const Contact = () => {
     message: ''
   });
 
-  // Dữ liệu các tỉnh và trạm
-  const provinces = {
-    hcm: {
-      name: 'TP. Hồ Chí Minh',
-      stations: [
-        {
-          id: 'hcm1',
-          name: 'Trạm Quận 1',
-          address: '123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
-          phone: '028 3822 3456'
-        },
-        {
-          id: 'hcm2', 
-          name: 'Trạm Quận 7',
-          address: '456 Đường Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP.HCM',
-          phone: '028 5411 7890'
-        },
-        {
-          id: 'hcm3',
-          name: 'Trạm Thủ Đức',
-          address: '789 Đường Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP.HCM',
-          phone: '028 3715 2468'
-        }
-      ]
-    },
-    lamdong: {
-      name: 'Lâm Đồng',
-      stations: [
-        {
-          id: 'ld1',
-          name: 'Trạm Đà Lạt',
-          address: '15 Đường Trần Phú, Phường 4, TP. Đà Lạt, Lâm Đồng',
-          phone: '0263 3822 156'
-        },
-        {
-          id: 'ld2',
-          name: 'Trạm Bảo Lộc',
-          address: '78 Đường Trần Hưng Đạo, Phường 1, TP. Bảo Lộc, Lâm Đồng',
-          phone: '0263 3874 923'
-        }
-      ]
-    },
-    angiang: {
-      name: 'An Giang',
-      stations: [
-        {
-          id: 'ag1',
-          name: 'Trạm Long Xuyên',
-          address: '234 Đường Nguyễn Văn Cừ, Phường Mỹ Bình, TP. Long Xuyên, An Giang',
-          phone: '0296 3941 567'
-        },
-        {
-          id: 'ag2',
-          name: 'Trạm Châu Đốc',
-          address: '567 Đường Lê Lợi, Phường Châu Phú B, TP. Châu Đốc, An Giang',
-          phone: '0296 3868 234'
-        }
-      ]
-    },
-    quangngai: {
-      name: 'Quảng Ngãi',
-      stations: [
-        {
-          id: 'qn1',
-          name: 'Trạm Quảng Ngãi',
-          address: '345 Đường Quang Trung, Phường Lê Hồng Phong, TP. Quảng Ngãi, Quảng Ngãi',
-          phone: '0255 3822 789'
-        },
-        {
-          id: 'qn2',
-          name: 'Trạm Sơn Tịnh',
-          address: '678 Đường Hùng Vương, TT. Sơn Tịnh, Huyện Sơn Tịnh, Quảng Ngãi',
-          phone: '0255 3677 456'
-        }
-      ]
-    }
-  };
+  // Load dữ liệu stations từ API
+  useEffect(() => {
+    const loadStationsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const [provincesData, stationsData] = await Promise.all([
+          getProvinces(),
+          getStations()
+        ]);
+
+        // Tổ chức dữ liệu theo cấu trúc provinces với stations
+        const organizedProvinces = {};
+        
+        provincesData.forEach(provinceName => {
+          const provinceStations = stationsData.filter(station => 
+            station.province === provinceName && station.status === 'OPEN'
+          );
+          
+          const provinceKey = provinceName
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '')
+            .replace(/[^a-z0-9]/g, '');
+          
+          organizedProvinces[provinceKey] = {
+            id: provinceKey,
+            name: provinceName,
+            stations: provinceStations.map(station => ({
+              id: station.id,
+              name: station.name,
+              address: station.address,
+              phone: station.phoneNumber,
+              operatingHours: station.operatingHours || '24/7'
+            }))
+          };
+        });
+
+        setProvinces(organizedProvinces);
+      } catch (err) {
+        console.error('Error loading stations data:', err);
+        setError('Không thể tải dữ liệu địa điểm');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStationsData();
+  }, []);
 
   const handleOpenLogin = () => {
     setShowLogin(true);
@@ -196,8 +174,8 @@ const Contact = () => {
                   </div>
                   <div className="info-content">
                     <h3>Địa chỉ văn phòng</h3>
-                    <p>4 tỉnh/thành phố</p>
-                    <p>9 chi nhánh toàn quốc</p>
+                    <p>{Object.keys(provinces).length} tỉnh/thành phố</p>
+                    <p>{Object.values(provinces).reduce((total, province) => total + province.stations.length, 0)} chi nhánh toàn quốc</p>
                   </div>
                   <div className="info-arrow">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -334,7 +312,16 @@ const Contact = () => {
             </div>
             
             <div className="contact-location-modal-content">
-              {!selectedProvince ? (
+              {loading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>Đang tải dữ liệu địa điểm...</p>
+                </div>
+              ) : error ? (
+                <div className="error-state">
+                  <p>{error}</p>
+                </div>
+              ) : !selectedProvince ? (
                 // Hiển thị danh sách tỉnh
                 <div className="contact-province-grid">
                   <h4>Chọn tỉnh/thành phố để xem chi nhánh:</h4>
@@ -395,6 +382,9 @@ const Contact = () => {
                           <h5>{station.name}</h5>
                           <p className="contact-station-address">{station.address}</p>
                           <p className="contact-station-phone">{station.phone}</p>
+                          {station.operatingHours && (
+                            <p className="contact-station-hours">⏰ {station.operatingHours}</p>
+                          )}
                         </div>
                       </div>
                     ))}

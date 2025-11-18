@@ -67,32 +67,6 @@
     color: var(--color-fev-green);
 }
 
-.ev-tag {
-    /* Đảm bảo nó không bị ảnh hưởng bởi text-align: center của .hero-content */
-    display: inline-flex; 
-    align-items: center;
-    background-color: var(--color-fev-green); 
-    color: var(--color-white); 
-    padding: 12px 30px; 
-    border-radius: 50px;
-    font-weight: 700; 
-    font-size: 1.1rem; 
-    box-shadow: 0 4px 10px rgba(95, 207, 134, 0.4);  
-    /* ĐỊNH VỊ MỚI - Cân đối hơn */
-    position: absolute;
-    bottom: 80px; /* Đặt nó cao hơn form một chút */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 25; /* Đảm bảo nó nằm trên mọi thứ */
-    margin-top: 20px; /* Thêm khoảng cách với nội dung phía trên */
-}
-
-.ev-tag iconify-icon {
-    font-size: 1.4rem; /* Tăng kích thước icon nhẹ */
-    margin-right: 10px;
-    color: var(--color-white);
-}
-
 /* Booking Form */
 .booking-form-wrapper {
     position: absolute;

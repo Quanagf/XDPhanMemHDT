@@ -556,6 +556,59 @@
   display: none; /* WebKit */
 }
 
+/* Loading và Error States */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  min-height: 200px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--color-fev-green, #5FCF86);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: var(--color-text-muted, #666666);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.error-state p {
+  color: #e74c3c;
+  font-size: 1rem;
+  margin: 0;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.contact-station-hours {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666666);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .contact-station-card {
   background: white;
   border: 2px solid #e8eef3;

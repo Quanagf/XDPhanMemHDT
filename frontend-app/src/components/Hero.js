@@ -309,9 +309,6 @@ const Hero = () => {
           Luôn đồng hành cùng bạn trên mọi chuyến đi với <span>100+ trạm thuê</span> và <span>5.000+ xe</span> trên khắp Việt Nam
         </p>
       </div>
-      <div className="ev-tag" aria-label="Loại xe điện">
-        <iconify-icon icon="mdi:car-electric-outline" aria-hidden="true"></iconify-icon> EV car
-      </div>
       <div className="booking-form-wrapper">
         <form className="booking-form" onSubmit={handleSearch}>
           <div className="form-inputs">
