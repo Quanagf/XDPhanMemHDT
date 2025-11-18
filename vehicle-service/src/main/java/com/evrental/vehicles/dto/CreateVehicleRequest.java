@@ -47,4 +47,8 @@ public class CreateVehicleRequest {
     private String chargingSpeed; // Tốc độ sạc
     private String location; // Vị trí hiện tại
     private Integer tripCount; // Số chuyến đã thực hiện
+    
+    // Trạng thái bảo trì và kỹ thuật
+    private String technicalCondition; // Tình trạng kỹ thuật (excellent, good, fair, poor)
+    private String maintenanceNotes; // Ghi chú bảo trì
 }

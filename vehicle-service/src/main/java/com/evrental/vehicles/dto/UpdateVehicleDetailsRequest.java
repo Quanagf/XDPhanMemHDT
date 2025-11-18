@@ -6,21 +6,16 @@ import com.evrental.vehicles.model.Vehicle;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
 public class UpdateVehicleDetailsRequest {
-    @NotBlank(message = "Biển số không được trống")
     @Pattern(regexp = "^[A-Z0-9\\-\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang và khoảng trắng")
     private String licensePlate;
 
-    @NotBlank(message = "Loại xe không được trống")
     private String type;
 
-    @NotNull(message = "Giá không được null")
     @Min(value = 0, message = "Giá phải >= 0")
     private Double pricePerHour;
 
@@ -43,4 +38,8 @@ public class UpdateVehicleDetailsRequest {
     private String chargingSpeed;
     private String location;
     private Integer tripCount;
+    
+    // Trạng thái bảo trì và kỹ thuật
+    private String technicalCondition; // Tình trạng kỹ thuật (excellent, good, fair, poor)
+    private String maintenanceNotes; // Ghi chú bảo trì
 }

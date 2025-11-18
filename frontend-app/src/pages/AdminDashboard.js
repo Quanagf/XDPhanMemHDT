@@ -5,7 +5,7 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
-import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
+import vehiclesApi from '../api/vehiclesApi';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -202,13 +202,20 @@ const VehicleManagement = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/vehicles', { headers: getAuthHeader() });
-      if (res.ok) {
-        const data = await res.json();
-        setVehicles(data || []);
-      }
+      const response = await vehiclesApi.getVehicles({ size: 1000 }); // Get all for admin
+      setVehicles(response.content || []);
     } catch (err) {
       console.error('fetchVehicles', err);
+      // Fallback to old fetch if vehiclesApi fails
+      try {
+        const res = await fetch('/api/vehicles', { headers: getAuthHeader() });
+        if (res.ok) {
+          const data = await res.json();
+          setVehicles(data || []);
+        }
+      } catch (fallbackErr) {
+        console.error('fetchVehicles fallback', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -253,7 +260,7 @@ const VehicleManagement = () => {
       };
 
       if (editing) {
-        await updateVehicle(editing.id, payload);
+        await vehiclesApi.updateVehicle(editing.id, payload);
         // upload image if any
         if (fileToUpload) {
           const fd = new FormData();
@@ -269,7 +276,7 @@ const VehicleManagement = () => {
         alert('Cập nhật thành công');
         setEditing(null);
       } else {
-        const created = await createVehicle(payload);
+        const created = await vehiclesApi.createVehicle(payload);
         // upload file if selected
         if (fileToUpload && created && created.id) {
           const fd = new FormData();
@@ -326,7 +333,7 @@ const VehicleManagement = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa xe này không?')) return;
     try {
-      await deleteVehicle(id);
+      await vehiclesApi.deleteVehicle(id);
       fetchVehicles();
     } catch (err) {
       console.error('handleDelete', err);

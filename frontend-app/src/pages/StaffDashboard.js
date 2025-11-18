@@ -5,6 +5,7 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
+import vehiclesApi from '../api/vehiclesApi';
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('handover'); // handover, verification, payment, maintenance
@@ -857,249 +858,358 @@ const PaymentManagement = () => {
   );
 };
 
-// Component: Quản lý xe tại điểm (thêm/sửa/xóa xe)
+// Component: Quản lý xe tại điểm (cập nhật trạng thái và báo cáo sự cố)
 const VehicleMaintenance = () => {
   const [vehicles, setVehicles] = useState([]);
   const [editing, setEditing] = useState(null);
   const [expandedVehicle, setExpandedVehicle] = useState(null);
-  const fileInputRef = useRef(null);
+  const [showIssueReport, setShowIssueReport] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  // Danh sách trạm và địa chỉ
-  const stationList = [
-    { id: 'station-1', name: 'Trạm Quận 1', address: '123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM' },
-    { id: 'station-2', name: 'Trạm Quận 7', address: '456 Đường Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP.HCM' },
-    { id: 'station-3', name: 'Trạm Thủ Đức', address: '789 Đường Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP.HCM' },
-    { id: 'station-4', name: 'Trạm Đà Lạt', address: '15 Đường Trần Phú, Phường 4, TP. Đà Lạt, Lâm Đồng' },
-    { id: 'station-5', name: 'Trạm Bảo Lộc', address: '78 Đường Trần Hưng Đạo, Phường 1, TP. Bảo Lộc, Lâm Đồng' },
-    { id: 'station-6', name: 'Trạm Long Xuyên', address: '234 Đường Nguyễn Văn Cừ, Phường Mỹ Bình, TP. Long Xuyên, An Giang' },
-    { id: 'station-7', name: 'Trạm Châu Đốc', address: '567 Đường Lê Lợi, Phường Châu Phú B, TP. Châu Đốc, An Giang' },
-    { id: 'station-8', name: 'Trạm Quảng Ngãi', address: '345 Đường Quang Trung, Phường Lê Hồng Phong, TP. Quảng Ngãi, Quảng Ngãi' },
-    { id: 'station-9', name: 'Trạm Sơn Tịnh', address: '678 Đường Hùng Vương, TT. Sơn Tịnh, Huyện Sơn Tịnh, Quảng Ngãi' }
-  ];
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [pageSize] = useState(10);
+  
+  // Filter state
+  const [filters, setFilters] = useState({
+    stationId: null,
+    status: null
+  });
+
+  const [issueReportForm, setIssueReportForm] = useState({
+    vehicleId: '',
+    vehiclePlate: '',
+    issueType: '',
+    description: '',
+    severity: 'medium',
+    reportedBy: ''
+  });
   
   const [form, setForm] = useState({
     id: '', 
-    battery_level: '', 
-    description: '', 
-    image_url: '', 
-    last_maintenance_date: '', 
-    licence_plate: '', 
-    price_per_hour: '', 
-    status: 'AVAILABLE', 
-    type: '', 
-    station_id: '',
-    // Thông số kỹ thuật bổ sung
-    seats: '', // Số tự động
-    battery_capacity: '', // Dung lượng pin (kWh)
-    range: '', // Phạm vi di chuyển (km)
-    charging_type: '', // Loại cổng sạc
-    charging_speed: '', // Tốc độ sạc
-    location: '', // Vị trí hiện tại
-    trip_count: '' // Số chuyến
+    batteryLevel: '', 
+    pricePerHour: '', 
+    status: 'AVAILABLE',
+    // Các trường kỹ thuật có thể cập nhật
+    technicalCondition: '', // Tình trạng kỹ thuật
+    maintenanceNotes: '', // Ghi chú bảo trì
+    lastMaintenanceDate: ''
   });
 
   useEffect(() => {
-    const v = vehicleService.getVehicles();
-    setVehicles(v || []);
-  }, []);
+    loadVehicles();
+    
+    // Lấy thông tin staff để dùng trong báo cáo sự cố
+    const userProfile = localStorage.getItem('userProfile');
+    if (userProfile) {
+      const parsedUser = JSON.parse(userProfile);
+      setIssueReportForm(prev => ({ 
+        ...prev, 
+        reportedBy: parsedUser.fullName || 'Staff' 
+      }));
+    }
+  }, [currentPage, filters]);
 
-  const refresh = () => {
-    setVehicles(vehicleService.getVehicles());
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {
+        page: currentPage,
+        size: pageSize,
+        sortBy: 'id',
+        sortDirection: 'desc',
+        ...filters
+      };
+
+      const response = await vehiclesApi.getVehicles(params);
+      
+      // Adapt backend response structure
+      setVehicles(response.content || []);
+      setTotalPages(response.totalPages || 0);
+      setTotalElements(response.totalElements || 0);
+      
+    } catch (err) {
+      console.error('Error loading vehicles:', err);
+      setError('Không thể tải danh sách xe. Vui lòng thử lại.');
+      // Fallback to local data for development
+      const fallbackData = vehicleService.getVehicles();
+      setVehicles(fallbackData || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    setCurrentPage(0); // Reset to first page when filtering
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Auto-fill địa chỉ khi chọn station_id
-    if (name === 'station_id') {
-      const selectedStation = stationList.find(station => station.id === value);
-      setForm(prev => ({ 
-        ...prev, 
-        [name]: value,
-        location: selectedStation ? selectedStation.address : ''
-      }));
-    } else {
-      setForm(prev => ({ ...prev, [name]: value }));
-    }
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddOrUpdate = (e) => {
+  const handleIssueFormChange = (e) => {
+    const { name, value } = e.target;
+    setIssueReportForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Cập nhật thông tin xe (chỉ các trường được phép)
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    const payload = {
-      id: form.id || undefined,
-      battery_level: Number(form.battery_level) || 0,
-      description: form.description,
-      image_url: form.image_url,
-      last_maintenance_date: form.last_maintenance_date,
-      licence_plate: form.licence_plate,
-      price_per_hour: Number(form.price_per_hour) || 0,
-      status: form.status,
-      type: form.type,
-      station_id: form.station_id,
-      // Thông số kỹ thuật
-      seats: Number(form.seats) || 0,
-      battery_capacity: Number(form.battery_capacity) || 0,
-      range: Number(form.range) || 0,
-      charging_type: form.charging_type,
-      charging_speed: form.charging_speed,
-      location: form.location,
-      trip_count: Number(form.trip_count) || 0
-    };
-
-    if (editing) {
-      vehicleService.updateVehicle(editing.id, payload);
-      setEditing(null);
-    } else {
-      vehicleService.addVehicle(payload);
-    }
+    if (!editing) return;
     
-    // Reset form với tất cả trường
-    setForm({ 
-      id: '', battery_level: '', description: '', image_url: '', last_maintenance_date: '', 
-      licence_plate: '', price_per_hour: '', status: 'AVAILABLE', type: '', station_id: '',
-      seats: '', battery_capacity: '', range: '', charging_type: '', charging_speed: '',
-      location: '', trip_count: ''
-    });
-    refresh();
-  };
+    try {
+      setLoading(true);
+      
+      const updateData = {
+        batteryLevel: form.batteryLevel ? Number(form.batteryLevel) : undefined,
+        pricePerHour: form.pricePerHour ? Number(form.pricePerHour) : undefined,
+        status: form.status,
+        technicalCondition: form.technicalCondition,
+        maintenanceNotes: form.maintenanceNotes,
+        lastMaintenanceDate: form.lastMaintenanceDate
+      };
 
-  // Thêm xe mới từ form hiện tại (khi đang ở trạng thái sửa vẫn có thể thêm bản ghi mới)
-  const handleAddNew = (e) => {
-    e && e.preventDefault();
-    const payload = {
-      battery_level: Number(form.battery_level) || 0,
-      description: form.description,
-      image_url: form.image_url,
-      last_maintenance_date: form.last_maintenance_date,
-      licence_plate: form.licence_plate,
-      price_per_hour: Number(form.price_per_hour) || 0,
-      status: form.status,
-      type: form.type,
-      station_id: form.station_id,
-      // Thông số kỹ thuật
-      seats: Number(form.seats) || 0,
-      battery_capacity: Number(form.battery_capacity) || 0,
-      range: Number(form.range) || 0,
-      charging_type: form.charging_type,
-      charging_speed: form.charging_speed,
-      location: form.location,
-      trip_count: Number(form.trip_count) || 0
-    };
-    vehicleService.addVehicle(payload);
-    setForm({ 
-      id: '', battery_level: '', description: '', image_url: '', last_maintenance_date: '', 
-      licence_plate: '', price_per_hour: '', status: 'AVAILABLE', type: '', station_id: '',
-      seats: '', battery_capacity: '', range: '', charging_type: '', charging_speed: '',
-      location: '', trip_count: ''
-    });
-    setEditing(null);
-    refresh();
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined || updateData[key] === '') {
+          delete updateData[key];
+        }
+      });
+
+      await vehiclesApi.updateVehicle(editing.id, updateData);
+      
+      setEditing(null);
+      
+      // Reset form
+      setForm({ 
+        id: '', 
+        batteryLevel: '', 
+        pricePerHour: '', 
+        status: 'AVAILABLE',
+        technicalCondition: '',
+        maintenanceNotes: '',
+        lastMaintenanceDate: ''
+      });
+      
+      // Reload vehicles
+      await loadVehicles();
+      
+    } catch (err) {
+      console.error('Error updating vehicle:', err);
+      setError('Không thể cập nhật thông tin xe. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (v) => {
     setEditing(v);
     setForm({
       id: v.id,
-      battery_level: v.battery_level || '',
-      description: v.description || '',
-      image_url: v.image_url || '',
-      last_maintenance_date: v.last_maintenance_date || '',
-      licence_plate: v.licence_plate || '',
-      price_per_hour: v.price_per_hour || '',
+      batteryLevel: v.batteryLevel || '',
+      pricePerHour: v.pricePerHour || '',
       status: v.status || 'AVAILABLE',
-      type: v.type || '',
-      station_id: v.station_id || '',
-      // Thông số kỹ thuật
-      seats: v.seats || '',
-      battery_capacity: v.battery_capacity || '',
-      range: v.range || '',
-      charging_type: v.charging_type || '',
-      charging_speed: v.charging_speed || '',
-      location: v.location || '',
-      trip_count: v.trip_count || ''
+      technicalCondition: v.technicalCondition || '',
+      maintenanceNotes: v.maintenanceNotes || '',
+      lastMaintenanceDate: v.lastMaintenanceDate || ''
     });
   };
 
-  const handleDelete = (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa xe này không?')) return;
-    vehicleService.deleteVehicle(id);
-    refresh();
+  // Báo cáo sự cố
+  const handleIssueReport = (vehicle) => {
+    setIssueReportForm(prev => ({
+      ...prev,
+      vehicleId: vehicle.id,
+      vehiclePlate: vehicle.licence_plate,
+      issueType: '',
+      description: '',
+      severity: 'medium'
+    }));
+    setShowIssueReport(true);
+  };
+
+  const handleSubmitIssueReport = async (e) => {
+    e.preventDefault();
+    
+    try {
+      // Tạo báo cáo sự cố (có thể gửi lên server hoặc lưu local)
+      const issueReport = {
+        ...issueReportForm,
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        status: 'PENDING'
+      };
+      
+      // Lưu báo cáo vào localStorage (trong thực tế sẽ gửi lên server)
+      const existingReports = JSON.parse(localStorage.getItem('issueReports') || '[]');
+      existingReports.push(issueReport);
+      localStorage.setItem('issueReports', JSON.stringify(existingReports));
+      
+      // Cập nhật trạng thái xe thành MAINTENANCE nếu sự cố nghiêm trọng
+      if (issueReportForm.severity === 'critical') {
+        const vehicle = vehicles.find(v => v.id === issueReportForm.vehicleId);
+        if (vehicle) {
+          await vehiclesApi.updateVehicle(vehicle.id, { status: 'MAINTENANCE' });
+          await loadVehicles(); // Reload vehicles
+        }
+      }
+      
+      alert('Báo cáo sự cố đã được gửi thành công!');
+      setShowIssueReport(false);
+      setIssueReportForm({
+        vehicleId: '',
+        vehiclePlate: '',
+        issueType: '',
+        description: '',
+        severity: 'medium',
+        reportedBy: issueReportForm.reportedBy
+      });
+      
+    } catch (err) {
+      console.error('Error submitting issue report:', err);
+      setError('Không thể gửi báo cáo sự cố. Vui lòng thử lại.');
+    }
   };
 
   return (
     <div className="staff-section">
       <h1>Quản lý xe tại điểm</h1>
 
+      {error && (
+        <div className="error-message" style={{
+          background: '#fee', 
+          color: '#d32f2f', 
+          padding: '1rem', 
+          borderRadius: '0.375rem', 
+          marginBottom: '1rem'
+        }}>
+          {error}
+        </div>
+      )}
+
       <div className="vehicle-status-table">
-        <h2>Danh sách xe tại điểm</h2>
-        <table className="staff-table">
-          <thead>
-            <tr>
-              <th>Chi tiết</th>
-              <th>Biển số</th>
-              <th>Loại</th>
-              <th>Pin (%)</th>
-              <th>Trạng thái</th>
-              <th>Giá/giờ</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vehicles.map(v => (
-              <React.Fragment key={v.id}>
-                <tr>
-                  <td>
-                    <button 
-                      className="expand-btn"
-                      onClick={() => setExpandedVehicle(expandedVehicle === v.id ? null : v.id)}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d={expandedVehicle === v.id 
-                          ? "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" 
-                          : "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"} 
-                        />
-                      </svg>
-                    </button>
-                  </td>
-                  <td>{v.licence_plate}</td>
-                  <td>{v.type || v.description}</td>
-                  <td>
-                    <div className="battery-indicator">
-                      <div className="battery-container">
-                        <div 
-                          className={`battery-bar ${
-                            v.battery_level >= 60 ? 'battery-high' :
-                            v.battery_level >= 30 ? 'battery-medium' : 
-                            'battery-low'
-                          }`} 
-                          style={{
-                            width: `${Math.min(Math.max(v.battery_level || 0, 0), 100)}%`
-                          }}
-                        ></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Danh sách xe tại điểm</h2>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <select 
+              value={filters.status || ''} 
+              onChange={(e) => handleFilterChange({ status: e.target.value || null })}
+              style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #ccc' }}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="AVAILABLE">Có sẵn</option>
+              <option value="RESERVED">Đã đặt trước</option>
+              <option value="RENTED">Đang cho thuê</option>
+              <option value="MAINTENANCE">Bảo trì</option>
+            </select>
+            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+              Trang {currentPage + 1} / {totalPages} - Tổng cộng {totalElements} xe
+            </div>
+          </div>
+        </div>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+            Đang tải danh sách xe...
+          </div>
+        )}
+
+        {!loading && vehicles.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+            Không có xe nào được tìm thấy.
+          </div>
+        )}
+
+        {!loading && vehicles.length > 0 && (
+          <table className="staff-table">
+            <thead>
+              <tr>
+                <th>Chi tiết</th>
+                <th>Biển số</th>
+                <th>Loại</th>
+                <th>Pin (%)</th>
+                <th>Trạng thái</th>
+                <th>Giá/giờ</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vehicles.map(v => (
+                <React.Fragment key={v.id}>
+                  <tr>
+                    <td>
+                      <button 
+                        className="expand-btn"
+                        onClick={() => setExpandedVehicle(expandedVehicle === v.id ? null : v.id)}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d={expandedVehicle === v.id 
+                            ? "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" 
+                            : "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"} 
+                          />
+                        </svg>
+                      </button>
+                    </td>
+                    <td>{v.licensePlate}</td>
+                    <td>{v.type || v.description}</td>
+                    <td>
+                      <div className="battery-indicator">
+                        <div className="battery-container">
+                          <div 
+                            className={`battery-bar ${
+                              v.batteryLevel >= 60 ? 'battery-high' :
+                              v.batteryLevel >= 30 ? 'battery-medium' : 
+                              'battery-low'
+                            }`} 
+                            style={{
+                              width: `${Math.min(Math.max(v.batteryLevel || 0, 0), 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                        <span className={`battery-text ${
+                          v.batteryLevel >= 60 ? 'text-green-600' :
+                          v.batteryLevel >= 30 ? 'text-yellow-600' : 
+                          'text-red-600'
+                        }`}>
+                          {v.batteryLevel != null ? `${v.batteryLevel}%` : 'N/A'}
+                        </span>
                       </div>
-                      <span className={`battery-text ${
-                        v.battery_level >= 60 ? 'text-green-600' :
-                        v.battery_level >= 30 ? 'text-yellow-600' : 
-                        'text-red-600'
-                      }`}>
-                        {v.battery_level != null ? `${v.battery_level}%` : 'N/A'}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${v.status.toLowerCase()}`}>
+                        {v.status === 'AVAILABLE' ? 'Có sẵn' : 
+                         v.status === 'RESERVED' ? 'Đã đặt trước' :
+                         v.status === 'RENTED' ? 'Đang cho thuê' :
+                         v.status === 'MAINTENANCE' ? 'Bảo trì' : v.status}
                       </span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${v.status.toLowerCase()}`}>
-                      {v.status === 'AVAILABLE' ? 'Có sẵn' : 
-                       v.status === 'RESERVED' ? 'Đã đặt trước' :
-                       v.status === 'RENTED' ? 'Đang cho thuê' :
-                       v.status === 'MAINTENANCE' ? 'Bảo trì' : v.status}
-                    </span>
-                  </td>
-                  <td>{v.price_per_hour ? `${v.price_per_hour.toLocaleString()}đ` : '-'}</td>
-                  <td>
-                    <button className="btn-action" onClick={() => handleEdit(v)}>Sửa</button>
-                    <button className="btn-action" onClick={() => handleDelete(v.id)}>Xóa</button>
-                  </td>
-                </tr>
+                    </td>
+                    <td>{v.pricePerHour ? `${v.pricePerHour.toLocaleString()}đ` : '-'}</td>
+                    <td>
+                      <button className="btn-action" onClick={() => handleEdit(v)}>
+                        Chỉnh sửa
+                      </button>
+                      <button 
+                        className="btn-action btn-warning" 
+                        onClick={() => handleIssueReport(v)}
+                        style={{ marginLeft: '5px' }}
+                      >
+                        Báo cáo sự cố
+                      </button>
+                    </td>
+                  </tr>
                 
                 {/* Expanded Details Row */}
                 {expandedVehicle === v.id && (
@@ -1107,10 +1217,55 @@ const VehicleMaintenance = () => {
                     <td colSpan="7">
                       <div className="vehicle-details-container">
                         <div className="details-header">
-                          <h4>Chi tiết xe {v.licence_plate}</h4>
+                          <h4>Chi tiết xe {v.licensePlate}</h4>
                         </div>
                         
                         <div className="details-content">
+                          <div className="details-section">
+                            <h5>Tình trạng kỹ thuật</h5>
+                            <div className="details-grid">
+                              <div className="detail-row">
+                                <span className="label">Trạng thái kỹ thuật:</span>
+                                <span className={`value ${
+                                  v.technicalCondition === 'excellent' ? 'text-green-600' :
+                                  v.technicalCondition === 'good' ? 'text-blue-600' :
+                                  v.technicalCondition === 'fair' ? 'text-yellow-600' :
+                                  v.technicalCondition === 'poor' ? 'text-red-600' : ''
+                                }`}>
+                                  {v.technicalCondition === 'excellent' ? 'Tuyệt vời' :
+                                   v.technicalCondition === 'good' ? 'Tốt' :
+                                   v.technicalCondition === 'fair' ? 'Trung bình' :
+                                   v.technicalCondition === 'poor' ? 'Kém' : 'Chưa đánh giá'}
+                                </span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Mức pin hiện tại:</span>
+                                <span className={`value ${
+                                  v.batteryLevel >= 60 ? 'text-green-600' :
+                                  v.batteryLevel >= 30 ? 'text-yellow-600' : 
+                                  'text-red-600'
+                                }`}>
+                                  {v.batteryLevel != null ? `${v.batteryLevel}%` : 'N/A'}
+                                </span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Ghi chú bảo trì:</span>
+                                <span className="value">{v.maintenanceNotes || 'Không có ghi chú'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Ngày bảo trì cuối:</span>
+                                <span className="value">{
+                                  v.lastMaintenanceDate ? 
+                                    new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN', {
+                                      day: '2-digit',
+                                      month: '2-digit', 
+                                      year: 'numeric'
+                                    }) : 'Chưa bảo trì'
+                                }</span>
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="details-section">
                             <h5>Thông số kỹ thuật</h5>
                             <div className="details-grid">
@@ -1120,7 +1275,7 @@ const VehicleMaintenance = () => {
                               </div>
                               <div className="detail-row">
                                 <span className="label">Dung lượng pin:</span>
-                                <span className="value">{v.battery_capacity ? `${v.battery_capacity} kWh` : 'N/A'}</span>
+                                <span className="value">{v.batteryCapacity ? `${v.batteryCapacity} kWh` : 'N/A'}</span>
                               </div>
                               <div className="detail-row">
                                 <span className="label">Phạm vi di chuyển:</span>
@@ -1128,15 +1283,15 @@ const VehicleMaintenance = () => {
                               </div>
                               <div className="detail-row">
                                 <span className="label">Loại cổng sạc:</span>
-                                <span className="value">{v.charging_type || 'N/A'}</span>
+                                <span className="value">{v.chargingType || 'N/A'}</span>
                               </div>
                               <div className="detail-row">
                                 <span className="label">Tốc độ sạc:</span>
-                                <span className="value">{v.charging_speed || 'N/A'}</span>
+                                <span className="value">{v.chargingSpeed || 'N/A'}</span>
                               </div>
                               <div className="detail-row">
                                 <span className="label">Số chuyến:</span>
-                                <span className="value">{v.trip_count || '0'}</span>
+                                <span className="value">{v.tripCount || '0'}</span>
                               </div>
                             </div>
                           </div>
@@ -1146,22 +1301,11 @@ const VehicleMaintenance = () => {
                             <div className="details-grid">
                               <div className="detail-row">
                                 <span className="label">ID trạm:</span>
-                                <span className="value">{v.station_id || 'N/A'}</span>
+                                <span className="value">{v.station?.id || 'N/A'}</span>
                               </div>
                               <div className="detail-row">
                                 <span className="label">Vị trí hiện tại:</span>
                                 <span className="value">{v.location || 'N/A'}</span>
-                              </div>
-                              <div className="detail-row">
-                                <span className="label">Ngày bảo trì cuối:</span>
-                                <span className="value">{
-                                  v.last_maintenance_date ? 
-                                    new Date(v.last_maintenance_date).toLocaleDateString('vi-VN', {
-                                      day: '2-digit',
-                                      month: '2-digit', 
-                                      year: 'numeric'
-                                    }) : 'N/A'
-                                }</span>
                               </div>
                               <div className="detail-row">
                                 <span className="label">Mô tả:</span>
@@ -1170,11 +1314,11 @@ const VehicleMaintenance = () => {
                             </div>
                           </div>
                           
-                          {v.image_url && (
+                          {v.imageUrl && (
                             <div className="details-section image-section">
                               <h5>Ảnh xe</h5>
                               <div className="vehicle-image">
-                                <img src={v.image_url} alt={`Xe ${v.licence_plate}`} />
+                                <img src={v.imageUrl} alt={`Xe ${v.licensePlate}`} />
                               </div>
                             </div>
                           )}
@@ -1187,254 +1331,251 @@ const VehicleMaintenance = () => {
             ))}
           </tbody>
         </table>
-      </div>
+        )}
 
-      <div className="issue-report-form">
-        <h2>{editing ? 'Cập nhật xe' : 'Thêm xe mới'}</h2>
-        <form onSubmit={handleAddOrUpdate}>
-          <div className="form-group">
-            <label>Biển số xe</label>
-            <input 
-              name="licence_plate" 
-              value={form.licence_plate} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 30A-12345"
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label>Loại xe</label>
-            <input 
-              name="type" 
-              value={form.type} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: VF3, VF5, VF8"
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label>Mô tả chi tiết</label>
-            <input 
-              name="description" 
-              value={form.description} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: VINFAST VF3 - Màu demo"
-            />
-          </div>
-          <div className="form-group">
-            <label>Ảnh xe</label>
-            <input 
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files && e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    setForm(prev => ({
-                      ...prev,
-                      image_url: ev.target.result
-                    }));
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-              {form.image_url && (
-                <div className="image-preview photo-item" style={{ marginTop: '10px', maxWidth: 200 }}>
-                  <img
-                    src={form.image_url}
-                    alt="Vehicle preview"
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      display: 'block',
-                      objectFit: 'cover'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="remove-photo"
-                    onClick={() => {
-                      setForm(prev => ({ ...prev, image_url: '' }));
-                      try { if (fileInputRef.current) fileInputRef.current.value = null; } catch (e) { }
-                    }}
-                    aria-label="Xóa ảnh"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-          </div>
-          
-          <h3 style={{ margin: '2rem 0 1rem 0', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-            Thông số kỹ thuật
-          </h3>
-          
-          <div className="form-group">
-            <label>Số ghế</label>
-            <input 
-              name="seats" 
-              type="number" 
-              min="2" 
-              max="8" 
-              value={form.seats} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 4"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Dung lượng pin (kWh)</label>
-            <input 
-              name="battery_capacity" 
-              type="number" 
-              step="0.1" 
-              value={form.battery_capacity} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 87.7"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Phạm vi di chuyển (km)</label>
-            <input 
-              name="range" 
-              type="number" 
-              value={form.range} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 420"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Loại cổng sạc</label>
-            <select name="charging_type" value={form.charging_type} onChange={handleChange}>
-              <option value="">-- Chọn loại cổng sạc --</option>
-              <option value="CCS2">CCS2</option>
-              <option value="CHAdeMO">CHAdeMO</option>
-              <option value="Type 2">Type 2</option>
-              <option value="Tesla Supercharger">Tesla Supercharger</option>
-            </select>
-          </div>
-          
-          <div className="form-group">
-            <label>Tốc độ sạc</label>
-            <input 
-              name="charging_speed" 
-              value={form.charging_speed} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 10 - 70% trong ~25 mins"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Số chuyến đã thực hiện</label>
-            <input 
-              name="trip_count" 
-              type="number" 
-              min="0" 
-              value={form.trip_count} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 19"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Mức pin (%)</label>
-            <input 
-              name="battery_level" 
-              type="number" 
-              min="0" 
-              max="100" 
-              value={form.battery_level} 
-              onChange={handleChange} 
-              placeholder="0-100"
-            />
-          </div>
-          
-          <h3 style={{ margin: '2rem 0 1rem 0', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-            Thông tin quản lý
-          </h3>
-          
-          <div className="form-group">
-            <label>Ngày bảo trì cuối</label>
-            <input 
-              name="last_maintenance_date" 
-              type="date" 
-              value={form.last_maintenance_date} 
-              onChange={handleChange} 
-            />
-          </div>
-          <div className="form-group">
-            <label>Giá thuê mỗi giờ (VND)</label>
-            <input 
-              name="price_per_hour" 
-              type="number" 
-              value={form.price_per_hour} 
-              onChange={handleChange} 
-              placeholder="Ví dụ: 50000"
-            />
-          </div>
-          <div className="form-group">
-            <label>ID trạm</label>
-            <select
-              name="station_id" 
-              value={form.station_id} 
-              onChange={handleChange}
-            >
-              <option value="">Chọn trạm</option>
-              {stationList.map(station => (
-                <option key={station.id} value={station.id}>
-                  {station.id} - {station.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="form-group">
-            <label>Vị trí hiện tại</label>
-            <input 
-              name="location" 
-              value={form.location} 
-              onChange={handleChange} 
-              placeholder="Địa chỉ sẽ tự động điền khi chọn ID trạm"
-              readOnly
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="pagination-controls" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '1rem',
+            marginTop: '1rem',
+            padding: '1rem'
+          }}>
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 0}
               style={{
-                background: '#f8fafc',
-                color: '#64748b',
-                cursor: 'not-allowed'
+                padding: '0.5rem 1rem',
+                backgroundColor: currentPage === 0 ? '#f3f4f6' : '#3b82f6',
+                color: currentPage === 0 ? '#9ca3af' : 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
               }}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Trạng thái</label>
-            <select name="status" value={form.status} onChange={handleChange}>
-              <option value="AVAILABLE">Có sẵn</option>
-              <option value="RESERVED">Đã đặt trước</option>
-              <option value="RENTED">Đang cho thuê</option>
-              <option value="MAINTENANCE">Bảo trì</option>
-            </select>
-          </div>
-
-          {editing ? (
-            <>
-              <button className="btn-success" type="submit">Cập nhật</button>
-              <button type="button" className="btn-danger" onClick={() => { setEditing(null); setForm({ id: '', battery_level: '', description: '', image_url: '', last_maintenance_date: '', licence_plate: '', price_per_hour: '', status: 'AVAILABLE', type: '', station_id: '' }); }} style={{marginLeft: '8px'}}>Hủy</button>
-            </>
-          ) : (
-            <button className="btn-success" type="submit">Thêm xe</button>
-          )}
-        </form>
-        {/* Nút Thêm (nằm phía dưới form, hợp lý khi muốn tạo bản sao khi đang edit) */}
-        {editing && (
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn-primary" onClick={handleAddNew}>Thêm</button>
+            >
+              « Trước
+            </button>
+            
+            <span style={{ color: '#6b7280' }}>
+              Trang {currentPage + 1} / {totalPages}
+            </span>
+            
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: currentPage >= totalPages - 1 ? '#f3f4f6' : '#3b82f6',
+                color: currentPage >= totalPages - 1 ? '#9ca3af' : 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Sau »
+            </button>
           </div>
         )}
       </div>
+
+      {/* Form chỉnh sửa thông tin xe */}
+      {editing && (
+        <div className="issue-report-form">
+          <h2>Cập nhật thông tin xe {editing.licensePlate}</h2>
+          <form onSubmit={handleUpdate}>
+            <div className="form-group">
+              <label>Mức pin (%)</label>
+              <input 
+                name="batteryLevel" 
+                type="number" 
+                min="0" 
+                max="100" 
+                value={form.batteryLevel} 
+                onChange={handleChange} 
+                placeholder="0-100"
+              />
+              <small>Cập nhật mức pin hiện tại của xe</small>
+            </div>
+            
+            <div className="form-group">
+              <label>Tình trạng kỹ thuật</label>
+              <select 
+                name="technicalCondition" 
+                value={form.technicalCondition} 
+                onChange={handleChange}
+              >
+                <option value="">-- Chọn tình trạng --</option>
+                <option value="excellent">Tuyệt vời</option>
+                <option value="good">Tốt</option>
+                <option value="fair">Trung bình</option>
+                <option value="poor">Kém</option>
+              </select>
+              <small>Đánh giá tổng thể tình trạng kỹ thuật xe</small>
+            </div>
+
+            <div className="form-group">
+              <label>Ghi chú bảo trì</label>
+              <textarea 
+                name="maintenanceNotes" 
+                value={form.maintenanceNotes} 
+                onChange={handleChange} 
+                placeholder="Ghi chú về tình trạng xe, sự cố đã khắc phục..."
+                rows="3"
+              />
+              <small>Ghi chú chi tiết về tình trạng và các vấn đề của xe</small>
+            </div>
+
+            <div className="form-group">
+              <label>Ngày bảo trì cuối</label>
+              <input 
+                name="lastMaintenanceDate" 
+                type="date" 
+                value={form.lastMaintenanceDate} 
+                onChange={handleChange} 
+              />
+              <small>Cập nhật ngày bảo trì gần nhất</small>
+            </div>
+            
+            <div className="form-group">
+              <label>Giá thuê mỗi giờ (VND)</label>
+              <input 
+                name="pricePerHour" 
+                type="number" 
+                value={form.pricePerHour} 
+                onChange={handleChange} 
+                placeholder="Ví dụ: 50000"
+              />
+              <small>Cập nhật giá thuê hiện tại</small>
+            </div>
+            
+            <div className="form-group">
+              <label>Trạng thái</label>
+              <select name="status" value={form.status} onChange={handleChange}>
+                <option value="AVAILABLE">Có sẵn</option>
+                <option value="RESERVED">Đã đặt trước</option>
+                <option value="RENTED">Đang cho thuê</option>
+                <option value="MAINTENANCE">Bảo trì</option>
+              </select>
+              <small>Cập nhật trạng thái hiện tại của xe</small>
+            </div>
+
+            <div className="form-actions">
+              <button className="btn-success" type="submit" disabled={loading}>
+                {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+              </button>
+              <button 
+                type="button" 
+                className="btn-danger" 
+                onClick={() => {
+                  setEditing(null);
+                  setForm({ 
+                    id: '', 
+                    batteryLevel: '', 
+                    pricePerHour: '', 
+                    status: 'AVAILABLE',
+                    technicalCondition: '',
+                    maintenanceNotes: '',
+                    lastMaintenanceDate: ''
+                  });
+                }} 
+                style={{marginLeft: '8px'}}
+              >
+                Hủy
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal báo cáo sự cố */}
+      {showIssueReport && (
+        <div className="modal-overlay" onClick={() => setShowIssueReport(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Báo cáo sự cố xe {issueReportForm.vehiclePlate}</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowIssueReport(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmitIssueReport}>
+              <div className="form-group">
+                <label>Loại sự cố</label>
+                <select 
+                  name="issueType" 
+                  value={issueReportForm.issueType} 
+                  onChange={handleIssueFormChange}
+                  required
+                >
+                  <option value="">-- Chọn loại sự cố --</option>
+                  <option value="battery">Vấn đề về pin</option>
+                  <option value="mechanical">Sự cố cơ khí</option>
+                  <option value="electrical">Sự cố điện tử</option>
+                  <option value="exterior">Hư hỏng ngoại thất</option>
+                  <option value="interior">Hư hỏng nội thất</option>
+                  <option value="software">Lỗi phần mềm</option>
+                  <option value="charging">Vấn đề sạc pin</option>
+                  <option value="other">Khác</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Mức độ nghiêm trọng</label>
+                <select 
+                  name="severity" 
+                  value={issueReportForm.severity} 
+                  onChange={handleIssueFormChange}
+                  required
+                >
+                  <option value="low">Thấp - Xe vẫn sử dụng được</option>
+                  <option value="medium">Trung bình - Cần theo dõi</option>
+                  <option value="high">Cao - Cần sửa chữa sớm</option>
+                  <option value="critical">Nghiêm trọng - Ngừng sử dụng ngay</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Mô tả chi tiết</label>
+                <textarea 
+                  name="description" 
+                  value={issueReportForm.description} 
+                  onChange={handleIssueFormChange}
+                  placeholder="Mô tả chi tiết về sự cố, triệu chứng, thời điểm xảy ra..."
+                  rows="4"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Người báo cáo</label>
+                <input 
+                  name="reportedBy" 
+                  value={issueReportForm.reportedBy} 
+                  readOnly
+                  style={{ background: '#f8fafc', color: '#64748b' }}
+                />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn-danger">Gửi báo cáo</button>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => setShowIssueReport(false)}
+                  style={{marginLeft: '8px'}}
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

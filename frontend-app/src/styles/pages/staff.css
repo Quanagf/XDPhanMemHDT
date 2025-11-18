@@ -23,10 +23,11 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0;
+  top: 0; /* Bắt đầu từ top để không có khoảng trống */
   left: 0;
-  height: 100vh;
-  z-index: 1000;
+  height: 100vh; /* Full height */
+  z-index: 900; /* Giảm z-index để không che modal */
+  padding-top: 90px; /* Padding để tránh header (90px height) */
 }
 
 .staff-profile {
@@ -171,8 +172,11 @@
   flex: 1;
   margin-left: 280px;
   padding: 2rem;
+  padding-top: calc(90px + 2rem); /* Padding top để tránh header (90px) + spacing */
   overflow-y: auto;
   min-height: 100vh;
+  background-color: #f5f7fa;
+  transition: margin-left 0.3s ease;
 }
 
 .staff-section h1 {
@@ -1345,16 +1349,22 @@
   .staff-sidebar {
     width: 100%;
     height: auto;
-    position: relative;
-    top: 0;
+    position: fixed;
+    top: 90px; /* Cập nhật theo height header thực tế */
     left: 0;
     flex-direction: row;
     min-height: auto;
+    z-index: 999;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding-top: 0; /* Không cần padding-top ở mobile */
   }
   
   .staff-main {
     margin-left: 0;
+    margin-top: 150px; /* Header (90px) + horizontal sidebar (60px) */
     padding: 1rem;
+    min-height: calc(100vh - 150px);
+    padding-top: 1rem; /* Reset padding-top */
   }
   
   .staff-profile {
@@ -1414,8 +1424,22 @@
 }
 
 @media (max-width: 768px) {
+  .staff-sidebar {
+    height: 60px; /* Compact sidebar cho mobile */
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .staff-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  
   .staff-main {
     padding: 1rem;
+    margin-top: 150px; /* Header (90px) + compact sidebar (60px) */
+    min-height: calc(100vh - 150px);
+    padding-top: 1rem; /* Reset padding-top cho mobile */
   }
   
   .staff-nav-item .icon {
@@ -1425,6 +1449,7 @@
   .staff-nav-item {
     font-size: 0.85rem;
     padding: 0.5rem 0.75rem;
+    white-space: nowrap;
   }
   
   .stats-grid {
@@ -1448,5 +1473,256 @@
   .staff-table th,
   .staff-table td {
     padding: 0.75rem 0.5rem;
+  }
+}
+
+/* Button Styles */
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-warning:hover {
+  background-color: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.staff-dashboard .modal-content {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: 1rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  flex: 1;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.modal-content form {
+  padding: 1.5rem;
+}
+
+.modal-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-content .form-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Form Enhancement */
+.form-group small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Text Color Utilities */
+.text-green-600 {
+  color: #059669 !important;
+}
+
+.text-blue-600 {
+  color: #2563eb !important;
+}
+
+.text-yellow-600 {
+  color: #d97706 !important;
+}
+
+.text-red-600 {
+  color: #dc2626 !important;
+}
+
+/* Enhanced Detail Sections */
+.details-section:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.details-section h5 {
+  color: #374151;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row .label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.detail-row .value {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Utility Classes */
+.staff-layout-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.staff-content-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 850;
+  display: none;
+}
+
+.staff-content-overlay.active {
+  display: block;
+}
+
+/* Mobile sidebar toggle */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 90px;
+  left: 10px;
+  z-index: 1001;
+  background: #1f2937;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-toggle {
+    display: block;
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 640px) {
+  .modal-content {
+    width: 95%;
+    margin: 0.5rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-content form {
+    padding: 1rem;
+  }
+  
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .form-actions button {
+    width: 100%;
   }
 }

@@ -15,44 +15,39 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-@EnableMethodSecurity // Bật @PreAuthorize
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    
-    // (Service này không cần AuthenticationProvider
-    // vì chúng ta xác thực bằng token, không phải password)
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // --- CÁC API CÔNG KHAI (Public) ---
+                        // API công khai
                         .requestMatchers(
                                 "/api/vehicles/ping",
                                 "/api/stations/ping"
                         ).permitAll()
                         
-                        // Cho phép GET stations và vehicles (để frontend có thể lấy danh sách công khai)
+                        // GET công khai để frontend lấy danh sách
                         .requestMatchers(HttpMethod.GET, "/api/stations/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/vehicles").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/vehicles/{id}").permitAll()
 
-                        // --- CÁC API NỘI BỘ (Cho Service khác gọi) ---
+                        // API nội bộ cho services khác
                         .requestMatchers(
                             HttpMethod.PUT, "/api/vehicles/{id}/status/{statusName}"
-                        ).permitAll() // (Cho booking-service cập nhật status)
+                        ).permitAll()
                         
-                        // --- CÁC API CÒN LẠI (Private) ---
-                        // Yêu cầu phải được xác thực (phải có Token)
+                        // Các API còn lại yêu cầu authentication
                         .anyRequest().authenticated() 
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
                 )
-                // (Không cần .authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Thêm Filter JWT
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -2,6 +2,10 @@ package com.evrental.vehicles.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,13 +50,31 @@ public class VehicleController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newVehicle);
     }
 
-    // API cho Renter/Staff: Lấy danh sách xe (1.b / 2.a)
+    // API cho Renter/Staff: Lấy danh sách xe với phân trang (1.b / 2.a)
     @GetMapping
-    public ResponseEntity<List<Vehicle>> findVehicles(
+    public ResponseEntity<Page<Vehicle>> findVehicles(
+            @RequestParam(required = false) Long stationId,
+            @RequestParam(required = false) VehicleStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        Sort sort = sortDirection.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<Vehicle> vehicles = vehicleService.findVehicles(stationId, status, pageable);
+        return ResponseEntity.ok(vehicles);
+    }
+
+    // API cho danh sách đơn giản không phân trang (backward compatibility)
+    @GetMapping("/list")
+    public ResponseEntity<List<Vehicle>> findVehiclesList(
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) VehicleStatus status) {
         
-        List<Vehicle> vehicles = vehicleService.findVehicles(stationId, status);
+        List<Vehicle> vehicles = vehicleService.findVehiclesList(stationId, status);
         return ResponseEntity.ok(vehicles);
     }
     

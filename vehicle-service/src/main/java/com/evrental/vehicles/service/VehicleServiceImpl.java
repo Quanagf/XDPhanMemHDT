@@ -2,6 +2,9 @@ package com.evrental.vehicles.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -58,6 +61,10 @@ public class VehicleServiceImpl implements IVehicleService {
         vehicle.setLocation(request.getLocation());
         vehicle.setTripCount(request.getTripCount());
         
+        // Gán các trường bảo trì và kỹ thuật
+        vehicle.setTechnicalCondition(request.getTechnicalCondition());
+        vehicle.setMaintenanceNotes(request.getMaintenanceNotes());
+        
         vehicle.setStation(station);
 
         return vehicleRepository.save(vehicle);
@@ -72,6 +79,30 @@ public class VehicleServiceImpl implements IVehicleService {
         } else {
             return vehicleRepository.findAll();
         }
+    }
+
+    @Override
+    public Page<Vehicle> findVehicles(Long stationId, VehicleStatus status, Pageable pageable) {
+        // Tạo Specification động
+        Specification<Vehicle> spec = (root, query, builder) -> builder.conjunction();
+        
+        if (stationId != null) {
+            spec = spec.and((root, query, builder) -> 
+                builder.equal(root.get("station").get("id"), stationId));
+        }
+        
+        if (status != null) {
+            spec = spec.and((root, query, builder) -> 
+                builder.equal(root.get("status"), status));
+        }
+        
+        return vehicleRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public List<Vehicle> findVehiclesList(Long stationId, VehicleStatus status) {
+        // Sử dụng lại logic của method cũ
+        return findVehicles(stationId, status);
     }
 
     @Override
@@ -147,6 +178,16 @@ public class VehicleServiceImpl implements IVehicleService {
         }
         if (request.getTripCount() != null) {
             vehicle.setTripCount(request.getTripCount());
+        }
+        
+        // Cập nhật trạng thái kỹ thuật nếu được cung cấp
+        if (request.getTechnicalCondition() != null && !request.getTechnicalCondition().isBlank()) {
+            vehicle.setTechnicalCondition(request.getTechnicalCondition());
+        }
+        
+        // Cập nhật ghi chú bảo trì nếu được cung cấp
+        if (request.getMaintenanceNotes() != null) {
+            vehicle.setMaintenanceNotes(request.getMaintenanceNotes());
         }
 
         return vehicleRepository.save(vehicle);

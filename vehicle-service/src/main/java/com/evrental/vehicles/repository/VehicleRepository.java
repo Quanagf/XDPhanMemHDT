@@ -1,14 +1,16 @@
 package com.evrental.vehicles.repository;
 
-import com.evrental.vehicles.model.Vehicle;
-import com.evrental.vehicles.model.Vehicle.VehicleStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
+
+import com.evrental.vehicles.model.Vehicle;
+import com.evrental.vehicles.model.Vehicle.VehicleStatus;
+
 @Repository
-public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
+public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpecificationExecutor<Vehicle> {
 
     List<Vehicle> findByStationId(Long stationId);
 

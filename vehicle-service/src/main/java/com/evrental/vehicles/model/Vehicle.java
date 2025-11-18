@@ -34,7 +34,7 @@ public class Vehicle {
 
     @Column(unique = true, nullable = false)
     @NotBlank(message = "Biển số không được trống")
-    @Pattern(regexp = "^[A-Z0-9\\-\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang và khoảng trắng")
+    @Pattern(regexp = "^[A-Z0-9\\-\\.\\s]+$", message = "Biển số phải chứa chữ cái, chữ số, dấu gạch ngang, dấu chấm và khoảng trắng")
     private String licensePlate;
 
     @NotBlank(message = "Loại xe không được trống")
@@ -55,6 +55,7 @@ public class Vehicle {
     
     public enum VehicleStatus {
         AVAILABLE,
+        RESERVED,
         RENTED,
         MAINTENANCE
     }
@@ -78,6 +79,12 @@ public class Vehicle {
     private String chargingSpeed; // Tốc độ sạc (ví dụ: "10-70% trong ~25 mins")
     private String location; // Vị trí hiện tại
     private Integer tripCount; // Số chuyến đã thực hiện
+    
+    // Trạng thái bảo trì và kỹ thuật
+    private String technicalCondition; // Tình trạng kỹ thuật (excellent, good, fair, poor)
+    
+    @Column(columnDefinition = "TEXT")
+    private String maintenanceNotes; // Ghi chú bảo trì
 
     // Quan hệ Nhiều-1: Nhiều xe thuộc 1 trạm
     @ManyToOne(fetch = FetchType.LAZY)
