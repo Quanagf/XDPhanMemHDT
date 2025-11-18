@@ -6,6 +6,9 @@ import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
 import vehiclesApi from '../api/vehiclesApi';
+import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
+import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics } from '../api/complaints';
+import { getAllCustomers } from '../api/customers';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -74,6 +77,17 @@ const AdminDashboard = () => {
               Quản lý khách hàng
             </button>
             <button 
+              className={`admin-nav-item ${activeTab === 'complaints' ? 'active' : ''}`}
+              onClick={() => setActiveTab('complaints')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M13,14H11V12H13M13,10H11V6H13"/>
+                </svg>
+              </span>
+              Quản lý khiếu nại
+            </button>
+            <button 
               className={`admin-nav-item ${activeTab === 'staff' ? 'active' : ''}`}
               onClick={() => setActiveTab('staff')}
             >
@@ -137,6 +151,7 @@ const AdminDashboard = () => {
         <main className="admin-main">
           {activeTab === 'vehicles' && <VehicleManagement />}
           {activeTab === 'customers' && <CustomerManagement />}
+          {activeTab === 'complaints' && <ComplaintsManagement />}
           {activeTab === 'staff' && <StaffManagement />}
           {activeTab === 'stations' && <StationManagement />}
           {activeTab === 'reports' && <ReportsAnalytics />}
@@ -766,6 +781,224 @@ const VehicleManagement = () => {
 
 // Component: Quản lý khách hàng
 const CustomerManagement = () => {
+  const [customers, setCustomers] = React.useState([]);
+  const [statistics, setStatistics] = React.useState({});
+  const [loading, setLoading] = React.useState(false);
+  const [filter, setFilter] = React.useState('all'); // all, risky, normal
+  const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const [showRiskForm, setShowRiskForm] = React.useState(false);
+  const [selectedCustomer, setSelectedCustomer] = React.useState(null);
+  const [riskHistory, setRiskHistory] = React.useState([]);
+  const [formData, setFormData] = React.useState({
+    username: '',
+    password: '',
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    address: ''
+  });
+  const [riskFormData, setRiskFormData] = React.useState({
+    reason: '',
+    bookingId: '',
+    details: ''
+  });
+
+  React.useEffect(() => {
+    fetchCustomers();
+    fetchStatistics();
+  }, [filter]);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      let url = 'http://localhost:8081/api/admin/customers';
+      
+      if (filter === 'risky') {
+        url += '?isRisky=true';
+      } else if (filter === 'normal') {
+        url += '?isRisky=false';
+      }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:8081/api/admin/customers/statistics', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStatistics(data);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  };
+
+  const fetchRiskHistory = async (customerId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}/risk-history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRiskHistory(data);
+      }
+    } catch (error) {
+      console.error('Error fetching risk history:', error);
+    }
+  };
+
+  const handleCreateCustomer = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:8081/api/admin/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (response.ok) {
+        alert('Tạo khách hàng thành công!');
+        setShowCreateForm(false);
+        setFormData({
+          username: '',
+          password: '',
+          fullName: '',
+          email: '',
+          phoneNumber: '',
+          address: ''
+        });
+        fetchCustomers();
+        fetchStatistics();
+      } else {
+        const error = await response.json();
+        alert(`Lỗi: ${error.error || 'Không thể tạo khách hàng'}`);
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      alert('Có lỗi xảy ra khi tạo khách hàng!');
+    }
+  };
+
+  const handleAddRiskPoint = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('authToken');
+      const userId = JSON.parse(localStorage.getItem('userProfile')).id;
+      const response = await fetch(`http://localhost:8081/api/admin/customers/${selectedCustomer.id}/risk-point`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-Id': userId
+        },
+        body: JSON.stringify({
+          ...riskFormData,
+          bookingId: riskFormData.bookingId || null
+        })
+      });
+      
+      if (response.ok) {
+        alert('Đã thêm điểm rủi ro thành công!');
+        setShowRiskForm(false);
+        setRiskFormData({
+          reason: '',
+          bookingId: '',
+          details: ''
+        });
+        fetchCustomers();
+        fetchStatistics();
+      } else {
+        const error = await response.json();
+        alert(`Lỗi: ${error.error || 'Không thể thêm điểm rủi ro'}`);
+      }
+    } catch (error) {
+      console.error('Error adding risk point:', error);
+      alert('Có lỗi xảy ra!');
+    }
+  };
+
+  const handleResetRisk = async (customerId) => {
+    if (!confirm('Bạn có chắc chắn muốn reset điểm rủi ro của khách hàng này?')) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}/reset-risk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        alert('Đã reset điểm rủi ro thành công!');
+        fetchCustomers();
+        fetchStatistics();
+      }
+    } catch (error) {
+      console.error('Error resetting risk:', error);
+      alert('Có lỗi xảy ra!');
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        alert('Đã xóa khách hàng thành công!');
+        fetchCustomers();
+        fetchStatistics();
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      alert('Có lỗi xảy ra!');
+    }
+  };
+
+  const openRiskForm = (customer) => {
+    setSelectedCustomer(customer);
+    setShowRiskForm(true);
+    fetchRiskHistory(customer.id);
+  };
+
   return (
     <div className="admin-section">
       <h1>Quản lý khách hàng</h1>
@@ -773,66 +1006,266 @@ const CustomerManagement = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Tổng khách hàng</h3>
-          <p className="stat-number">1,250</p>
+          <p className="stat-number">{statistics.totalCustomers || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Khách hàng mới (tháng)</h3>
-          <p className="stat-number">85</p>
+          <h3>Khách hàng bình thường</h3>
+          <p className="stat-number">{statistics.normalCustomers || 0}</p>
         </div>
         <div className="stat-card">
           <h3>Khách hàng rủi ro</h3>
-          <p className="stat-number text-danger">12</p>
+          <p className="stat-number text-danger">{statistics.riskyCustomers || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Khiếu nại chờ xử lý</h3>
-          <p className="stat-number">5</p>
+          <h3>Tỷ lệ rủi ro</h3>
+          <p className="stat-number">{(statistics.riskyPercentage || 0).toFixed(1)}%</p>
         </div>
       </div>
 
       <div className="search-section">
-        <input type="text" placeholder="Tìm kiếm khách hàng..." className="search-input" />
-        <button className="admin-btn-primary">Tìm kiếm</button>
+        <div className="filter-buttons">
+          <button 
+            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            Tất cả
+          </button>
+          <button 
+            className={`filter-btn ${filter === 'normal' ? 'active' : ''}`}
+            onClick={() => setFilter('normal')}
+          >
+            Bình thường
+          </button>
+          <button 
+            className={`filter-btn ${filter === 'risky' ? 'active' : ''}`}
+            onClick={() => setFilter('risky')}
+          >
+            Rủi ro
+          </button>
+        </div>
+        <button className="admin-btn-primary" onClick={() => setShowCreateForm(true)}>
+          + Thêm khách hàng mới
+        </button>
       </div>
 
-      <div className="customers-table-container">
-        <table className="customers-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Họ tên</th>
-              <th>Email</th>
-              <th>Số điện thoại</th>
-              <th>Lượt thuê</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#C001</td>
-              <td>Nguyễn Văn A</td>
-              <td>nguyenvana@email.com</td>
-              <td>0912345678</td>
-              <td>15</td>
-              <td><span className="badge badge-success">Tốt</span></td>
-              <td>
-                <button className="admin-btn-action">Xem hồ sơ</button>
-              </td>
-            </tr>
-            <tr>
-              <td>#C002</td>
-              <td>Trần Thị B</td>
-              <td>tranthib@email.com</td>
-              <td>0987654321</td>
-              <td>8</td>
-              <td><span className="badge badge-danger">Rủi ro</span></td>
-              <td>
-                <button className="admin-btn-action">Xem hồ sơ</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <div className="loading">Đang tải...</div>
+      ) : (
+        <div className="customers-table-container">
+          <table className="customers-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Họ tên</th>
+                <th>Email</th>
+                <th>Số điện thoại</th>
+                <th>Điểm rủi ro</th>
+                <th>Trạng thái</th>
+                <th>Khiếu nại</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map(customer => (
+                <tr key={customer.id}>
+                  <td>#{customer.id}</td>
+                  <td>{customer.fullName}</td>
+                  <td>{customer.email}</td>
+                  <td>{customer.phoneNumber}</td>
+                  <td>
+                    <span className={`risk-points ${customer.riskPoints >= 3 ? 'high' : ''}`}>
+                      {customer.riskPoints}/3
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${customer.isRisky ? 'badge-danger' : 'badge-success'}`}>
+                      {customer.isRisky ? 'Rủi ro' : 'Tốt'}
+                    </span>
+                  </td>
+                  <td>{customer.totalComplaints || 0}</td>
+                  <td>
+                    <button 
+                      className="admin-btn-action"
+                      onClick={() => openRiskForm(customer)}
+                      title="Thêm điểm rủi ro"
+                    >
+                      ⚠️
+                    </button>
+                    <button 
+                      className="admin-btn-action"
+                      onClick={() => handleResetRisk(customer.id)}
+                      title="Reset điểm rủi ro"
+                      disabled={customer.riskPoints === 0}
+                    >
+                      🔄
+                    </button>
+                    <button 
+                      className="admin-btn-action delete"
+                      onClick={() => handleDeleteCustomer(customer.id)}
+                      title="Xóa khách hàng"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Create Customer Form Modal */}
+      {showCreateForm && (
+        <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Thêm khách hàng mới</h2>
+            <form onSubmit={handleCreateCustomer}>
+              <div className="form-group">
+                <label>Tên đăng nhập *</label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Mật khẩu *</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Họ tên *</label>
+                <input
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Số điện thoại *</label>
+                <input
+                  type="tel"
+                  pattern="[0-9]{10}"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Địa chỉ</label>
+                <textarea
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  rows="3"
+                />
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="admin-btn-primary">Tạo khách hàng</button>
+                <button type="button" className="admin-btn-secondary" onClick={() => setShowCreateForm(false)}>
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Risk Point Form Modal */}
+      {showRiskForm && selectedCustomer && (
+        <div className="modal-overlay" onClick={() => setShowRiskForm(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <h2>Quản lý điểm rủi ro - {selectedCustomer.fullName}</h2>
+            
+            <div className="customer-info">
+              <p><strong>Điểm rủi ro hiện tại:</strong> {selectedCustomer.riskPoints}/3</p>
+              <p><strong>Trạng thái:</strong> 
+                <span className={`badge ${selectedCustomer.isRisky ? 'badge-danger' : 'badge-success'}`}>
+                  {selectedCustomer.isRisky ? 'Rủi ro' : 'Tốt'}
+                </span>
+              </p>
+            </div>
+
+            <form onSubmit={handleAddRiskPoint}>
+              <div className="form-group">
+                <label>Lý do thêm điểm rủi ro *</label>
+                <input
+                  type="text"
+                  value={riskFormData.reason}
+                  onChange={(e) => setRiskFormData({...riskFormData, reason: e.target.value})}
+                  placeholder="Ví dụ: Làm hư hỏng xe"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Mã booking liên quan</label>
+                <input
+                  type="number"
+                  value={riskFormData.bookingId}
+                  onChange={(e) => setRiskFormData({...riskFormData, bookingId: e.target.value})}
+                  placeholder="Nhập mã booking (nếu có)"
+                />
+              </div>
+              <div className="form-group">
+                <label>Chi tiết</label>
+                <textarea
+                  value={riskFormData.details}
+                  onChange={(e) => setRiskFormData({...riskFormData, details: e.target.value})}
+                  rows="4"
+                  placeholder="Mô tả chi tiết vấn đề..."
+                />
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="admin-btn-primary">Thêm điểm rủi ro (+1)</button>
+                <button type="button" className="admin-btn-secondary" onClick={() => setShowRiskForm(false)}>
+                  Đóng
+                </button>
+              </div>
+            </form>
+
+            {/* Risk History */}
+            <div className="risk-history">
+              <h3>Lịch sử điểm rủi ro</h3>
+              {riskHistory.length === 0 ? (
+                <p className="no-data">Chưa có lịch sử điểm rủi ro</p>
+              ) : (
+                <div className="history-list">
+                  {riskHistory.map((history) => (
+                    <div key={history.id} className="history-item">
+                      <div className="history-header">
+                        <strong>{history.reason}</strong>
+                        <span className="history-date">
+                          {new Date(history.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="history-detail">{history.details}</p>
+                      <div className="history-meta">
+                        <span>Điểm: {history.pointsBefore} → {history.pointsAfter}</span>
+                        {history.bookingId && <span>Booking: #{history.bookingId}</span>}
+                        {history.becameRisky && <span className="became-risky">⚠️ Chuyển sang rủi ro</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1996,6 +2429,430 @@ const DocumentVerification = () => {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Quản lý khiếu nại
+const ComplaintsManagement = () => {
+  const [complaints, setComplaints] = useState([]);
+  const [statistics, setStatistics] = useState(null);
+  const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [assignModal, setAssignModal] = useState(false);
+  const [resolveModal, setResolveModal] = useState(false);
+  const [staffList, setStaffList] = useState([]);
+  const [assignData, setAssignData] = useState({
+    staffId: '',
+    notes: ''
+  });
+  const [resolveData, setResolveData] = useState({
+    status: 'RESOLVED',
+    resolution: ''
+  });
+
+  useEffect(() => {
+    fetchComplaints();
+    fetchStatistics();
+    fetchStaffList();
+  }, [filter]);
+
+  const fetchComplaints = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllComplaints();
+      
+      // Filter complaints based on status
+      let filtered = data;
+      if (filter !== 'ALL') {
+        filtered = data.filter(c => c.status === filter);
+      }
+      
+      setComplaints(filtered);
+    } catch (error) {
+      console.error('Lỗi tải danh sách khiếu nại:', error);
+      alert('Không thể tải danh sách khiếu nại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const stats = await getComplaintStatistics();
+      setStatistics(stats);
+    } catch (error) {
+      console.error('Lỗi tải thống kê:', error);
+    }
+  };
+
+  const fetchStaffList = async () => {
+    try {
+      const customers = await getAllCustomers();
+      // Filter only STAFF users
+      const staff = customers.filter(c => c.role === 'STAFF');
+      setStaffList(staff);
+    } catch (error) {
+      console.error('Lỗi tải danh sách nhân viên:', error);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!assignData.staffId) {
+      alert('Vui lòng chọn nhân viên');
+      return;
+    }
+
+    try {
+      await assignComplaint(selectedComplaint.id, assignData.staffId, assignData.notes);
+      alert('Đã phân công khiếu nại thành công');
+      setAssignModal(false);
+      setAssignData({ staffId: '', notes: '' });
+      fetchComplaints();
+      fetchStatistics();
+    } catch (error) {
+      console.error('Lỗi phân công:', error);
+      alert('Không thể phân công khiếu nại');
+    }
+  };
+
+  const handleResolve = async () => {
+    if (!resolveData.resolution.trim()) {
+      alert('Vui lòng nhập kết quả xử lý');
+      return;
+    }
+
+    try {
+      if (resolveData.status === 'RESOLVED') {
+        await resolveComplaint(selectedComplaint.id, resolveData.resolution);
+      } else {
+        await closeComplaint(selectedComplaint.id, resolveData.resolution);
+      }
+      
+      alert(`Đã ${resolveData.status === 'RESOLVED' ? 'giải quyết' : 'từ chối'} khiếu nại`);
+      setResolveModal(false);
+      setResolveData({ status: 'RESOLVED', resolution: '' });
+      fetchComplaints();
+      fetchStatistics();
+    } catch (error) {
+      console.error('Lỗi xử lý khiếu nại:', error);
+      alert('Không thể xử lý khiếu nại');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'PENDING': { label: 'Chờ xử lý', class: 'pending' },
+      'IN_PROGRESS': { label: 'Đang xử lý', class: 'in-progress' },
+      'RESOLVED': { label: 'Đã giải quyết', class: 'resolved' },
+      'REJECTED': { label: 'Từ chối', class: 'rejected' },
+      'CLOSED': { label: 'Đã đóng', class: 'closed' }
+    };
+    const info = statusMap[status] || { label: status, class: '' };
+    return <span className={`complaint-status ${info.class}`}>{info.label}</span>;
+  };
+
+  const getPriorityBadge = (priority) => {
+    const priorityMap = {
+      'LOW': { label: 'Thấp', class: 'low' },
+      'MEDIUM': { label: 'Trung bình', class: 'medium' },
+      'HIGH': { label: 'Cao', class: 'high' },
+      'URGENT': { label: 'Khẩn cấp', class: 'urgent' }
+    };
+    const info = priorityMap[priority] || { label: priority, class: '' };
+    return <span className={`priority-badge ${info.class}`}>{info.label}</span>;
+  };
+
+  const getCategoryLabel = (category) => {
+    const categoryMap = {
+      'VEHICLE_ISSUE': 'Vấn đề xe',
+      'BILLING': 'Thanh toán',
+      'SERVICE_QUALITY': 'Chất lượng dịch vụ',
+      'DAMAGE_DISPUTE': 'Tranh chấp hư hỏng',
+      'ACCOUNT_ISSUE': 'Vấn đề tài khoản',
+      'STATION_ISSUE': 'Vấn đề trạm',
+      'OTHER': 'Khác'
+    };
+    return categoryMap[category] || category;
+  };
+
+  return (
+    <div className="admin-content">
+      <div className="admin-header">
+        <h2>Quản lý khiếu nại</h2>
+      </div>
+
+      {/* Statistics */}
+      {statistics && (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon pending">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <h3>{statistics.pendingCount || 0}</h3>
+              <p>Chờ xử lý</p>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon in-progress">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13,2.03V2.05L13,4.05C17.39,4.59 20.5,8.58 19.96,12.97C19.5,16.61 16.64,19.5 13,19.93V21.93C18.5,21.38 22.5,16.5 21.95,11C21.5,6.25 17.73,2.5 13,2.03M11,2.06C9.05,2.25 7.19,3 5.67,4.26L7.1,5.74C8.22,4.84 9.57,4.26 11,4.06V2.06M4.26,5.67C3,7.19 2.25,9.04 2.05,11H4.05C4.24,9.58 4.8,8.23 5.69,7.1L4.26,5.67M2.06,13C2.26,14.96 3.03,16.81 4.27,18.33L5.69,16.9C4.81,15.77 4.24,14.42 4.06,13H2.06M7.1,18.37L5.67,19.74C7.18,21 9.04,21.79 11,22V20C9.58,19.82 8.23,19.25 7.1,18.37M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <h3>{statistics.inProgressCount || 0}</h3>
+              <p>Đang xử lý</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon resolved">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <h3>{statistics.resolvedCount || 0}</h3>
+              <p>Đã giải quyết</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon total">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <h3>{statistics.totalCount || 0}</h3>
+              <p>Tổng số</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Buttons */}
+      <div className="filter-buttons">
+        <button 
+          className={filter === 'ALL' ? 'active' : ''}
+          onClick={() => setFilter('ALL')}
+        >
+          Tất cả
+        </button>
+        <button 
+          className={filter === 'PENDING' ? 'active' : ''}
+          onClick={() => setFilter('PENDING')}
+        >
+          Chờ xử lý
+        </button>
+        <button 
+          className={filter === 'IN_PROGRESS' ? 'active' : ''}
+          onClick={() => setFilter('IN_PROGRESS')}
+        >
+          Đang xử lý
+        </button>
+        <button 
+          className={filter === 'RESOLVED' ? 'active' : ''}
+          onClick={() => setFilter('RESOLVED')}
+        >
+          Đã giải quyết
+        </button>
+        <button 
+          className={filter === 'REJECTED' ? 'active' : ''}
+          onClick={() => setFilter('REJECTED')}
+        >
+          Từ chối
+        </button>
+      </div>
+
+      {/* Complaints List */}
+      {loading ? (
+        <div className="loading-state">Đang tải...</div>
+      ) : complaints.length === 0 ? (
+        <div className="empty-state">
+          <p>Không có khiếu nại nào</p>
+        </div>
+      ) : (
+        <div className="complaints-list">
+          {complaints.map(complaint => (
+            <div key={complaint.id} className="complaint-card admin-view">
+              <div className="complaint-header">
+                <div className="complaint-info">
+                  <h4>#{complaint.id} - {getCategoryLabel(complaint.category)}</h4>
+                  <div className="complaint-meta">
+                    <span>Khách hàng: {complaint.userName}</span>
+                    <span>Email: {complaint.userEmail}</span>
+                    {complaint.bookingId && <span>Booking: #{complaint.bookingId}</span>}
+                  </div>
+                </div>
+                <div className="complaint-badges">
+                  {getStatusBadge(complaint.status)}
+                  {getPriorityBadge(complaint.priority)}
+                </div>
+              </div>
+
+              <div className="complaint-body">
+                <p className="complaint-description">{complaint.description}</p>
+                <div className="complaint-footer">
+                  <span className="complaint-date">
+                    Tạo: {new Date(complaint.createdAt).toLocaleDateString('vi-VN')}
+                  </span>
+                  {complaint.assignedStaffName && (
+                    <span className="assigned-staff">
+                      Phụ trách: {complaint.assignedStaffName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {complaint.resolution && (
+                <div className="complaint-resolution">
+                  <strong>Kết quả xử lý:</strong>
+                  <p>{complaint.resolution}</p>
+                  <small>Giải quyết: {new Date(complaint.resolvedAt).toLocaleDateString('vi-VN')}</small>
+                </div>
+              )}
+
+              <div className="complaint-actions">
+                {complaint.status === 'PENDING' && (
+                  <>
+                    <button 
+                      className="btn-assign"
+                      onClick={() => {
+                        setSelectedComplaint(complaint);
+                        setAssignModal(true);
+                      }}
+                    >
+                      Phân công
+                    </button>
+                    <div className="action-hint" style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', marginTop: '8px' }}>
+                      💡 Cần phân công cho nhân viên trước khi xử lý
+                    </div>
+                  </>
+                )}
+                {complaint.status === 'IN_PROGRESS' && (
+                  <>
+                    <button 
+                      className="btn-resolve"
+                      onClick={() => {
+                        setSelectedComplaint(complaint);
+                        setResolveData({ status: 'RESOLVED', resolution: '' });
+                        setResolveModal(true);
+                      }}
+                    >
+                      Giải quyết
+                    </button>
+                    <button 
+                      className="btn-reject"
+                      onClick={() => {
+                        setSelectedComplaint(complaint);
+                        setResolveData({ status: 'REJECTED', resolution: '' });
+                        setResolveModal(true);
+                      }}
+                    >
+                      Từ chối
+                    </button>
+                  </>
+                )}
+                {(complaint.status === 'RESOLVED' || complaint.status === 'REJECTED' || complaint.status === 'CLOSED') && (
+                  <div className="action-hint" style={{ fontSize: '12px', color: '#4CAF50', fontWeight: '600' }}>
+                    ✅ Khiếu nại đã được xử lý hoàn tất
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Assign Modal */}
+      {assignModal && (
+        <div className="modal-overlay" onClick={() => setAssignModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Phân công khiếu nại #{selectedComplaint.id}</h3>
+              <button className="modal-close" onClick={() => setAssignModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Chọn nhân viên:</label>
+                <select 
+                  value={assignData.staffId}
+                  onChange={(e) => setAssignData({...assignData, staffId: e.target.value})}
+                >
+                  <option value="">-- Chọn nhân viên --</option>
+                  {staffList.map(staff => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.fullName} ({staff.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Ghi chú (tùy chọn):</label>
+                <textarea 
+                  value={assignData.notes}
+                  onChange={(e) => setAssignData({...assignData, notes: e.target.value})}
+                  placeholder="Ghi chú cho nhân viên..."
+                  rows="3"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setAssignModal(false)}>
+                Hủy
+              </button>
+              <button className="btn-primary" onClick={handleAssign}>
+                Phân công
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Modal */}
+      {resolveModal && (
+        <div className="modal-overlay" onClick={() => setResolveModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {resolveData.status === 'RESOLVED' ? 'Giải quyết' : 'Từ chối'} khiếu nại #{selectedComplaint.id}
+              </h3>
+              <button className="modal-close" onClick={() => setResolveModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Kết quả xử lý:</label>
+                <textarea 
+                  value={resolveData.resolution}
+                  onChange={(e) => setResolveData({...resolveData, resolution: e.target.value})}
+                  placeholder={resolveData.status === 'RESOLVED' 
+                    ? "Mô tả kết quả giải quyết khiếu nại..." 
+                    : "Lý do từ chối khiếu nại..."}
+                  rows="5"
+                  required
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setResolveModal(false)}>
+                Hủy
+              </button>
+              <button 
+                className={resolveData.status === 'RESOLVED' ? 'btn-primary' : 'btn-danger'}
+                onClick={handleResolve}
+              >
+                {resolveData.status === 'RESOLVED' ? 'Xác nhận giải quyết' : 'Xác nhận từ chối'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

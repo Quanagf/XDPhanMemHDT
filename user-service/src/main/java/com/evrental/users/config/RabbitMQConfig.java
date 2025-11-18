@@ -17,13 +17,20 @@ public class RabbitMQConfig {
     // Queue names
     public static final String DOCUMENT_UPLOAD_QUEUE = "document.upload.queue";
     public static final String DOCUMENT_VERIFIED_QUEUE = "document.verified.queue";
+    public static final String COMPLAINT_CREATED_QUEUE = "complaint.created.queue";
+    public static final String COMPLAINT_ASSIGNED_QUEUE = "complaint.assigned.queue";
+    public static final String COMPLAINT_RESOLVED_QUEUE = "complaint.resolved.queue";
     
     // Exchange name
     public static final String DOCUMENT_EXCHANGE = "document.exchange";
+    public static final String COMPLAINT_EXCHANGE = "complaint.exchange";
     
     // Routing keys
     public static final String DOCUMENT_UPLOAD_ROUTING_KEY = "document.upload";
     public static final String DOCUMENT_VERIFIED_ROUTING_KEY = "document.verified";
+    public static final String COMPLAINT_CREATED_ROUTING_KEY = "complaint.created";
+    public static final String COMPLAINT_ASSIGNED_ROUTING_KEY = "complaint.assigned";
+    public static final String COMPLAINT_RESOLVED_ROUTING_KEY = "complaint.resolved";
     
     @Bean
     public Queue documentUploadQueue() {
@@ -36,8 +43,28 @@ public class RabbitMQConfig {
     }
     
     @Bean
+    public Queue complaintCreatedQueue() {
+        return new Queue(COMPLAINT_CREATED_QUEUE, true);
+    }
+    
+    @Bean
+    public Queue complaintAssignedQueue() {
+        return new Queue(COMPLAINT_ASSIGNED_QUEUE, true);
+    }
+    
+    @Bean
+    public Queue complaintResolvedQueue() {
+        return new Queue(COMPLAINT_RESOLVED_QUEUE, true);
+    }
+    
+    @Bean
     public TopicExchange documentExchange() {
         return new TopicExchange(DOCUMENT_EXCHANGE);
+    }
+    
+    @Bean
+    public TopicExchange complaintExchange() {
+        return new TopicExchange(COMPLAINT_EXCHANGE);
     }
     
     @Bean
@@ -54,6 +81,30 @@ public class RabbitMQConfig {
                 .bind(documentVerifiedQueue())
                 .to(documentExchange())
                 .with(DOCUMENT_VERIFIED_ROUTING_KEY);
+    }
+    
+    @Bean
+    public Binding complaintCreatedBinding() {
+        return BindingBuilder
+                .bind(complaintCreatedQueue())
+                .to(complaintExchange())
+                .with(COMPLAINT_CREATED_ROUTING_KEY);
+    }
+    
+    @Bean
+    public Binding complaintAssignedBinding() {
+        return BindingBuilder
+                .bind(complaintAssignedQueue())
+                .to(complaintExchange())
+                .with(COMPLAINT_ASSIGNED_ROUTING_KEY);
+    }
+    
+    @Bean
+    public Binding complaintResolvedBinding() {
+        return BindingBuilder
+                .bind(complaintResolvedQueue())
+                .to(complaintExchange())
+                .with(COMPLAINT_RESOLVED_ROUTING_KEY);
     }
     
     @Bean

@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import { getStations, getProvinces } from '../api/stations';
+import { createComplaint, getMyComplaints } from '../api/complaints';
 import '../styles/pages/contact.css';
 
 const Contact = () => {
@@ -12,12 +13,18 @@ const Contact = () => {
   const [provinces, setProvinces] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [myComplaints, setMyComplaints] = useState([]);
+  const [showComplaints, setShowComplaints] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     subject: '',
-    message: ''
+    message: '',
+    bookingId: '',
+    category: '',
+    priority: 'MEDIUM'
   });
 
   // Load dữ liệu stations từ API
@@ -72,6 +79,27 @@ const Contact = () => {
     loadStationsData();
   }, []);
 
+  // Check if user is logged in
+  useEffect(() => {
+    const userProfile = localStorage.getItem('userProfile');
+    if (userProfile) {
+      const parsedUser = JSON.parse(userProfile);
+      setUser(parsedUser);
+      
+      // Load user's complaints if logged in
+      loadMyComplaints();
+    }
+  }, []);
+
+  const loadMyComplaints = async () => {
+    try {
+      const complaints = await getMyComplaints();
+      setMyComplaints(complaints);
+    } catch (err) {
+      console.error('Error loading complaints:', err);
+    }
+  };
+
   const handleOpenLogin = () => {
     setShowLogin(true);
   };
@@ -102,19 +130,56 @@ const Contact = () => {
     setSelectedProvince(provinceKey);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
-    // Reset form after submission
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
-    alert('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.');
+    
+    if (user && user.role === 'RENTER') {
+      // Nếu là người dùng đã đăng nhập, gửi khiếu nại
+      try {
+        const complaintData = {
+          title: formData.subject || formData.message.substring(0, 50),
+          description: formData.message,
+          bookingId: formData.bookingId || null,
+          category: formData.category || 'OTHER',
+          priority: formData.priority
+        };
+        
+        await createComplaint(complaintData);
+        alert('Khiếu nại của bạn đã được gửi thành công! Chúng tôi sẽ xem xét và phản hồi sớm nhất.');
+        
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+          bookingId: '',
+          category: '',
+          priority: 'MEDIUM'
+        });
+        
+        // Reload complaints
+        loadMyComplaints();
+      } catch (err) {
+        console.error('Error creating complaint:', err);
+        alert('Có lỗi xảy ra khi gửi khiếu nại. Vui lòng thử lại!');
+      }
+    } else {
+      // Người dùng chưa đăng nhập hoặc không phải RENTER - liên hệ thông thường
+      console.log('Form submitted:', formData);
+      setFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: '',
+        bookingId: '',
+        category: '',
+        priority: 'MEDIUM'
+      });
+      alert('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.');
+    }
   };
 
   return (
@@ -124,15 +189,75 @@ const Contact = () => {
       <main className="contact-main">
         <div className="contact-hero">
           <div className="container">
-            <h1 className="contact-title">Liên hệ với chúng tôi</h1>
+            <h1 className="contact-title">
+              {user && user.role === 'RENTER' ? 'Liên hệ & Khiếu nại' : 'Liên hệ với chúng tôi'}
+            </h1>
             <p className="contact-subtitle">
-              Chúng tôi luôn sẵn sàng hỗ trợ bạn. Hãy để lại thông tin và chúng tôi sẽ phản hồi sớm nhất!
+              {user && user.role === 'RENTER' 
+                ? 'Gửi khiếu nại hoặc phản hồi của bạn. Chúng tôi sẽ xem xét và giải quyết sớm nhất!'
+                : 'Chúng tôi luôn sẵn sàng hỗ trợ bạn. Hãy để lại thông tin và chúng tôi sẽ phản hồi sớm nhất!'
+              }
             </p>
+            {user && user.role === 'RENTER' && (
+              <button 
+                className="view-complaints-btn"
+                onClick={() => setShowComplaints(!showComplaints)}
+              >
+                {showComplaints ? 'Ẩn khiếu nại của tôi' : 'Xem khiếu nại của tôi'}
+              </button>
+            )}
           </div>
         </div>
 
         <div className="contact-content">
           <div className="container">
+            {/* My Complaints Section */}
+            {showComplaints && user && user.role === 'RENTER' && (
+              <div className="my-complaints-section">
+                <h2>Khiếu nại của tôi</h2>
+                {myComplaints.length === 0 ? (
+                  <p className="no-complaints">Bạn chưa có khiếu nại nào.</p>
+                ) : (
+                  <div className="complaints-list">
+                    {myComplaints.map(complaint => (
+                      <div key={complaint.id} className="complaint-card">
+                        <div className="complaint-header">
+                          <h3>{complaint.title}</h3>
+                          <span className={`complaint-status status-${complaint.status.toLowerCase()}`}>
+                            {complaint.status === 'PENDING' && 'Đang chờ'}
+                            {complaint.status === 'IN_PROGRESS' && 'Đang xử lý'}
+                            {complaint.status === 'RESOLVED' && 'Đã giải quyết'}
+                            {complaint.status === 'REJECTED' && 'Từ chối'}
+                            {complaint.status === 'CLOSED' && 'Đã đóng'}
+                          </span>
+                        </div>
+                        <p className="complaint-description">{complaint.description}</p>
+                        <div className="complaint-meta">
+                          <span className="complaint-category">
+                            {complaint.category === 'VEHICLE_ISSUE' && '🚗 Vấn đề xe'}
+                            {complaint.category === 'BILLING' && '💰 Thanh toán'}
+                            {complaint.category === 'SERVICE_QUALITY' && '⭐ Chất lượng dịch vụ'}
+                            {complaint.category === 'STAFF_BEHAVIOR' && '👤 Nhân viên'}
+                            {complaint.category === 'STATION_FACILITY' && '🏢 Cơ sở vật chất'}
+                            {complaint.category === 'APP_TECHNICAL' && '💻 Kỹ thuật'}
+                            {complaint.category === 'OTHER' && '📋 Khác'}
+                          </span>
+                          <span className="complaint-date">
+                            {new Date(complaint.createdAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        {complaint.resolution && (
+                          <div className="complaint-resolution">
+                            <strong>Phản hồi:</strong> {complaint.resolution}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="contact-layout">
               {/* Contact Information */}
               <div className="contact-info">
@@ -201,78 +326,158 @@ const Contact = () => {
 
               {/* Contact Form */}
               <div className="contact-form-container">
-                <h2 className="form-title">Gửi tin nhắn cho chúng tôi</h2>
+                <h2 className="form-title">
+                  {user && user.role === 'RENTER' ? 'Gửi khiếu nại mới' : 'Gửi tin nhắn cho chúng tôi'}
+                </h2>
                 <p className="form-subtitle">
-                  Điền thông tin vào biểu mẫu dưới đây và chúng tôi sẽ liên hệ lại với bạn sớm nhất.
+                  {user && user.role === 'RENTER' 
+                    ? 'Điền thông tin khiếu nại của bạn để chúng tôi có thể hỗ trợ bạn tốt nhất.'
+                    : 'Điền thông tin vào biểu mẫu dưới đây và chúng tôi sẽ liên hệ lại với bạn sớm nhất.'
+                  }
                 </p>
 
                 <form className="contact-form" onSubmit={handleSubmit}>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="fullName">Tên đầy đủ *</label>
-                      <input
-                        type="text"
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="Nhập tên đầy đủ của bạn"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="email">Email *</label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="example@email.com"
-                        required
-                      />
-                    </div>
-                  </div>
+                  {!user && (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="fullName">Tên đầy đủ *</label>
+                          <input
+                            type="text"
+                            id="fullName"
+                            name="fullName"
+                            value={formData.fullName}
+                            onChange={handleInputChange}
+                            placeholder="Nhập tên đầy đủ của bạn"
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="email">Email *</label>
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            placeholder="example@email.com"
+                            required
+                          />
+                        </div>
+                      </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="phone">Số điện thoại</label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+84 123 456 789"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="subject">Tiêu đề/Loại dịch vụ quan tâm *</label>
-                      <select
-                        id="subject"
-                        name="subject"
-                        value={formData.subject}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Chọn loại dịch vụ</option>
-                        <option value="rental">Thuê xe</option>
-                        <option value="support">Hỗ trợ kỹ thuật</option>
-                        <option value="partnership">Hợp tác đối tác</option>
-                        <option value="feedback">Góp ý/Phản hồi</option>
-                        <option value="other">Khác</option>
-                      </select>
-                    </div>
-                  </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="phone">Số điện thoại</label>
+                          <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            placeholder="+84 123 456 789"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="subject">Tiêu đề/Loại dịch vụ quan tâm *</label>
+                          <select
+                            id="subject"
+                            name="subject"
+                            value={formData.subject}
+                            onChange={handleInputChange}
+                            required
+                          >
+                            <option value="">Chọn loại dịch vụ</option>
+                            <option value="rental">Thuê xe</option>
+                            <option value="support">Hỗ trợ kỹ thuật</option>
+                            <option value="partnership">Hợp tác đối tác</option>
+                            <option value="feedback">Góp ý/Phản hồi</option>
+                            <option value="other">Khác</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {user && user.role === 'RENTER' && (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="category">Danh mục khiếu nại *</label>
+                          <select
+                            id="category"
+                            name="category"
+                            value={formData.category}
+                            onChange={handleInputChange}
+                            required
+                          >
+                            <option value="">Chọn danh mục</option>
+                            <option value="VEHICLE_ISSUE">Vấn đề về xe</option>
+                            <option value="BILLING">Vấn đề thanh toán</option>
+                            <option value="SERVICE_QUALITY">Chất lượng dịch vụ</option>
+                            <option value="STAFF_BEHAVIOR">Thái độ nhân viên</option>
+                            <option value="STATION_FACILITY">Cơ sở vật chất trạm</option>
+                            <option value="APP_TECHNICAL">Lỗi kỹ thuật ứng dụng</option>
+                            <option value="OTHER">Khác</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="priority">Mức độ ưu tiên</label>
+                          <select
+                            id="priority"
+                            name="priority"
+                            value={formData.priority}
+                            onChange={handleInputChange}
+                          >
+                            <option value="LOW">Thấp</option>
+                            <option value="MEDIUM">Trung bình</option>
+                            <option value="HIGH">Cao</option>
+                            <option value="URGENT">Khẩn cấp</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="subject">Tiêu đề khiếu nại *</label>
+                          <input
+                            type="text"
+                            id="subject"
+                            name="subject"
+                            value={formData.subject}
+                            onChange={handleInputChange}
+                            placeholder="Tóm tắt vấn đề của bạn"
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="bookingId">Mã đặt xe (nếu có)</label>
+                          <input
+                            type="number"
+                            id="bookingId"
+                            name="bookingId"
+                            value={formData.bookingId}
+                            onChange={handleInputChange}
+                            placeholder="Nhập mã booking liên quan"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="form-group full-width">
-                    <label htmlFor="message">Nội dung tin nhắn/Yêu cầu cụ thể *</label>
+                    <label htmlFor="message">
+                      {user && user.role === 'RENTER' ? 'Mô tả chi tiết *' : 'Nội dung tin nhắn/Yêu cầu cụ thể *'}
+                    </label>
                     <textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
-                      placeholder="Mô tả chi tiết yêu cầu hoặc câu hỏi của bạn..."
+                      placeholder={user && user.role === 'RENTER' 
+                        ? 'Mô tả chi tiết vấn đề bạn gặp phải...'
+                        : 'Mô tả chi tiết yêu cầu hoặc câu hỏi của bạn...'
+                      }
                       rows="6"
                       required
                     ></textarea>
@@ -284,7 +489,7 @@ const Contact = () => {
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
                       </svg>
-                      Gửi tin nhắn
+                      {user && user.role === 'RENTER' ? 'Gửi khiếu nại' : 'Gửi tin nhắn'}
                     </button>
                   </div>
                 </form>

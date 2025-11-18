@@ -100,6 +100,15 @@ public class User implements UserDetails {
     @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal totalSpent = BigDecimal.ZERO;
+    
+    // Risk Management Fields
+    @Builder.Default
+    @Column(name = "risk_points")
+    private Integer riskPoints = 0; // Điểm rủi ro (0-3)
+    
+    @Builder.Default
+    @Column(name = "is_risky")
+    private Boolean isRisky = false; // Trạng thái rủi ro (true nếu riskPoints >= 3)
 
     // --- 2b. THUỘC TÍNH MỞ RỘNG CHO (Station Staff) ---
     private Long stationId;

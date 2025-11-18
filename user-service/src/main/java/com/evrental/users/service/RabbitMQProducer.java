@@ -4,6 +4,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import com.evrental.users.config.RabbitMQConfig;
+import com.evrental.users.dto.ComplaintNotification;
 import com.evrental.users.dto.DocumentUploadNotification;
 
 import lombok.RequiredArgsConstructor;
@@ -34,5 +35,37 @@ public class RabbitMQProducer {
             notification
         );
         log.info("Document verified notification sent successfully");
+    }
+    
+    // Complaint notification methods
+    
+    public void sendComplaintCreatedNotification(ComplaintNotification notification) {
+        log.info("Sending complaint created notification for complaint ID: {}", notification.getComplaintId());
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.COMPLAINT_EXCHANGE,
+            RabbitMQConfig.COMPLAINT_CREATED_ROUTING_KEY,
+            notification
+        );
+        log.info("Complaint created notification sent successfully");
+    }
+    
+    public void sendComplaintAssignedNotification(ComplaintNotification notification) {
+        log.info("Sending complaint assigned notification for complaint ID: {}", notification.getComplaintId());
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.COMPLAINT_EXCHANGE,
+            RabbitMQConfig.COMPLAINT_ASSIGNED_ROUTING_KEY,
+            notification
+        );
+        log.info("Complaint assigned notification sent successfully");
+    }
+    
+    public void sendComplaintResolvedNotification(ComplaintNotification notification) {
+        log.info("Sending complaint resolved notification for complaint ID: {}", notification.getComplaintId());
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.COMPLAINT_EXCHANGE,
+            RabbitMQConfig.COMPLAINT_RESOLVED_ROUTING_KEY,
+            notification
+        );
+        log.info("Complaint resolved notification sent successfully");
     }
 }
