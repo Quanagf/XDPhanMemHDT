@@ -23,8 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.evrental.vehicles.dto.DeleteStationRequest;
+import com.evrental.vehicles.dto.StationResponseDTO;
 import com.evrental.vehicles.dto.StationStatsDTO;
 import com.evrental.vehicles.model.Station;
+import com.evrental.vehicles.model.Vehicle;
+import com.evrental.vehicles.repository.VehicleRepository;
 import com.evrental.vehicles.service.IStationService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,13 +40,16 @@ public class StationController {
     @Autowired
     private IStationService stationService;
     
+    @Autowired
+    private VehicleRepository vehicleRepository;
+    
     /**
      * Lấy tất cả trạm (Public - cho trang liên hệ)
      * Hỗ trợ filter theo query param `province`.
      * Ví dụ: GET /api/stations?province=H%C3%A0%20N%E1%BB%99i
      */
     @GetMapping
-    public ResponseEntity<List<Station>> getAllStations(@RequestParam(required = false) String province) {
+    public ResponseEntity<List<StationResponseDTO>> getAllStations(@RequestParam(required = false) String province) {
         List<Station> stations;
         if (province != null && !province.trim().isEmpty()) {
             String prov = province.trim();
@@ -60,7 +66,40 @@ public class StationController {
         } else {
             stations = stationService.getAllStations();
         }
-        return ResponseEntity.ok(stations);
+        
+        // Convert to DTO with vehicle count
+        List<StationResponseDTO> stationDTOs = stations.stream()
+            .map(this::convertToDTO)
+            .toList();
+        
+        return ResponseEntity.ok(stationDTOs);
+    }
+    
+    /**
+     * Helper method to convert Station to StationResponseDTO with vehicle count
+     */
+    private StationResponseDTO convertToDTO(Station station) {
+        long vehicleCount = vehicleRepository.countByStationIdAndStatus(
+            station.getId(), 
+            Vehicle.VehicleStatus.AVAILABLE
+        );
+        
+        return StationResponseDTO.builder()
+            .id(station.getId())
+            .name(station.getName())
+            .address(station.getAddress())
+            .phoneNumber(station.getPhoneNumber())
+            .province(station.getProvince())
+            .city(station.getCity())
+            .latitude(station.getLatitude())
+            .longitude(station.getLongitude())
+            .capacity(station.getCapacity())
+            .operatingHours(station.getOperatingHours())
+            .status(station.getStatus())
+            .vehicleCount((int) vehicleCount)
+            .createdAt(station.getCreatedAt())
+            .updatedAt(station.getUpdatedAt())
+            .build();
     }
     
     /**
