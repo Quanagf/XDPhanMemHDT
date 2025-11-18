@@ -242,6 +242,26 @@ public class UserServiceImpl implements IUserService {
         return userRepository.save(user);
     }
 
+    // === HÀM MỚI (Admin cập nhật trạm cho user) ===
+    @Override
+    public User updateUserStation(Long userId, Long stationId) {
+        // 1. Tìm user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // 2. Kiểm tra chỉ cập nhật cho STAFF
+        if (user.getRole() != User.Role.STAFF) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Chỉ có thể cập nhật trạm cho STAFF");
+        }
+
+        // 3. Cập nhật stationId (null để xóa trạm)
+        user.setStationId(stationId);
+
+        // 4. Lưu và trả về
+        return userRepository.save(user);
+    }
+
     // === HÀM MỚI (Admin lấy tất cả user) ===
     @Override
     public java.util.List<User> getAllUsers() {

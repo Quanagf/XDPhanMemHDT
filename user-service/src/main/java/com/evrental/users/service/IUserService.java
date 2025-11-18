@@ -56,6 +56,14 @@ public interface IUserService {
     User updateUserRole(Long userId, String newRole);
 
     /**
+     * Admin cập nhật trạm cho user (chỉ STAFF).
+     * @param userId ID của user cần cập nhật trạm
+     * @param stationId ID trạm mới (null để xóa trạm)
+     * @return User đã được cập nhật
+     */
+    User updateUserStation(Long userId, Long stationId);
+
+    /**
      * Admin lấy danh sách tất cả user.
      * @return List các User
      */

@@ -317,6 +317,20 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    // === API ADMIN CẬP NHẬT TRẠM CHO STAFF ===
+    @PutMapping("/admin/update-station/{userId}")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi
+    public ResponseEntity<?> updateUserStation(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long stationId) {
+        try {
+            User updatedUser = userService.updateUserStation(userId, stationId);
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // === API ADMIN LẤY DANH SÁCH TẤT CẢ USER ===
     @GetMapping("/admin/all-users")
     @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được gọi

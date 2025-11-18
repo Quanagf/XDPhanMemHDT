@@ -30,10 +30,14 @@ public class ComplaintResponse {
     private ComplaintPriority priority;
     private Long assignedTo;
     private String assignedToName;
+    private String adminNotes; // Ghi chú của admin khi phân công
     private String resolution;
     private Long resolvedBy;
     private String resolvedByName;
     private LocalDateTime resolvedAt;
+    private LocalDateTime staffCompletedAt;
+    private String staffNotes;
+    private LocalDateTime adminApprovedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

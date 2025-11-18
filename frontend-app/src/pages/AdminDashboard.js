@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/pages/admin.css';
+import '../styles/pages/complaints-modern.css';
 import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
 import vehiclesApi from '../api/vehiclesApi';
 import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
-import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics } from '../api/complaints';
-import { getAllCustomers } from '../api/customers';
+import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics, staffCompleteComplaint, adminApproveComplaint, adminRejectComplaint } from '../api/complaints';
+import { getAllCustomers, getAllUsers } from '../api/customers';
+import { getStations } from '../api/stations';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -812,7 +814,7 @@ const CustomerManagement = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      let url = 'http://localhost:8081/api/admin/customers';
+      let url = '/api/admin/customers';
       
       if (filter === 'risky') {
         url += '?isRisky=true';
@@ -840,7 +842,7 @@ const CustomerManagement = () => {
   const fetchStatistics = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:8081/api/admin/customers/statistics', {
+      const response = await fetch('/api/admin/customers/statistics', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -858,7 +860,7 @@ const CustomerManagement = () => {
   const fetchRiskHistory = async (customerId) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}/risk-history`, {
+      const response = await fetch(`/api/admin/customers/${customerId}/risk-history`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -877,7 +879,7 @@ const CustomerManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:8081/api/admin/customers', {
+      const response = await fetch('/api/admin/customers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -914,7 +916,7 @@ const CustomerManagement = () => {
     try {
       const token = localStorage.getItem('authToken');
       const userId = JSON.parse(localStorage.getItem('userProfile')).id;
-      const response = await fetch(`http://localhost:8081/api/admin/customers/${selectedCustomer.id}/risk-point`, {
+      const response = await fetch(`/api/admin/customers/${selectedCustomer.id}/risk-point`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -952,7 +954,7 @@ const CustomerManagement = () => {
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}/reset-risk`, {
+      const response = await fetch(`/api/admin/customers/${customerId}/reset-risk`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -975,7 +977,7 @@ const CustomerManagement = () => {
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:8081/api/admin/customers/${customerId}`, {
+      const response = await fetch(`/api/admin/customers/${customerId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -1273,19 +1275,23 @@ const CustomerManagement = () => {
 // Component: Quản lý nhân viên
 const StaffManagement = () => {
   const [users, setUsers] = React.useState([]);
+  const [stations, setStations] = React.useState([]);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const [editingUser, setEditingUser] = React.useState(null);
   const [formData, setFormData] = React.useState({
     fullName: '',
     username: '',
     email: '',
     password: '',
     phoneNumber: '',
-    birthDate: ''
+    birthDate: '',
+    stationId: ''
   });
 
-  // Fetch danh sách users
+  // Fetch danh sách users và stations
   React.useEffect(() => {
     fetchUsers();
+    fetchStations();
   }, []);
 
   const fetchUsers = async () => {
@@ -1298,10 +1304,31 @@ const StaffManagement = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUsers(data);
+        // Kiểm tra data có phải array không
+        if (Array.isArray(data)) {
+          // Chỉ hiển thị STAFF và ADMIN
+          const staffAndAdmin = data.filter(u => u.role === 'STAFF' || u.role === 'ADMIN');
+          setUsers(staffAndAdmin);
+        } else {
+          console.error('API returned non-array data:', data);
+          setUsers([]);
+        }
+      } else {
+        console.error('Failed to fetch users:', response.status, response.statusText);
+        setUsers([]);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+    }
+  };
+
+  const fetchStations = async () => {
+    try {
+      const data = await getStations();
+      setStations(data || []);
+    } catch (error) {
+      console.error('Error fetching stations:', error);
     }
   };
 
@@ -1309,13 +1336,18 @@ const StaffManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('authToken');
+      const payload = { ...formData };
+      if (payload.stationId) {
+        payload.stationId = parseInt(payload.stationId);
+      }
+      
       const response = await fetch('/api/users/admin/create-staff', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -1327,7 +1359,8 @@ const StaffManagement = () => {
           email: '',
           password: '',
           phoneNumber: '',
-          birthDate: ''
+          birthDate: '',
+          stationId: ''
         });
         fetchUsers();
       } else {
@@ -1337,6 +1370,43 @@ const StaffManagement = () => {
     } catch (error) {
       console.error('Error creating staff:', error);
       alert('Có lỗi xảy ra khi tạo tài khoản');
+    }
+  };
+
+  const handleUpdateStation = async (user) => {
+    if (user.role !== 'STAFF') {
+      alert('Chỉ có thể cập nhật trạm cho STAFF!');
+      return;
+    }
+
+    const stationId = prompt(
+      `Chọn trạm mới cho ${user.fullName}:\n` +
+      stations.map(s => `ID: ${s.id} - ${s.name} (${s.province})`).join('\n') +
+      `\n\nNhập ID trạm (hiện tại: ${user.stationId || 'Chưa có'}):`,
+      user.stationId || ''
+    );
+
+    if (stationId === null) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/admin/update-station/${user.id}?stationId=${stationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        alert('Cập nhật trạm thành công!');
+        fetchUsers();
+      } else {
+        const error = await response.json();
+        alert('Lỗi: ' + (error.message || 'Không thể cập nhật trạm'));
+      }
+    } catch (error) {
+      console.error('Error updating station:', error);
+      alert('Có lỗi xảy ra');
     }
   };
 
@@ -1380,7 +1450,7 @@ const StaffManagement = () => {
       
       <div className="stats-grid">
         <div className="stat-card">
-          <h3>Tổng users</h3>
+          <h3>Tổng nhân viên</h3>
           <p className="stat-number">{users.length}</p>
         </div>
         <div className="stat-card">
@@ -1390,10 +1460,6 @@ const StaffManagement = () => {
         <div className="stat-card">
           <h3>Staff</h3>
           <p className="stat-number">{users.filter(u => u.role === 'STAFF').length}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Renter</h3>
-          <p className="stat-number">{users.filter(u => u.role === 'RENTER').length}</p>
         </div>
       </div>
 
@@ -1464,6 +1530,20 @@ const StaffManagement = () => {
                   onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
                 />
               </div>
+              <div className="form-group">
+                <label>Trạm (Station)</label>
+                <select
+                  value={formData.stationId}
+                  onChange={(e) => setFormData({...formData, stationId: e.target.value})}
+                >
+                  <option value="">-- Chọn trạm --</option>
+                  {stations.map(station => (
+                    <option key={station.id} value={station.id}>
+                      {station.name} - {station.province}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <button type="submit" className="admin-btn-primary" style={{marginTop: '1rem'}}>
               Tạo tài khoản Staff
@@ -1482,6 +1562,7 @@ const StaffManagement = () => {
               <th>Email</th>
               <th>Số điện thoại</th>
               <th>Role</th>
+              <th>Trạm</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
@@ -1504,6 +1585,15 @@ const StaffManagement = () => {
                   </span>
                 </td>
                 <td>
+                  {user.stationId ? (
+                    <span style={{ color: '#2196F3', fontWeight: '600' }}>
+                      🏢 {stations.find(s => s.id === user.stationId)?.name || `Station #${user.stationId}`}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#999' }}>Chưa có trạm</span>
+                  )}
+                </td>
+                <td>
                   <span className={`badge ${
                     user.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'
                   }`}>
@@ -1517,6 +1607,15 @@ const StaffManagement = () => {
                   >
                     Đổi role
                   </button>
+                  {user.role === 'STAFF' && (
+                    <button 
+                      className="admin-btn-action"
+                      onClick={() => handleUpdateStation(user)}
+                      style={{ marginLeft: '8px', background: '#2196F3' }}
+                    >
+                      Cập nhật trạm
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -2442,12 +2541,28 @@ const ComplaintsManagement = () => {
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'priority'
   const [assignModal, setAssignModal] = useState(false);
   const [resolveModal, setResolveModal] = useState(false);
+  const [staffCompleteModal, setStaffCompleteModal] = useState(false);
+  const [adminApproveModal, setAdminApproveModal] = useState(false);
+  const [detailModal, setDetailModal] = useState(false);
   const [staffList, setStaffList] = useState([]);
+  const [stations, setStations] = useState([]);
   const [assignData, setAssignData] = useState({
     staffId: '',
     notes: ''
+  });
+  const [staffCompleteData, setStaffCompleteData] = useState({
+    staffNotes: ''
+  });
+  const [approveData, setApproveData] = useState({
+    resolution: ''
+  });
+  const [rejectData, setRejectData] = useState({
+    reason: ''
   });
   const [resolveData, setResolveData] = useState({
     status: 'RESOLVED',
@@ -2491,10 +2606,18 @@ const ComplaintsManagement = () => {
 
   const fetchStaffList = async () => {
     try {
-      const customers = await getAllCustomers();
+      const allUsers = await getAllUsers();
       // Filter only STAFF users
-      const staff = customers.filter(c => c.role === 'STAFF');
+      const staff = allUsers.filter(u => u.role === 'STAFF');
       setStaffList(staff);
+      
+      // Fetch stations for displaying station names
+      try {
+        const stationsData = await getStations();
+        setStations(stationsData || []);
+      } catch (err) {
+        console.error('Không thể tải danh sách trạm:', err);
+      }
     } catch (error) {
       console.error('Lỗi tải danh sách nhân viên:', error);
     }
@@ -2543,10 +2666,68 @@ const ComplaintsManagement = () => {
     }
   };
 
+  const handleStaffComplete = async () => {
+    if (!staffCompleteData.staffNotes.trim()) {
+      alert('Vui lòng nhập ghi chú về công việc đã làm');
+      return;
+    }
+
+    try {
+      await staffCompleteComplaint(selectedComplaint.id, staffCompleteData.staffNotes);
+      alert('✅ Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
+      setStaffCompleteModal(false);
+      setStaffCompleteData({ staffNotes: '' });
+      fetchComplaints();
+      fetchStatistics();
+    } catch (error) {
+      console.error('Lỗi hoàn thành khiếu nại:', error);
+      alert('Không thể đánh dấu hoàn thành');
+    }
+  };
+
+  const handleAdminApprove = async () => {
+    if (!approveData.resolution.trim()) {
+      alert('Vui lòng nhập kết quả xử lý cuối cùng');
+      return;
+    }
+
+    try {
+      await adminApproveComplaint(selectedComplaint.id, approveData.resolution);
+      alert('✅ Đã duyệt khiếu nại thành công!');
+      setAdminApproveModal(false);
+      setApproveData({ resolution: '' });
+      fetchComplaints();
+      fetchStatistics();
+    } catch (error) {
+      console.error('Lỗi duyệt khiếu nại:', error);
+      alert('Không thể duyệt khiếu nại');
+    }
+  };
+
+  const handleAdminReject = async () => {
+    if (!rejectData.reason.trim()) {
+      alert('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    try {
+      await adminRejectComplaint(selectedComplaint.id, rejectData.reason);
+      alert('❌ Đã từ chối khiếu nại');
+      setResolveModal(false);
+      setRejectData({ reason: '' });
+      fetchComplaints();
+      fetchStatistics();
+    } catch (error) {
+      console.error('Lỗi từ chối khiếu nại:', error);
+      alert('Không thể từ chối khiếu nại');
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
       'PENDING': { label: 'Chờ xử lý', class: 'pending' },
       'IN_PROGRESS': { label: 'Đang xử lý', class: 'in-progress' },
+      'STAFF_COMPLETED': { label: 'Staff hoàn thành', class: 'staff-completed' },
       'RESOLVED': { label: 'Đã giải quyết', class: 'resolved' },
       'REJECTED': { label: 'Từ chối', class: 'rejected' },
       'CLOSED': { label: 'Đã đóng', class: 'closed' }
@@ -2579,263 +2760,662 @@ const ComplaintsManagement = () => {
     return categoryMap[category] || category;
   };
 
+  // Filter and sort complaints
+  const getFilteredAndSortedComplaints = () => {
+    let filtered = complaints;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(c => 
+        c.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id?.toString().includes(searchTerm)
+      );
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'newest':
+        filtered = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'oldest':
+        filtered = [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'priority':
+        const priorityOrder = { 'URGENT': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+        filtered = [...filtered].sort((a, b) => 
+          (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4)
+        );
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  };
+
+  const filteredComplaints = getFilteredAndSortedComplaints();
+
   return (
-    <div className="admin-content">
-      <div className="admin-header">
-        <h2>Quản lý khiếu nại</h2>
+    <div className="admin-content complaints-modern">
+      {/* Header with Actions */}
+      <div className="complaints-header-modern">
+        <div className="header-left">
+          <h2>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '12px' }}>
+              <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M13,14H11V12H13M13,10H11V6H13"/>
+            </svg>
+            Quản lý khiếu nại
+          </h2>
+          <p className="header-subtitle">Theo dõi và xử lý khiếu nại từ khách hàng</p>
+        </div>
+        <div className="header-actions">
+          <div className="view-toggle">
+            <button 
+              className={viewMode === 'grid' ? 'active' : ''}
+              onClick={() => setViewMode('grid')}
+              title="Xem dạng lưới"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3,11H11V3H3M3,21H11V13H3M13,21H21V13H13M13,3V11H21V3"/>
+              </svg>
+            </button>
+            <button 
+              className={viewMode === 'list' ? 'active' : ''}
+              onClick={() => setViewMode('list')}
+              title="Xem dạng danh sách"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Statistics */}
+      {/* Statistics Dashboard */}
       {statistics && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon pending">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <div className="stats-dashboard-modern">
+          <div className="stat-card-modern total">
+            <div className="stat-icon-modern">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3"/>
+              </svg>
+            </div>
+            <div className="stat-content-modern">
+              <div className="stat-value">{statistics.totalCount || 0}</div>
+              <div className="stat-label">Tổng số khiếu nại</div>
+            </div>
+          </div>
+
+          <div className="stat-card-modern pending">
+            <div className="stat-icon-modern">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
               </svg>
             </div>
-            <div className="stat-content">
-              <h3>{statistics.pendingCount || 0}</h3>
-              <p>Chờ xử lý</p>
+            <div className="stat-content-modern">
+              <div className="stat-value">{statistics.pendingCount || 0}</div>
+              <div className="stat-label">Chờ xử lý</div>
             </div>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon in-progress">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+
+          <div className="stat-card-modern in-progress">
+            <div className="stat-icon-modern">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13,2.03V2.05L13,4.05C17.39,4.59 20.5,8.58 19.96,12.97C19.5,16.61 16.64,19.5 13,19.93V21.93C18.5,21.38 22.5,16.5 21.95,11C21.5,6.25 17.73,2.5 13,2.03M11,2.06C9.05,2.25 7.19,3 5.67,4.26L7.1,5.74C8.22,4.84 9.57,4.26 11,4.06V2.06M4.26,5.67C3,7.19 2.25,9.04 2.05,11H4.05C4.24,9.58 4.8,8.23 5.69,7.1L4.26,5.67M2.06,13C2.26,14.96 3.03,16.81 4.27,18.33L5.69,16.9C4.81,15.77 4.24,14.42 4.06,13H2.06M7.1,18.37L5.67,19.74C7.18,21 9.04,21.79 11,22V20C9.58,19.82 8.23,19.25 7.1,18.37M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
               </svg>
             </div>
-            <div className="stat-content">
-              <h3>{statistics.inProgressCount || 0}</h3>
-              <p>Đang xử lý</p>
+            <div className="stat-content-modern">
+              <div className="stat-value">{statistics.inProgressCount || 0}</div>
+              <div className="stat-label">Đang xử lý</div>
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-icon resolved">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <div className="stat-card-modern resolved">
+            <div className="stat-icon-modern">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
               </svg>
             </div>
-            <div className="stat-content">
-              <h3>{statistics.resolvedCount || 0}</h3>
-              <p>Đã giải quyết</p>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon total">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
-              </svg>
-            </div>
-            <div className="stat-content">
-              <h3>{statistics.totalCount || 0}</h3>
-              <p>Tổng số</p>
+            <div className="stat-content-modern">
+              <div className="stat-value">{statistics.resolvedCount || 0}</div>
+              <div className="stat-label">Đã giải quyết</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Filter Buttons */}
-      <div className="filter-buttons">
-        <button 
-          className={filter === 'ALL' ? 'active' : ''}
-          onClick={() => setFilter('ALL')}
-        >
-          Tất cả
-        </button>
-        <button 
-          className={filter === 'PENDING' ? 'active' : ''}
-          onClick={() => setFilter('PENDING')}
-        >
-          Chờ xử lý
-        </button>
-        <button 
-          className={filter === 'IN_PROGRESS' ? 'active' : ''}
-          onClick={() => setFilter('IN_PROGRESS')}
-        >
-          Đang xử lý
-        </button>
-        <button 
-          className={filter === 'RESOLVED' ? 'active' : ''}
-          onClick={() => setFilter('RESOLVED')}
-        >
-          Đã giải quyết
-        </button>
-        <button 
-          className={filter === 'REJECTED' ? 'active' : ''}
-          onClick={() => setFilter('REJECTED')}
-        >
-          Từ chối
-        </button>
+      {/* Filters and Search Bar */}
+      <div className="complaints-toolbar">
+        <div className="toolbar-left">
+          <div className="search-box-modern">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+            </svg>
+            <input 
+              type="text"
+              placeholder="Tìm kiếm theo ID, khách hàng, nội dung..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>
+            )}
+          </div>
+
+          <div className="sort-dropdown">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="priority">Ưu tiên</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="toolbar-right">
+          <div className="filter-chips">
+            <button 
+              className={`chip ${filter === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilter('ALL')}
+            >
+              Tất cả ({complaints.length})
+            </button>
+            <button 
+              className={`chip pending ${filter === 'PENDING' ? 'active' : ''}`}
+              onClick={() => setFilter('PENDING')}
+            >
+              Chờ xử lý ({statistics?.pendingCount || 0})
+            </button>
+            <button 
+              className={`chip in-progress ${filter === 'IN_PROGRESS' ? 'active' : ''}`}
+              onClick={() => setFilter('IN_PROGRESS')}
+            >
+              Đang xử lý ({statistics?.inProgressCount || 0})
+            </button>
+            <button 
+              className={`chip staff-completed ${filter === 'STAFF_COMPLETED' ? 'active' : ''}`}
+              onClick={() => setFilter('STAFF_COMPLETED')}
+            >
+              Staff hoàn thành
+            </button>
+            <button 
+              className={`chip resolved ${filter === 'RESOLVED' ? 'active' : ''}`}
+              onClick={() => setFilter('RESOLVED')}
+            >
+              Đã giải quyết ({statistics?.resolvedCount || 0})
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Complaints List */}
+      {/* Complaints Display */}
       {loading ? (
-        <div className="loading-state">Đang tải...</div>
-      ) : complaints.length === 0 ? (
-        <div className="empty-state">
-          <p>Không có khiếu nại nào</p>
+        <div className="loading-state-modern">
+          <div className="spinner-modern"></div>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      ) : filteredComplaints.length === 0 ? (
+        <div className="empty-state-modern">
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+            <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M13,9.94L14.06,11L13,12.06L11.94,11L13,9.94M13,14.06L14.06,15.12L13,16.18L11.94,15.12L13,14.06M16.18,11L17.24,12.06L16.18,13.12L15.12,12.06L16.18,11M8.82,11L9.88,12.06L8.82,13.12L7.76,12.06L8.82,11Z"/>
+          </svg>
+          <h3>Không tìm thấy khiếu nại nào</h3>
+          <p>{searchTerm ? 'Thử tìm kiếm với từ khóa khác' : 'Chưa có khiếu nại nào trong danh sách'}</p>
         </div>
       ) : (
-        <div className="complaints-list">
-          {complaints.map(complaint => (
-            <div key={complaint.id} className="complaint-card admin-view">
-              <div className="complaint-header">
-                <div className="complaint-info">
-                  <h4>#{complaint.id} - {getCategoryLabel(complaint.category)}</h4>
-                  <div className="complaint-meta">
-                    <span>Khách hàng: {complaint.userName}</span>
-                    <span>Email: {complaint.userEmail}</span>
-                    {complaint.bookingId && <span>Booking: #{complaint.bookingId}</span>}
-                  </div>
+        <div className={`complaints-container-modern ${viewMode}`}>
+          {filteredComplaints.map(complaint => (
+            <div key={complaint.id} className="complaint-card-modern" onClick={() => {
+              setSelectedComplaint(complaint);
+              setDetailModal(true);
+            }}>
+              <div className="card-header-modern">
+                <div className="card-id">
+                  <span className="id-badge">#{complaint.id}</span>
+                  <span className="category-label">{getCategoryLabel(complaint.category)}</span>
                 </div>
-                <div className="complaint-badges">
+                <div className="card-badges">
                   {getStatusBadge(complaint.status)}
                   {getPriorityBadge(complaint.priority)}
                 </div>
               </div>
 
-              <div className="complaint-body">
-                <p className="complaint-description">{complaint.description}</p>
-                <div className="complaint-footer">
-                  <span className="complaint-date">
-                    Tạo: {new Date(complaint.createdAt).toLocaleDateString('vi-VN')}
-                  </span>
-                  {complaint.assignedStaffName && (
-                    <span className="assigned-staff">
-                      Phụ trách: {complaint.assignedStaffName}
-                    </span>
+              <div className="card-body-modern">
+                <p className="complaint-description-modern">
+                  {complaint.description?.length > 150 
+                    ? complaint.description.substring(0, 150) + '...' 
+                    : complaint.description}
+                </p>
+              </div>
+
+              <div className="card-footer-modern">
+                <div className="customer-info-modern">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                  </svg>
+                  <span>{complaint.userName || 'N/A'}</span>
+                </div>
+                <div className="date-info-modern">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                  </svg>
+                  <span>{new Date(complaint.createdAt).toLocaleDateString('vi-VN')}</span>
+                </div>
+              </div>
+
+              {complaint.assignedStaffName && (
+                <div className="assigned-staff-modern">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                  </svg>
+                  <span>Phụ trách: {complaint.assignedStaffName}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailModal && selectedComplaint && (
+        <div className="modal-overlay-modern" onClick={() => setDetailModal(false)}>
+          <div className="modal-content-modern large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-modern">
+              <div>
+                <h3>Chi tiết khiếu nại #{selectedComplaint.id}</h3>
+                <p>{getCategoryLabel(selectedComplaint.category)}</p>
+              </div>
+              <button className="modal-close-modern" onClick={() => setDetailModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body-modern">
+              {/* Status and Priority */}
+              <div className="detail-section">
+                <div className="detail-badges-row">
+                  {getStatusBadge(selectedComplaint.status)}
+                  {getPriorityBadge(selectedComplaint.priority)}
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="detail-section">
+                <h4 className="section-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                  </svg>
+                  Thông tin khách hàng
+                </h4>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Họ tên:</span>
+                    <span className="info-value">{selectedComplaint.userName}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Email:</span>
+                    <span className="info-value">{selectedComplaint.userEmail}</span>
+                  </div>
+                  {selectedComplaint.bookingId && (
+                    <div className="info-item">
+                      <span className="info-label">Booking:</span>
+                      <span className="info-value">#{selectedComplaint.bookingId}</span>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {complaint.resolution && (
-                <div className="complaint-resolution">
-                  <strong>Kết quả xử lý:</strong>
-                  <p>{complaint.resolution}</p>
-                  <small>Giải quyết: {new Date(complaint.resolvedAt).toLocaleDateString('vi-VN')}</small>
+              {/* Complaint Description */}
+              <div className="detail-section">
+                <h4 className="section-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>
+                  Nội dung khiếu nại
+                </h4>
+                <div className="complaint-content-box">
+                  {selectedComplaint.description}
+                </div>
+              </div>
+
+              {/* Admin Notes */}
+              {selectedComplaint.adminNotes && (
+                <div className="detail-section">
+                  <h4 className="section-title admin">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                    </svg>
+                    Ghi chú từ Admin
+                  </h4>
+                  <div className="note-box admin">
+                    {selectedComplaint.adminNotes}
+                  </div>
                 </div>
               )}
 
-              <div className="complaint-actions">
-                {complaint.status === 'PENDING' && (
-                  <>
-                    <button 
-                      className="btn-assign"
-                      onClick={() => {
-                        setSelectedComplaint(complaint);
-                        setAssignModal(true);
-                      }}
-                    >
-                      Phân công
-                    </button>
-                    <div className="action-hint" style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', marginTop: '8px' }}>
-                      💡 Cần phân công cho nhân viên trước khi xử lý
+              {/* Staff Notes */}
+              {selectedComplaint.staffNotes && (
+                <div className="detail-section">
+                  <h4 className="section-title staff">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+                    </svg>
+                    Ghi chú từ nhân viên
+                  </h4>
+                  <div className="note-box staff">
+                    {selectedComplaint.staffNotes}
+                    <small className="note-timestamp">
+                      {new Date(selectedComplaint.staffCompletedAt).toLocaleString('vi-VN')}
+                    </small>
+                  </div>
+                </div>
+              )}
+
+              {/* Resolution */}
+              {selectedComplaint.resolution && (
+                <div className="detail-section">
+                  <h4 className="section-title resolved">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                    </svg>
+                    Kết quả xử lý
+                  </h4>
+                  <div className="note-box resolved">
+                    {selectedComplaint.resolution}
+                    <small className="note-timestamp">
+                      {new Date(selectedComplaint.resolvedAt).toLocaleString('vi-VN')}
+                    </small>
+                  </div>
+                </div>
+              )}
+
+              {/* Assigned Staff */}
+              {selectedComplaint.assignedStaffName && (
+                <div className="detail-section">
+                  <h4 className="section-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                    </svg>
+                    Nhân viên phụ trách
+                  </h4>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-value-large">{selectedComplaint.assignedStaffName}</span>
                     </div>
-                  </>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="detail-actions">
+                {selectedComplaint.status === 'PENDING' && (
+                  <button 
+                    className="btn-action-modern primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailModal(false);
+                      setAssignModal(true);
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                    </svg>
+                    Phân công nhân viên
+                  </button>
                 )}
-                {complaint.status === 'IN_PROGRESS' && (
+                {selectedComplaint.status === 'STAFF_COMPLETED' && (
                   <>
                     <button 
-                      className="btn-resolve"
-                      onClick={() => {
-                        setSelectedComplaint(complaint);
-                        setResolveData({ status: 'RESOLVED', resolution: '' });
-                        setResolveModal(true);
+                      className="btn-action-modern success"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailModal(false);
+                        setApproveData({ resolution: '' });
+                        setAdminApproveModal(true);
                       }}
                     >
-                      Giải quyết
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                      </svg>
+                      Duyệt khiếu nại
                     </button>
                     <button 
-                      className="btn-reject"
-                      onClick={() => {
-                        setSelectedComplaint(complaint);
-                        setResolveData({ status: 'REJECTED', resolution: '' });
+                      className="btn-action-modern danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailModal(false);
+                        setRejectData({ reason: '' });
                         setResolveModal(true);
                       }}
                     >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                      </svg>
                       Từ chối
                     </button>
                   </>
                 )}
-                {(complaint.status === 'RESOLVED' || complaint.status === 'REJECTED' || complaint.status === 'CLOSED') && (
-                  <div className="action-hint" style={{ fontSize: '12px', color: '#4CAF50', fontWeight: '600' }}>
-                    ✅ Khiếu nại đã được xử lý hoàn tất
-                  </div>
-                )}
               </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
 
       {/* Assign Modal */}
       {assignModal && (
         <div className="modal-overlay" onClick={() => setAssignModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content assign-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Phân công khiếu nại #{selectedComplaint.id}</h3>
+              <div>
+                <h3>📋 Phân công xử lý khiếu nại</h3>
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#666' }}>
+                  Khiếu nại #{selectedComplaint.id} - {selectedComplaint.subject}
+                </p>
+              </div>
               <button className="modal-close" onClick={() => setAssignModal(false)}>×</button>
             </div>
+            
             <div className="modal-body">
+              {/* Complaint Info Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                padding: '16px',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                border: '1px solid #dee2e6'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+                  <div style={{ fontSize: '24px' }}>📝</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '8px' }}>
+                      Nội dung khiếu nại:
+                    </div>
+                    <div style={{ color: '#495057', fontSize: '14px', lineHeight: '1.6' }}>
+                      {selectedComplaint.description}
+                    </div>
+                    <div style={{ 
+                      marginTop: '12px', 
+                      display: 'flex', 
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      fontSize: '13px',
+                      color: '#6c757d'
+                    }}>
+                      <span>👤 {selectedComplaint.customerName}</span>
+                      <span>📧 {selectedComplaint.customerEmail}</span>
+                      <span>📞 {selectedComplaint.customerPhone || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Staff Selection */}
               <div className="form-group">
-                <label>Chọn nhân viên:</label>
+                <label style={{ 
+                  fontSize: '15px', 
+                  fontWeight: 600, 
+                  color: '#2c3e50',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>👨‍💼</span>
+                  Chọn nhân viên xử lý:
+                  <span style={{ color: '#dc3545' }}>*</span>
+                </label>
                 <select 
                   value={assignData.staffId}
                   onChange={(e) => setAssignData({...assignData, staffId: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    border: '2px solid #dee2e6',
+                    borderRadius: '10px',
+                    outline: 'none',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#2196F3'}
+                  onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
                 >
                   <option value="">-- Chọn nhân viên --</option>
-                  {staffList.map(staff => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.fullName} ({staff.email})
-                    </option>
-                  ))}
+                  {staffList.map(staff => {
+                    const station = stations.find(s => s.id === staff.stationId);
+                    return (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.fullName} ({staff.email})
+                        {station ? ` - 🏢 ${station.name} (${station.province})` : ' - Chưa có trạm'}
+                      </option>
+                    );
+                  })}
                 </select>
+                {!assignData.staffId && (
+                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '6px', display: 'block' }}>
+                    💡 Chọn nhân viên phù hợp với khu vực của khiếu nại
+                  </small>
+                )}
               </div>
-              <div className="form-group">
-                <label>Ghi chú (tùy chọn):</label>
+
+              {/* Notes Input */}
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <label style={{ 
+                  fontSize: '15px', 
+                  fontWeight: 600, 
+                  color: '#2c3e50',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>📝</span>
+                  Hướng dẫn xử lý cho nhân viên:
+                </label>
                 <textarea 
                   value={assignData.notes}
                   onChange={(e) => setAssignData({...assignData, notes: e.target.value})}
-                  placeholder="Ghi chú cho nhân viên..."
-                  rows="3"
+                  placeholder="Nhập hướng dẫn chi tiết về cách xử lý khiếu nại này...&#10;&#10;Ví dụ:&#10;- Liên hệ khách hàng trong vòng 2 giờ&#10;- Kiểm tra tình trạng xe tại địa điểm ABC&#10;- Chuẩn bị phụ tùng thay thế nếu cần&#10;- Báo cáo kết quả sau khi hoàn thành"
+                  rows="6"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    border: '2px solid #dee2e6',
+                    borderRadius: '10px',
+                    outline: 'none',
+                    transition: 'all 0.3s ease',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.6'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#2196F3'}
+                  onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
                 />
+                <div style={{
+                  marginTop: '8px',
+                  padding: '10px 12px',
+                  background: '#e7f3ff',
+                  borderLeft: '3px solid #2196F3',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#0c5460'
+                }}>
+                  <strong>💡 Gợi ý:</strong> Ghi chú càng chi tiết sẽ giúp nhân viên xử lý hiệu quả hơn
+                </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setAssignModal(false)}>
-                Hủy
+
+            <div className="modal-footer" style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end',
+              paddingTop: '20px',
+              borderTop: '2px solid #f1f3f5'
+            }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setAssignModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  border: '2px solid #dee2e6',
+                  borderRadius: '10px',
+                  background: 'white',
+                  color: '#6c757d',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                ❌ Hủy
               </button>
-              <button className="btn-primary" onClick={handleAssign}>
-                Phân công
+              <button 
+                className="btn-primary" 
+                onClick={handleAssign}
+                disabled={!assignData.staffId}
+                style={{
+                  padding: '12px 32px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: assignData.staffId 
+                    ? 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)' 
+                    : '#ccc',
+                  color: 'white',
+                  cursor: assignData.staffId ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease',
+                  boxShadow: assignData.staffId ? '0 4px 12px rgba(33, 150, 243, 0.3)' : 'none'
+                }}
+              >
+                ✅ Phân công ngay
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Resolve Modal */}
+      {/* Resolve Modal (Admin Reject) */}
       {resolveModal && (
         <div className="modal-overlay" onClick={() => setResolveModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>
-                {resolveData.status === 'RESOLVED' ? 'Giải quyết' : 'Từ chối'} khiếu nại #{selectedComplaint.id}
-              </h3>
+              <h3>Từ chối khiếu nại #{selectedComplaint.id}</h3>
               <button className="modal-close" onClick={() => setResolveModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Kết quả xử lý:</label>
+                <label>Lý do từ chối:</label>
                 <textarea 
-                  value={resolveData.resolution}
-                  onChange={(e) => setResolveData({...resolveData, resolution: e.target.value})}
-                  placeholder={resolveData.status === 'RESOLVED' 
-                    ? "Mô tả kết quả giải quyết khiếu nại..." 
-                    : "Lý do từ chối khiếu nại..."}
+                  value={rejectData.reason}
+                  onChange={(e) => setRejectData({...rejectData, reason: e.target.value})}
+                  placeholder="Nhập lý do từ chối khiếu nại..."
                   rows="5"
                   required
                 />
@@ -2846,10 +3426,122 @@ const ComplaintsManagement = () => {
                 Hủy
               </button>
               <button 
-                className={resolveData.status === 'RESOLVED' ? 'btn-primary' : 'btn-danger'}
-                onClick={handleResolve}
+                className="btn-danger"
+                onClick={handleAdminReject}
               >
-                {resolveData.status === 'RESOLVED' ? 'Xác nhận giải quyết' : 'Xác nhận từ chối'}
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Complete Modal */}
+      {staffCompleteModal && (
+        <div className="modal-overlay" onClick={() => setStaffCompleteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✅ Đánh dấu hoàn thành #{selectedComplaint.id}</h3>
+              <button className="modal-close" onClick={() => setStaffCompleteModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="alert-info" style={{
+                background: '#E3F2FD',
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                color: '#1976D2',
+                fontSize: '14px'
+              }}>
+                📝 Vui lòng mô tả công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
+              </div>
+              <div className="form-group">
+                <label>Ghi chú công việc đã làm: <span style={{color: 'red'}}>*</span></label>
+                <textarea 
+                  value={staffCompleteData.staffNotes}
+                  onChange={(e) => setStaffCompleteData({...staffCompleteData, staffNotes: e.target.value})}
+                  placeholder="Ví dụ: Đã kiểm tra xe, sửa chữa lỗi động cơ, test lại và xe đã hoạt động bình thường..."
+                  rows="6"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setStaffCompleteModal(false)}>
+                Hủy
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleStaffComplete}
+                style={{
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
+                }}
+              >
+                ✅ Xác nhận hoàn thành
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Approve Modal */}
+      {adminApproveModal && (
+        <div className="modal-overlay" onClick={() => setAdminApproveModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✅ Duyệt khiếu nại #{selectedComplaint.id}</h3>
+              <button className="modal-close" onClick={() => setAdminApproveModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {selectedComplaint.staffNotes && (
+                <div className="alert-success" style={{
+                  background: '#E8F5E9',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  borderLeft: '4px solid #4CAF50'
+                }}>
+                  <strong style={{color: '#1B5E20'}}>📝 Ghi chú của Staff:</strong>
+                  <p style={{margin: '8px 0 0 0', color: '#2E7D32'}}>{selectedComplaint.staffNotes}</p>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Kết quả xử lý cuối cùng: <span style={{color: 'red'}}>*</span></label>
+                <textarea 
+                  value={approveData.resolution}
+                  onChange={(e) => setApproveData({...approveData, resolution: e.target.value})}
+                  placeholder="Nhập kết quả xử lý cuối cùng (có thể tham khảo ghi chú của staff ở trên)..."
+                  rows="5"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setAdminApproveModal(false)}>
+                Hủy
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleAdminApprove}
+                style={{
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
+                }}
+              >
+                ✅ Xác nhận duyệt
               </button>
             </div>
           </div>

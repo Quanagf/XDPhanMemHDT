@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.evrental.users.dto.AssignComplaintRequest;
 import com.evrental.users.dto.ComplaintRequest;
 import com.evrental.users.dto.ComplaintResponse;
 import com.evrental.users.dto.ResolveComplaintRequest;
@@ -93,13 +94,9 @@ public class ComplaintController {
     @PostMapping("/admin/complaints/{id}/assign")
     public ResponseEntity<?> assignComplaint(
             @PathVariable Long id,
-            @RequestBody Map<String, Long> request) {
+            @Valid @RequestBody AssignComplaintRequest request) {
         try {
-            Long staffId = request.get("staffId");
-            if (staffId == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Staff ID is required"));
-            }
-            ComplaintResponse response = complaintService.assignComplaint(id, staffId);
+            ComplaintResponse response = complaintService.assignComplaint(id, request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -130,4 +127,61 @@ public class ComplaintController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    
+    // ============ STAFF ENDPOINTS ============
+    
+    // Staff marks complaint as completed
+    @PostMapping("/staff/complaints/{id}/complete")
+    public ResponseEntity<?> staffCompleteComplaint(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long staffId,
+            @Valid @RequestBody Map<String, String> request) {
+        try {
+            String staffNotes = request.get("staffNotes");
+            if (staffNotes == null || staffNotes.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Ghi chú không được để trống"));
+            }
+            ComplaintResponse response = complaintService.staffCompleteComplaint(id, staffId, staffNotes);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    // Admin approves staff's work
+    @PostMapping("/admin/complaints/{id}/approve")
+    public ResponseEntity<?> adminApproveComplaint(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long adminId,
+            @Valid @RequestBody Map<String, String> request) {
+        try {
+            String resolution = request.get("resolution");
+            if (resolution == null || resolution.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Kết luận không được để trống"));
+            }
+            ComplaintResponse response = complaintService.adminApproveComplaint(id, adminId, resolution);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    // Admin rejects complaint
+    @PostMapping("/admin/complaints/{id}/reject")
+    public ResponseEntity<?> adminRejectComplaint(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long adminId,
+            @Valid @RequestBody Map<String, String> request) {
+        try {
+            String reason = request.get("reason");
+            if (reason == null || reason.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Lý do không được để trống"));
+            }
+            ComplaintResponse response = complaintService.adminRejectComplaint(id, adminId, reason);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
+

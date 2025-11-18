@@ -31,5 +31,6 @@ public class ComplaintNotification {
     private Long resolvedBy;
     private String resolvedByName;
     private String resolution;
+    private String staffNotes;
     private LocalDateTime timestamp;
 }

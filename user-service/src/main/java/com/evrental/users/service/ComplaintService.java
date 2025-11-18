@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.evrental.users.dto.AssignComplaintRequest;
 import com.evrental.users.dto.ComplaintRequest;
 import com.evrental.users.dto.ComplaintResponse;
 import com.evrental.users.dto.ComplaintNotification;
@@ -82,11 +83,11 @@ public class ComplaintService {
     }
 
     // Assign complaint to a staff member
-    public ComplaintResponse assignComplaint(Long complaintId, Long staffId) {
+    public ComplaintResponse assignComplaint(Long complaintId, AssignComplaintRequest request) {
         Complaint complaint = complaintRepository.findById(complaintId)
                 .orElseThrow(() -> new RuntimeException("Khiếu nại không tồn tại"));
 
-        User staff = userRepository.findById(staffId)
+        User staff = userRepository.findById(request.getStaffId())
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
 
         // Check if staff has ADMIN or STAFF role
@@ -94,7 +95,8 @@ public class ComplaintService {
             throw new RuntimeException("Chỉ có thể giao cho Admin hoặc Staff");
         }
 
-        complaint.setAssignedTo(staffId);
+        complaint.setAssignedTo(request.getStaffId());
+        complaint.setAdminNotes(request.getAdminNotes());
         complaint.setStatus(ComplaintStatus.IN_PROGRESS);
         complaint = complaintRepository.save(complaint);
         
@@ -149,6 +151,96 @@ public class ComplaintService {
 
         return convertToResponse(complaint);
     }
+    
+    // Staff marks complaint as completed (waiting for admin approval)
+    public ComplaintResponse staffCompleteComplaint(Long complaintId, Long staffId, String staffNotes) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Khiếu nại không tồn tại"));
+        
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
+        
+        // Validate staff role
+        if (!staff.getRole().equals(User.Role.STAFF) && !staff.getRole().equals(User.Role.ADMIN)) {
+            throw new RuntimeException("Chỉ Staff hoặc Admin mới có thể đánh dấu hoàn thành");
+        }
+        
+        // Check if complaint is assigned to this staff
+        if (!complaint.getAssignedTo().equals(staffId)) {
+            throw new RuntimeException("Bạn không được phân công xử lý khiếu nại này");
+        }
+        
+        // Check if complaint is in progress
+        if (complaint.getStatus() != ComplaintStatus.IN_PROGRESS) {
+            throw new RuntimeException("Khiếu nại phải ở trạng thái Đang xử lý");
+        }
+        
+        complaint.setStatus(ComplaintStatus.STAFF_COMPLETED);
+        complaint.setStaffCompletedAt(LocalDateTime.now());
+        complaint.setStaffNotes(staffNotes);
+        complaint = complaintRepository.save(complaint);
+        
+        // Send notification to admin
+        sendStaffCompletedNotification(complaint, staff);
+        
+        return convertToResponse(complaint);
+    }
+    
+    // Admin approves staff's work and marks as resolved
+    public ComplaintResponse adminApproveComplaint(Long complaintId, Long adminId, String resolution) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Khiếu nại không tồn tại"));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin không tồn tại"));
+        
+        // Validate admin role
+        if (!admin.getRole().equals(User.Role.ADMIN)) {
+            throw new RuntimeException("Chỉ Admin mới có thể duyệt khiếu nại");
+        }
+        
+        // Check if complaint is completed by staff
+        if (complaint.getStatus() != ComplaintStatus.STAFF_COMPLETED) {
+            throw new RuntimeException("Khiếu nại phải được staff hoàn thành trước");
+        }
+        
+        complaint.setStatus(ComplaintStatus.RESOLVED);
+        complaint.setResolution(resolution);
+        complaint.setResolvedBy(adminId);
+        complaint.setResolvedAt(LocalDateTime.now());
+        complaint.setAdminApprovedAt(LocalDateTime.now());
+        complaint = complaintRepository.save(complaint);
+        
+        // Send notification to user
+        sendComplaintResolvedNotification(complaint, admin);
+        
+        return convertToResponse(complaint);
+    }
+    
+    // Admin rejects complaint (not relevant)
+    public ComplaintResponse adminRejectComplaint(Long complaintId, Long adminId, String reason) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Khiếu nại không tồn tại"));
+        
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin không tồn tại"));
+        
+        // Validate admin role
+        if (!admin.getRole().equals(User.Role.ADMIN)) {
+            throw new RuntimeException("Chỉ Admin mới có thể từ chối khiếu nại");
+        }
+        
+        complaint.setStatus(ComplaintStatus.REJECTED);
+        complaint.setResolution(reason);
+        complaint.setResolvedBy(adminId);
+        complaint.setResolvedAt(LocalDateTime.now());
+        complaint = complaintRepository.save(complaint);
+        
+        // Send notification to user
+        sendComplaintRejectedNotification(complaint, admin);
+        
+        return convertToResponse(complaint);
+    }
 
     // Get complaint statistics
     public Map<String, Object> getComplaintStatistics() {
@@ -161,6 +253,7 @@ public class ComplaintService {
         // Count by status
         stats.put("pendingCount", complaintRepository.countByStatus(ComplaintStatus.PENDING));
         stats.put("inProgressCount", complaintRepository.countByStatus(ComplaintStatus.IN_PROGRESS));
+        stats.put("staffCompletedCount", complaintRepository.countByStatus(ComplaintStatus.STAFF_COMPLETED));
         stats.put("resolvedCount", complaintRepository.countByStatus(ComplaintStatus.RESOLVED));
         stats.put("rejectedCount", complaintRepository.countByStatus(ComplaintStatus.REJECTED));
         stats.put("closedCount", complaintRepository.countByStatus(ComplaintStatus.CLOSED));
@@ -191,9 +284,13 @@ public class ComplaintService {
                 .status(complaint.getStatus())
                 .priority(complaint.getPriority())
                 .assignedTo(complaint.getAssignedTo())
+                .adminNotes(complaint.getAdminNotes())
                 .resolution(complaint.getResolution())
                 .resolvedBy(complaint.getResolvedBy())
                 .resolvedAt(complaint.getResolvedAt())
+                .staffCompletedAt(complaint.getStaffCompletedAt())
+                .staffNotes(complaint.getStaffNotes())
+                .adminApprovedAt(complaint.getAdminApprovedAt())
                 .createdAt(complaint.getCreatedAt())
                 .updatedAt(complaint.getUpdatedAt())
                 .build();
@@ -264,6 +361,46 @@ public class ComplaintService {
                 .priority(complaint.getPriority())
                 .resolvedBy(resolver.getId())
                 .resolvedByName(resolver.getFullName())
+                .resolution(complaint.getResolution())
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        rabbitMQProducer.sendComplaintResolvedNotification(notification);
+    }
+    
+    private void sendStaffCompletedNotification(Complaint complaint, User staff) {
+        ComplaintNotification notification = ComplaintNotification.builder()
+                .complaintId(complaint.getId())
+                .notificationType("STAFF_COMPLETED")
+                .userId(complaint.getUser().getId())
+                .userName(complaint.getUser().getUsername())
+                .userEmail(complaint.getUser().getEmail())
+                .title(complaint.getTitle())
+                .category(complaint.getCategory())
+                .status(complaint.getStatus())
+                .priority(complaint.getPriority())
+                .assignedTo(staff.getId())
+                .assignedToName(staff.getFullName())
+                .staffNotes(complaint.getStaffNotes())
+                .timestamp(LocalDateTime.now())
+                .build();
+        
+        rabbitMQProducer.sendComplaintStaffCompletedNotification(notification);
+    }
+    
+    private void sendComplaintRejectedNotification(Complaint complaint, User admin) {
+        ComplaintNotification notification = ComplaintNotification.builder()
+                .complaintId(complaint.getId())
+                .notificationType("REJECTED")
+                .userId(complaint.getUser().getId())
+                .userName(complaint.getUser().getUsername())
+                .userEmail(complaint.getUser().getEmail())
+                .title(complaint.getTitle())
+                .category(complaint.getCategory())
+                .status(complaint.getStatus())
+                .priority(complaint.getPriority())
+                .resolvedBy(admin.getId())
+                .resolvedByName(admin.getFullName())
                 .resolution(complaint.getResolution())
                 .timestamp(LocalDateTime.now())
                 .build();

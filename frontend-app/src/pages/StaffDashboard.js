@@ -6,6 +6,7 @@ import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
 import vehiclesApi from '../api/vehiclesApi';
+import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('handover'); // handover, verification, payment, maintenance
@@ -96,6 +97,17 @@ const StaffDashboard = () => {
               </span>
               Quản lý xe tại điểm
             </button>
+            <button 
+              className={`staff-nav-item ${activeTab === 'complaints' ? 'active' : ''}`}
+              onClick={() => setActiveTab('complaints')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M13,14H11V12H13M13,10H11V6H13"/>
+                </svg>
+              </span>
+              Khiếu nại được phân công
+            </button>
           </nav>
           
           {/* Nút đăng xuất ở góc dưới */}
@@ -120,6 +132,7 @@ const StaffDashboard = () => {
           {activeTab === 'verification' && <CustomerVerification />}
           {activeTab === 'payment' && <PaymentManagement />}
           {activeTab === 'maintenance' && <VehicleMaintenance />}
+          {activeTab === 'complaints' && <MyComplaintsManagement user={user} />}
         </main>
       </div>
     </div>
@@ -1573,6 +1586,461 @@ const VehicleMaintenance = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Quản lý khiếu nại được phân công
+const MyComplaintsManagement = ({ user }) => {
+  const [complaints, setComplaints] = useState([]);
+  const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [completeModal, setCompleteModal] = useState(false);
+  const [staffNotes, setStaffNotes] = useState('');
+
+  useEffect(() => {
+    fetchMyComplaints();
+  }, [filter, user.id]);
+
+  const fetchMyComplaints = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllComplaints();
+      
+      // Lọc chỉ các khiếu nại được phân công cho staff này
+      let myComplaints = data.filter(c => c.assignedTo === user.id);
+      
+      // Filter theo status
+      if (filter !== 'ALL') {
+        myComplaints = myComplaints.filter(c => c.status === filter);
+      }
+      
+      setComplaints(myComplaints);
+    } catch (error) {
+      console.error('Lỗi tải danh sách khiếu nại:', error);
+      alert('Không thể tải danh sách khiếu nại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!staffNotes.trim()) {
+      alert('Vui lòng nhập ghi chú về công việc bạn đã làm');
+      return;
+    }
+
+    try {
+      await staffCompleteComplaint(selectedComplaint.id, staffNotes);
+      alert('✅ Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
+      setCompleteModal(false);
+      setStaffNotes('');
+      setSelectedComplaint(null);
+      fetchMyComplaints();
+    } catch (error) {
+      console.error('Lỗi hoàn thành khiếu nại:', error);
+      
+      // Hiển thị chi tiết lỗi
+      let errorMessage = 'Không thể đánh dấu hoàn thành';
+      
+      if (error.response) {
+        // Lỗi từ server
+        console.error('Response error:', error.response);
+        errorMessage = `Lỗi ${error.response.status}: ${
+          error.response.data?.error || 
+          error.response.data?.message || 
+          JSON.stringify(error.response.data)
+        }`;
+      } else if (error.request) {
+        // Request được gửi nhưng không nhận được response
+        console.error('Request error:', error.request);
+        errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+      } else {
+        // Lỗi khác
+        console.error('Error:', error.message);
+        errorMessage = `Lỗi: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'PENDING': { label: 'Chờ xử lý', class: 'pending' },
+      'IN_PROGRESS': { label: 'Đang xử lý', class: 'in-progress' },
+      'STAFF_COMPLETED': { label: 'Đã hoàn thành', class: 'staff-completed' },
+      'RESOLVED': { label: 'Đã duyệt', class: 'resolved' },
+      'REJECTED': { label: 'Từ chối', class: 'rejected' }
+    };
+    const info = statusMap[status] || { label: status, class: '' };
+    return <span className={`status-badge ${info.class}`}>{info.label}</span>;
+  };
+
+  const getPriorityBadge = (priority) => {
+    const priorityMap = {
+      'LOW': { label: 'Thấp', class: 'low' },
+      'MEDIUM': { label: 'Trung bình', class: 'medium' },
+      'HIGH': { label: 'Cao', class: 'high' },
+      'URGENT': { label: '🔥 Khẩn cấp', class: 'urgent' }
+    };
+    const info = priorityMap[priority] || { label: priority, class: '' };
+    return <span className={`priority-badge ${info.class}`}>{info.label}</span>;
+  };
+
+  const getCategoryLabel = (category) => {
+    const categoryMap = {
+      'VEHICLE_ISSUE': '🚗 Vấn đề xe',
+      'BILLING': '💰 Thanh toán',
+      'SERVICE_QUALITY': '⭐ Chất lượng dịch vụ',
+      'DAMAGE_DISPUTE': '🔧 Tranh chấp hư hỏng',
+      'ACCOUNT_ISSUE': '👤 Vấn đề tài khoản',
+      'STATION_ISSUE': '📍 Vấn đề trạm',
+      'OTHER': '📌 Khác'
+    };
+    return categoryMap[category] || category;
+  };
+
+  const stats = {
+    total: complaints.length,
+    inProgress: complaints.filter(c => c.status === 'IN_PROGRESS').length,
+    completed: complaints.filter(c => c.status === 'STAFF_COMPLETED').length,
+    resolved: complaints.filter(c => c.status === 'RESOLVED').length
+  };
+
+  return (
+    <div className="staff-content">
+      <div className="content-header">
+        <h2>📋 Khiếu nại được phân công</h2>
+        <p style={{ color: '#666', marginTop: '8px' }}>Danh sách khiếu nại bạn cần xử lý</p>
+      </div>
+
+      {/* Statistics */}
+      <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.total}</div>
+          <div style={{ fontSize: '14px', opacity: 0.9 }}>📊 Tổng số</div>
+        </div>
+        
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.inProgress}</div>
+          <div style={{ fontSize: '14px', opacity: 0.9 }}>⏳ Đang xử lý</div>
+        </div>
+
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.completed}</div>
+          <div style={{ fontSize: '14px', opacity: 0.9 }}>✅ Đã hoàn thành</div>
+        </div>
+
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.resolved}</div>
+          <div style={{ fontSize: '14px', opacity: 0.9 }}>🎉 Đã duyệt</div>
+        </div>
+      </div>
+
+      {/* Filter Buttons */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <button 
+          onClick={() => setFilter('ALL')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: filter === 'ALL' ? 'none' : '1px solid #e0e0e0',
+            background: filter === 'ALL' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white',
+            color: filter === 'ALL' ? 'white' : '#666',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Tất cả
+        </button>
+        <button 
+          onClick={() => setFilter('IN_PROGRESS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: filter === 'IN_PROGRESS' ? 'none' : '1px solid #e0e0e0',
+            background: filter === 'IN_PROGRESS' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'white',
+            color: filter === 'IN_PROGRESS' ? 'white' : '#666',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Đang xử lý
+        </button>
+        <button 
+          onClick={() => setFilter('STAFF_COMPLETED')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: filter === 'STAFF_COMPLETED' ? 'none' : '1px solid #e0e0e0',
+            background: filter === 'STAFF_COMPLETED' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' : 'white',
+            color: filter === 'STAFF_COMPLETED' ? 'white' : '#666',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Đã hoàn thành
+        </button>
+        <button 
+          onClick={() => setFilter('RESOLVED')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: filter === 'RESOLVED' ? 'none' : '1px solid #e0e0e0',
+            background: filter === 'RESOLVED' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'white',
+            color: filter === 'RESOLVED' ? 'white' : '#666',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Đã duyệt
+        </button>
+      </div>
+
+      {/* Complaints List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px', background: 'white', borderRadius: '12px' }}>
+          <div style={{ fontSize: '18px', color: '#2196F3' }}>⏳ Đang tải...</div>
+        </div>
+      ) : complaints.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '60px', marginBottom: '16px' }}>📭</div>
+          <p style={{ color: '#999', fontSize: '16px' }}>Không có khiếu nại nào</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {complaints.map(complaint => (
+            <div key={complaint.id} style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              border: '1px solid #f0f0f0',
+              transition: 'all 0.3s ease'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '16px', borderBottom: '2px solid #f5f5f5' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1a237e', fontSize: '17px', fontWeight: '700' }}>
+                    #{complaint.id} - {getCategoryLabel(complaint.category)}
+                  </h4>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
+                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>👤 {complaint.userName}</span>
+                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>📧 {complaint.userEmail}</span>
+                    {complaint.bookingId && <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>🎫 Booking #{complaint.bookingId}</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {getStatusBadge(complaint.status)}
+                  {getPriorityBadge(complaint.priority)}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '8px', fontSize: '15px' }}>{complaint.title}</div>
+                <p style={{ color: '#666', lineHeight: '1.6', marginBottom: '12px' }}>{complaint.description}</p>
+                <div style={{ fontSize: '13px', color: '#999' }}>
+                  📅 {new Date(complaint.createdAt).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+              </div>
+
+              {complaint.adminNotes && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  borderLeft: '4px solid #9C27B0'
+                }}>
+                  <strong style={{ color: '#6A1B9A', display: 'block', marginBottom: '8px' }}>👤 Ghi chú từ Admin:</strong>
+                  <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.adminNotes}</p>
+                </div>
+              )}
+
+              {complaint.staffNotes && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #E3F2FD 0%, #F1F8E9 100%)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  borderLeft: '4px solid #2196F3'
+                }}>
+                  <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}>📝 Ghi chú của bạn:</strong>
+                  <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.staffNotes}</p>
+                  <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '8px' }}>
+                    ⏰ {new Date(complaint.staffCompletedAt).toLocaleDateString('vi-VN')}
+                  </small>
+                </div>
+              )}
+
+              {complaint.resolution && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  borderLeft: '4px solid #4CAF50'
+                }}>
+                  <strong style={{ color: '#1B5E20', display: 'block', marginBottom: '8px' }}>✅ Kết quả cuối cùng (Admin):</strong>
+                  <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.resolution}</p>
+                  <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '8px' }}>
+                    ⏰ {new Date(complaint.resolvedAt).toLocaleDateString('vi-VN')}
+                  </small>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {complaint.status === 'IN_PROGRESS' && (
+                  <>
+                    <button 
+                      onClick={() => {
+                        setSelectedComplaint(complaint);
+                        setStaffNotes('');
+                        setCompleteModal(true);
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      ✅ Đánh dấu hoàn thành
+                    </button>
+                    <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                      💡 Hãy hoàn thành công việc và nhấn nút này để báo admin
+                    </div>
+                  </>
+                )}
+                {complaint.status === 'STAFF_COMPLETED' && (
+                  <div style={{ fontSize: '13px', color: '#4CAF50', fontWeight: '600', padding: '8px 16px', background: '#E8F5E9', borderRadius: '8px' }}>
+                    ⏳ Đang chờ admin xem xét và duyệt...
+                  </div>
+                )}
+                {complaint.status === 'RESOLVED' && (
+                  <div style={{ fontSize: '13px', color: '#4CAF50', fontWeight: '600', padding: '8px 16px', background: '#E8F5E9', borderRadius: '8px' }}>
+                    🎉 Admin đã duyệt - Khiếu nại hoàn tất!
+                  </div>
+                )}
+                {complaint.status === 'REJECTED' && (
+                  <div style={{ fontSize: '13px', color: '#F44336', fontWeight: '600', padding: '8px 16px', background: '#FFEBEE', borderRadius: '8px' }}>
+                    ❌ Admin đã từ chối khiếu nại này
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Complete Modal */}
+      {completeModal && (
+        <div className="modal-overlay" onClick={() => setCompleteModal(false)} style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>✅ Đánh dấu hoàn thành #{selectedComplaint.id}</h3>
+              <button onClick={() => setCompleteModal(false)} style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#999'
+              }}>×</button>
+            </div>
+            
+            <div style={{
+              background: '#E3F2FD',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              color: '#1976D2',
+              fontSize: '14px'
+            }}>
+              📝 Vui lòng mô tả chi tiết công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>
+                Ghi chú công việc đã làm: <span style={{ color: 'red' }}>*</span>
+              </label>
+              <textarea 
+                value={staffNotes}
+                onChange={(e) => setStaffNotes(e.target.value)}
+                placeholder="Ví dụ: Đã kiểm tra xe, sửa chữa lỗi động cơ, test lại và xe đã hoạt động bình thường. Đã liên hệ khách hàng và xác nhận đồng ý..."
+                rows="8"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setCompleteModal(false)} style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                background: 'white',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}>
+                Hủy
+              </button>
+              <button onClick={handleComplete} style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: '600',
+                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+              }}>
+                ✅ Xác nhận hoàn thành
+              </button>
+            </div>
           </div>
         </div>
       )}

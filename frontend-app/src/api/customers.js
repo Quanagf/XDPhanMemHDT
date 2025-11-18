@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8081/api/admin/customers';
+const API_URL = '/api/admin/customers';
 
 // Create a new customer
 export const createCustomer = async (customerData) => {
@@ -109,6 +109,18 @@ export const getCustomerStatistics = async () => {
   const token = localStorage.getItem('authToken');
   
   const response = await axios.get(`${API_URL}/statistics`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
+};
+
+// Get all users (including STAFF and ADMIN) from user-service
+export const getAllUsers = async () => {
+  const token = localStorage.getItem('authToken');
+  
+  const response = await axios.get('/api/users/admin/all-users', {
     headers: {
       'Authorization': `Bearer ${token}`
     }

@@ -59,6 +59,16 @@ public class RabbitMQProducer {
         log.info("Complaint assigned notification sent successfully");
     }
     
+    public void sendComplaintStaffCompletedNotification(ComplaintNotification notification) {
+        log.info("Sending complaint staff completed notification for complaint ID: {}", notification.getComplaintId());
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.COMPLAINT_EXCHANGE,
+            RabbitMQConfig.COMPLAINT_STAFF_COMPLETED_ROUTING_KEY,
+            notification
+        );
+        log.info("Complaint staff completed notification sent successfully");
+    }
+    
     public void sendComplaintResolvedNotification(ComplaintNotification notification) {
         log.info("Sending complaint resolved notification for complaint ID: {}", notification.getComplaintId());
         rabbitTemplate.convertAndSend(

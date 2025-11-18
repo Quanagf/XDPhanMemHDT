@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8081/api';
+const API_URL = '/api';
 
 // Create a new complaint
 export const createComplaint = async (complaintData) => {
@@ -61,11 +61,14 @@ export const getAllComplaints = async (status = null) => {
 };
 
 // Assign complaint to staff
-export const assignComplaint = async (complaintId, staffId) => {
+export const assignComplaint = async (complaintId, staffId, adminNotes = '') => {
   const token = localStorage.getItem('authToken');
   
   const response = await axios.post(`${API_URL}/admin/complaints/${complaintId}/assign`, 
-    { staffId }, 
+    { 
+      staffId,
+      adminNotes 
+    }, 
     {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -78,14 +81,19 @@ export const assignComplaint = async (complaintId, staffId) => {
 // Resolve or reject a complaint
 export const resolveComplaint = async (complaintId, resolveData) => {
   const token = localStorage.getItem('authToken');
-  const userId = JSON.parse(localStorage.getItem('userProfile')).id;
+  const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+  const userId = userProfile?.id;
+  
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
   
   const response = await axios.post(`${API_URL}/admin/complaints/${complaintId}/resolve`, 
     resolveData, 
     {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'X-User-Id': userId
+        'X-User-Id': userId.toString()
       }
     }
   );
@@ -101,5 +109,73 @@ export const getComplaintStatistics = async () => {
       'Authorization': `Bearer ${token}`
     }
   });
+  return response.data;
+};
+
+// ============ STAFF ENDPOINTS ============
+
+// Staff completes work on complaint
+export const staffCompleteComplaint = async (complaintId, staffNotes) => {
+  const token = localStorage.getItem('authToken');
+  const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+  const userId = userProfile?.id;
+  
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
+  
+  const response = await axios.post(`${API_URL}/staff/complaints/${complaintId}/complete`, 
+    { staffNotes }, 
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId.toString()
+      }
+    }
+  );
+  return response.data;
+};
+
+// Admin approves staff's work
+export const adminApproveComplaint = async (complaintId, resolution) => {
+  const token = localStorage.getItem('authToken');
+  const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+  const userId = userProfile?.id;
+  
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
+  
+  const response = await axios.post(`${API_URL}/admin/complaints/${complaintId}/approve`, 
+    { resolution }, 
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId.toString()
+      }
+    }
+  );
+  return response.data;
+};
+
+// Admin rejects complaint (not relevant)
+export const adminRejectComplaint = async (complaintId, reason) => {
+  const token = localStorage.getItem('authToken');
+  const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+  const userId = userProfile?.id;
+  
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
+  
+  const response = await axios.post(`${API_URL}/admin/complaints/${complaintId}/reject`, 
+    { reason }, 
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId.toString()
+      }
+    }
+  );
   return response.data;
 };

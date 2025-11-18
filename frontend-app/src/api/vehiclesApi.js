@@ -1,5 +1,5 @@
 // API service for vehicles with pagination
-const API_BASE_URL = 'api/vehicles';
+const API_BASE_URL = '/api/vehicles';
 
 class VehiclesApi {
   async getVehicles(params = {}) {

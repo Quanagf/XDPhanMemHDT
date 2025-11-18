@@ -19,6 +19,7 @@ public class RabbitMQConfig {
     public static final String DOCUMENT_VERIFIED_QUEUE = "document.verified.queue";
     public static final String COMPLAINT_CREATED_QUEUE = "complaint.created.queue";
     public static final String COMPLAINT_ASSIGNED_QUEUE = "complaint.assigned.queue";
+    public static final String COMPLAINT_STAFF_COMPLETED_QUEUE = "complaint.staff.completed.queue";
     public static final String COMPLAINT_RESOLVED_QUEUE = "complaint.resolved.queue";
     
     // Exchange name
@@ -30,6 +31,7 @@ public class RabbitMQConfig {
     public static final String DOCUMENT_VERIFIED_ROUTING_KEY = "document.verified";
     public static final String COMPLAINT_CREATED_ROUTING_KEY = "complaint.created";
     public static final String COMPLAINT_ASSIGNED_ROUTING_KEY = "complaint.assigned";
+    public static final String COMPLAINT_STAFF_COMPLETED_ROUTING_KEY = "complaint.staff.completed";
     public static final String COMPLAINT_RESOLVED_ROUTING_KEY = "complaint.resolved";
     
     @Bean
@@ -50,6 +52,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue complaintAssignedQueue() {
         return new Queue(COMPLAINT_ASSIGNED_QUEUE, true);
+    }
+    
+    @Bean
+    public Queue complaintStaffCompletedQueue() {
+        return new Queue(COMPLAINT_STAFF_COMPLETED_QUEUE, true);
     }
     
     @Bean
@@ -97,6 +104,14 @@ public class RabbitMQConfig {
                 .bind(complaintAssignedQueue())
                 .to(complaintExchange())
                 .with(COMPLAINT_ASSIGNED_ROUTING_KEY);
+    }
+    
+    @Bean
+    public Binding complaintStaffCompletedBinding() {
+        return BindingBuilder
+                .bind(complaintStaffCompletedQueue())
+                .to(complaintExchange())
+                .with(COMPLAINT_STAFF_COMPLETED_ROUTING_KEY);
     }
     
     @Bean

@@ -61,6 +61,9 @@ public class Complaint {
     @Column(name = "assigned_to")
     private Long assignedTo; // ID của staff được giao xử lý
     
+    @Column(name = "admin_notes", columnDefinition = "TEXT")
+    private String adminNotes; // Ghi chú của admin khi phân công
+    
     @Column(columnDefinition = "TEXT")
     private String resolution; // Giải pháp/Phản hồi từ admin/staff
     
@@ -69,6 +72,15 @@ public class Complaint {
     
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt; // Thời gian xử lý xong
+    
+    @Column(name = "staff_completed_at")
+    private LocalDateTime staffCompletedAt; // Thời gian staff đánh dấu hoàn thành
+    
+    @Column(name = "staff_notes", columnDefinition = "TEXT")
+    private String staffNotes; // Ghi chú của staff khi hoàn thành
+    
+    @Column(name = "admin_approved_at")
+    private LocalDateTime adminApprovedAt; // Thời gian admin duyệt
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -99,11 +111,12 @@ public class Complaint {
     }
     
     public enum ComplaintStatus {
-        PENDING,      // Chờ xử lý
-        IN_PROGRESS,  // Đang xử lý
-        RESOLVED,     // Đã giải quyết
-        REJECTED,     // Từ chối
-        CLOSED        // Đóng
+        PENDING,           // Chờ xử lý (admin chưa phân công)
+        IN_PROGRESS,       // Đang xử lý (staff đang làm)
+        STAFF_COMPLETED,   // Staff hoàn thành (chờ admin duyệt)
+        RESOLVED,          // Đã giải quyết (admin đã duyệt)
+        REJECTED,          // Từ chối (admin từ chối)
+        CLOSED             // Đóng
     }
     
     public enum ComplaintPriority {
