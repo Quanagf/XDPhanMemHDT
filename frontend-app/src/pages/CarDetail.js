@@ -191,7 +191,7 @@ const CarDetail = () => {
     }
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!agreeToTerms) {
       alert('Vui lòng đồng ý với các điều khoản để tiếp tục');
       return;
@@ -206,6 +206,36 @@ const CarDetail = () => {
     
     if (!user) {
       setShowLogin(true);
+      return;
+    }
+    
+    // Kiểm tra xác thực GPLX và CCCD
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/verification-status/${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const verification = await response.json();
+        
+        if (!verification.hasVerifiedLicense) {
+          alert('⚠️ Bạn cần xác thực Giấy phép lái xe (GPLX) trước khi đặt xe.\n\nVui lòng vào Trang cá nhân > Upload GPLX và chờ admin xác thực.');
+          navigate('/profile');
+          return;
+        }
+        
+        if (!verification.hasVerifiedIdentity) {
+          alert('⚠️ Bạn cần xác thực Căn cước công dân (CCCD) trước khi đặt xe.\n\nVui lòng vào Trang cá nhân > Upload CCCD và chờ admin xác thực.');
+          navigate('/profile');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi kiểm tra xác thực:', error);
+      alert('Có lỗi xảy ra khi kiểm tra trạng thái xác thực. Vui lòng thử lại sau.');
       return;
     }
     

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -36,6 +36,12 @@ const Profile = () => {
   const [idFile, setIdFile] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
 
+  // State cho verification status
+  const [verificationStatus, setVerificationStatus] = useState({
+    license: null, // { status: 'PENDING'/'APPROVED'/'REJECTED', message: '...' }
+    identity: null
+  });
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,11 +73,11 @@ const Profile = () => {
           address: parsedUser.address || '',
           birthDate: parsedUser.birthDate || '',
           gender: parsedUser.gender || '',
-          facebook: parsedUser.facebook || '',
-
-          licenseNumber: parsedUser.licenseNumber || '',
-          identityNumber: parsedUser.identityNumber || ''
+          facebook: parsedUser.facebook || ''
         });
+        
+        // Lấy trạng thái verification
+        fetchVerificationStatus(authToken);
       } catch (error) {
         console.error('Error parsing user profile:', error);
         localStorage.removeItem('authToken');
@@ -120,10 +126,83 @@ const Profile = () => {
     setIdPreview(objectUrl);
     // Dọn dẹp
     return () => URL.revokeObjectURL(objectUrl);
-  }, [idFile]);
+  }, [idFile]);
   // === KẾT THÚC: THÊM USEEFFECT ĐỂ TẠO PREVIEW HÌNH ===
 
-  
+  // === BẮT ĐẦU: HÀM RELOAD THÔNG TIN USER TỪ SERVER ===
+  const fetchUserData = async (token) => {
+    try {
+      const response = await fetch('/api/users/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        // Cập nhật localStorage
+        localStorage.setItem('userProfile', JSON.stringify(userData));
+        console.log('User data refreshed:', userData);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+  // === KẾT THÚC: HÀM RELOAD THÔNG TIN USER TỪ SERVER ===
+
+  // === BẮT ĐẦU: HÀM LẤY TRẠNG THÁI VERIFICATION ===
+  const fetchVerificationStatus = async (token) => {
+    try {
+      const response = await fetch('/api/users/my-verifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const verifications = await response.json();
+        const newStatus = { license: null, identity: null };
+        let needsUserRefresh = false;
+        
+        verifications.forEach(verification => {
+          const docType = verification.documentType.toLowerCase();
+          
+          if (verification.status === 'PENDING') {
+            newStatus[docType] = {
+              status: 'PENDING',
+              message: 'Đang chờ admin xác thực (trong vòng 2 ngày)'
+            };
+          } else if (verification.status === 'APPROVED') {
+            newStatus[docType] = {
+              status: 'APPROVED',
+              message: 'Đã được xác thực thành công',
+              documentNumber: verification.documentNumber
+            };
+            needsUserRefresh = true; // Đã được approve, cần refresh user data
+          } else if (verification.status === 'REJECTED') {
+            newStatus[docType] = {
+              status: 'REJECTED',
+              message: `Bị từ chối: ${verification.rejectionReason || 'Không rõ lý do'}`,
+              rejectionReason: verification.rejectionReason
+            };
+          }
+        });
+        
+        setVerificationStatus(newStatus);
+        
+        // Nếu có verification được approve, reload user data để cập nhật số GPLX/CCCD
+        if (needsUserRefresh) {
+          await fetchUserData(token);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching verification status:', error);
+    }
+  };
+  // === KẾT THÚC: HÀM LẤY TRẠNG THÁI VERIFICATION ===
+
+    
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
@@ -253,7 +332,7 @@ const handleChangePassword = async () => {
 
   const validateForm = () => {
     const newErrors = {};
-    const { address, birthDate, gender, licenseNumber, identityNumber } = editForm;
+    const { address, birthDate, gender } = editForm;
 
     // Các ràng buộc này nên khớp với backend của bạn
     
@@ -267,16 +346,6 @@ const handleChangePassword = async () => {
     // 2. Giới tính
     if (!gender) {
       newErrors.gender = 'Vui lòng chọn giới tính';
-    }
-
-    // 3. Số GPLX (nếu có nhập thì phải đúng 12 số)
-    if (licenseNumber && !/^[0-9]{12}$/.test(licenseNumber.trim())) {
-      newErrors.licenseNumber = 'Số GPLX phải có đúng 12 chữ số';
-    }
-
-    // 4. Số CCCD (nếu có nhập thì phải đúng 9 hoặc 12 số)
-    if (identityNumber && !/^([0-9]{9}|[0-9]{12})$/.test(identityNumber.trim())) {
-      newErrors.identityNumber = 'Số CCCD phải là 9 hoặc 12 số';
     }
 
     setErrors(newErrors);
@@ -310,13 +379,6 @@ const handleChangePassword = async () => {
       }
       if (editForm.facebook && editForm.facebook.trim()) {
         updateData.facebook = editForm.facebook.trim();
-      }
-
-      if (editForm.licenseNumber && editForm.licenseNumber.trim()) {
-        updateData.licenseNumber = editForm.licenseNumber.trim();
-      }
-      if (editForm.identityNumber && editForm.identityNumber.trim()) {
-        updateData.identityNumber = editForm.identityNumber.trim();
       }
       
       console.log('Sending update request with data:', updateData);
@@ -374,7 +436,7 @@ const handleChangePassword = async () => {
   // === KẾT THÚC: THÊM HÀM TỔNG QUÁT NÀY VÀO ===
 
   // === BẮT ĐẦU: THÊM LẠI HÀM NÀY VÀO ===
-  // Hàm TỔNG QUÁT để upload file (GPLX hoặc CCCD)
+  // Hàm TỔNG QUÁT để upload file (GPLX hoặc CCCD) - CẬP NHẬT MỚI
   const handleFileUpload = async (file, uploadType) => {
     if (!file) {
       alert(`Vui lòng chọn file ${uploadType} để tải lên.`);
@@ -382,22 +444,18 @@ const handleChangePassword = async () => {
     }
 
     const formData = new FormData();
-    formData.append('file', file); // Backend của bạn (và MinIO) sẽ nhận key 'file'
+    formData.append('file', file);
 
-    // Endpoint API - Dùng relative URL qua Nginx proxy
     const endpoint = `/api/users/upload/${uploadType}`;
     const token = localStorage.getItem('authToken');
 
     console.log(`Đang tải lên ${uploadType} đến ${endpoint}`);
-    console.log(`Token: ${token ? token.substring(0, 20) + '...' : 'không'}`);
-    console.log(`Authorization Header: Bearer ${token ? token.substring(0, 20) + '...' : 'không'}`);
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // Không cần 'Content-Type', trình duyệt sẽ tự đặt khi dùng FormData
         },
         body: formData
       });
@@ -405,23 +463,22 @@ const handleChangePassword = async () => {
       console.log(`Response status: ${response.status}`);
 
       if (response.ok) {
-        // Giả sử server trả về thông tin user đã cập nhật (với URL ảnh mới)
-        const updatedUser = await response.json(); 
+        const result = await response.json();
         
-        // Cập nhật state và localStorage
-        setUser(updatedUser);
-        localStorage.setItem('userProfile', JSON.stringify(updatedUser));
-        
-        alert('Tải lên thành công!');
+        alert(result.message || 'Tải lên thành công! Vui lòng chờ trong 2 ngày để admin xác thực.');
         
         // Xóa file và preview sau khi thành công
         if (uploadType === 'license') {
           setLicenseFile(null);
           setLicensePreview(null);
-        } else if (uploadType === 'identity') { // Tên loại này phải khớp với backend
+        } else if (uploadType === 'identity') {
           setIdFile(null);
           setIdPreview(null);
         }
+        
+        // Cập nhật verification status
+        fetchVerificationStatus(token);
+        
       } else {
         const errorText = await response.text();
         console.error('Lỗi khi tải lên:', errorText);
@@ -673,9 +730,25 @@ const handleChangePassword = async () => {
                     Lưu ảnh {doc === 'license' ? 'GPLX' : 'CCCD'}
                   </button>
                 )}
-              </div>
-              {/* === KẾT THÚC PHẦN UPLOAD FILE === */}
 
+                {/* Verification Status */}
+                {verificationStatus[doc] && (
+                  <div className="verification-status" style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    backgroundColor: verificationStatus[doc].status === 'PENDING' ? '#fff3cd' : 
+                                   verificationStatus[doc].status === 'APPROVED' ? '#d4edda' : '#f8d7da',
+                    color: verificationStatus[doc].status === 'PENDING' ? '#856404' : 
+                           verificationStatus[doc].status === 'APPROVED' ? '#155724' : '#721c24',
+                    fontSize: '0.9rem'
+                  }}>
+                    {verificationStatus[doc].status === 'PENDING' && '⏳ Đang chờ admin xác thực (trong vòng 2 ngày)'}
+                    {verificationStatus[doc].status === 'APPROVED' && '✅ Đã được xác thực'}
+                    {verificationStatus[doc].status === 'REJECTED' && `❌ Bị từ chối: ${verificationStatus[doc].rejectionReason || 'Không rõ lý do'}`}
+                  </div>
+                )}
+              </div>
 
               {/* Info Section */}
               <div className="profile-document-info">
@@ -683,32 +756,11 @@ const handleChangePassword = async () => {
                 <div className="profile-document-grid-info">
                   <div className="profile-info-item">
                     <span className="profile-info-label">{doc === 'license' ? 'Số GPLX' : 'Số CCCD'}</span>
-                    {isEditing ? (
-                      // CẬP NHẬT: Thêm Fragment <> để bọc input và span lỗi
-                      <>
-                        <input
-                          type="text"
-                          name={fieldName} // Sử dụng fieldName đã xác định
-                          value={editForm[fieldName]} // Sử dụng fieldName đã xác định
-                          onChange={handleInputChange}
-                          className="profile-info-input"
-                          placeholder="Nhập số giấy tờ..."
-                        />
-
-                        {/* Thêm span báo lỗi */}
-                        {errors[fieldName] && (
-                          <span style={errorStyle}>
-                            {errors[fieldName]}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="profile-info-value">
-                        {doc === 'license' 
-                          ? user.licenseNumber || 'Chưa cung cấp' 
-                          : user.identityNumber || 'Chưa cung cấp'}
-                      </span>
-                    )}
+                    <span className="profile-info-value">
+                      {doc === 'license' 
+                        ? user.licenseNumber || 'Chưa cung cấp' 
+                        : user.identityNumber || 'Chưa cung cấp'}
+                    </span>
                   </div>
                   <div className="profile-info-item">
                     <span className="profile-info-label">Họ và tên</span>
@@ -1131,6 +1183,46 @@ const handleChangePassword = async () => {
 
         {/* Main Content */}
         <div className="profile-content">
+          {/* Thông báo Verification ở đầu trang */}
+          {user && (!user.licenseNumber || !user.identityNumber) && (
+            <div className="verification-alert-banner">
+              <div className="alert-icon">⚠️</div>
+              <div className="alert-content">
+                <h4>Yêu cầu xác thực tài liệu</h4>
+                <p>
+                  {!user.licenseNumber && !user.identityNumber && 
+                    'Bạn cần xác thực GPLX và CCCD để có thể đặt xe.'}
+                  {!user.licenseNumber && user.identityNumber && 
+                    'Bạn cần xác thực GPLX để có thể đặt xe.'}
+                  {user.licenseNumber && !user.identityNumber && 
+                    'Bạn cần xác thực CCCD để có thể đặt xe.'}
+                </p>
+                {!user.licenseNumber && (
+                  <div className="alert-item">
+                    {verificationStatus.license?.status === 'PENDING' ? (
+                      <span className="status-pending">⏳ GPLX: Đang chờ xác thực</span>
+                    ) : verificationStatus.license?.status === 'REJECTED' ? (
+                      <span className="status-rejected">❌ GPLX: Bị từ chối - Vui lòng upload lại</span>
+                    ) : (
+                      <span className="status-none">📄 GPLX: Chưa upload</span>
+                    )}
+                  </div>
+                )}
+                {!user.identityNumber && (
+                  <div className="alert-item">
+                    {verificationStatus.identity?.status === 'PENDING' ? (
+                      <span className="status-pending">⏳ CCCD: Đang chờ xác thực</span>
+                    ) : verificationStatus.identity?.status === 'REJECTED' ? (
+                      <span className="status-rejected">❌ CCCD: Bị từ chối - Vui lòng upload lại</span>
+                    ) : (
+                      <span className="status-none">📄 CCCD: Chưa upload</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {renderContent()}
         </div>
       </main>

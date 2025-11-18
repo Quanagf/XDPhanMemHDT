@@ -7,7 +7,7 @@ services:
     # default 3306:3306
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
@@ -21,11 +21,12 @@ services:
     ports:
       - "8081:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
       - minio # <-- CẬP NHẬT (Phải chờ Minio)
+      - rabbitmq # <-- THÊM MỚI (Phải chờ RabbitMQ)
     networks:
       - ev_network
 
@@ -36,7 +37,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/vehicle_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -50,7 +51,7 @@ services:
     ports:
       - "8083:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/booking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -67,7 +68,7 @@ services:
     ports:
       - "8084:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -81,7 +82,7 @@ services:
     ports:
       - "8085:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: toann01032005
+      MYSQL_ROOT_PASSWORD: Quan11092005@
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/reporting_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -104,7 +105,21 @@ services:
     networks:
       - ev_network
 
-  # 8. Dịch vụ Frontend (CẬP NHẬT)
+  # 8. RABBITMQ-SERVICE (KHỐI MỚI - MESSAGE BROKER)
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # Cổng AMQP (để code giao tiếp)
+      - "15672:15672" # Cổng Management UI (giao diện web)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - ev_network
+
+  # 9. Dịch vụ Frontend (CẬP NHẬT)
   frontend-app:
     build:
       context: ./frontend-app
@@ -130,4 +145,6 @@ volumes:
   mysql-data:
     driver: local
   minio-data: # <-- VOLUME MỚI CHO MINIO
+    driver: local
+  rabbitmq-data: # <-- VOLUME MỚI CHO RABBITMQ
     driver: local

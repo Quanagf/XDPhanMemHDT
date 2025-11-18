@@ -14,6 +14,7 @@ public interface IUserService {
     User register(RegistrationRequest request);
     LoginResponse login(LoginRequest request);
     User getProfile(String username);  // Đổi từ email sang username
+    User findById(Long userId);  // Tìm user theo ID
     User verifyUser(Long userId);
     User banUser(Long userId);
 

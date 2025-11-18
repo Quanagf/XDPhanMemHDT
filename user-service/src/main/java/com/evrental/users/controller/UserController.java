@@ -4,11 +4,13 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,12 +21,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import com.evrental.users.dto.ChangePasswordRequest; // <-- IMPORT MỚI
+import com.evrental.users.dto.DocumentVerificationResponse;
 import com.evrental.users.dto.LoginRequest;
 import com.evrental.users.dto.LoginResponse;
 import com.evrental.users.dto.RegistrationRequest;
 import com.evrental.users.dto.UpdateProfileRequest;
+import com.evrental.users.dto.VerifyDocumentRequest;
+import com.evrental.users.model.DocumentVerification;
+import com.evrental.users.model.DocumentVerification.DocumentType;
 import com.evrental.users.model.User;
+import com.evrental.users.service.DocumentVerificationService;
 import com.evrental.users.service.IFileStorageService;
 import com.evrental.users.service.IUserService;
 
@@ -39,6 +47,7 @@ public class UserController {
     // Chỉ inject (tiêm) Service Interface
     private final IUserService userService;
     private final IFileStorageService fileStorageService;
+    private final DocumentVerificationService documentVerificationService;
 
 
 
@@ -71,6 +80,23 @@ public class UserController {
     public ResponseEntity<User> getMyProfile(Principal principal) {
         String username = principal.getName();  // Lấy username từ JWT token
         return ResponseEntity.ok(userService.getProfile(username));
+    }
+    
+    // === API KIỂM TRA VERIFICATION STATUS (cho Booking Service) ===
+    @GetMapping("/verification-status/{userId}")
+    public ResponseEntity<Map<String, Object>> getUserVerificationStatus(@PathVariable Long userId) {
+        User user = userService.findById(userId);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("username", user.getUsername());
+        response.put("fullName", user.getFullName());
+        response.put("licenseNumber", user.getLicenseNumber());
+        response.put("identityNumber", user.getIdentityNumber());
+        response.put("hasVerifiedLicense", user.getLicenseNumber() != null && !user.getLicenseNumber().isEmpty());
+        response.put("hasVerifiedIdentity", user.getIdentityNumber() != null && !user.getIdentityNumber().isEmpty());
+        
+        return ResponseEntity.ok(response);
     }
 
     // === API CẬP NHẬT THÔNG TIN CÁ NHÂN ===
@@ -106,43 +132,118 @@ public class UserController {
     }
 
 
+    // === API UPLOAD DOCUMENT (CẬP NHẬT MỚI) ===
     @PostMapping("/upload/{uploadType}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<User> handleFileUpload(
+    public ResponseEntity<?> handleFileUpload(
             @PathVariable("uploadType") String uploadType, 
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Principal principal) {
         
-        // 1. Lấy thông tin user hiện tại
-        User currentUser = userService.getCurrentUser(); 
-        
-        // 2. TẠO TÊN FILE DUY NHẤT (objectName)
-        // Cách tốt nhất là tạo một "đường dẫn" ảo để quản lý file
-        // Cấu trúc: [loại_file]/[userId]/[UUID]-[tên_file_gốc]
-        // Ví dụ: "license/123/a1b2c3d4-e5f6-abc.jpg"
-        
-        String originalFileName = file.getOriginalFilename();
-        String uniqueFileName = UUID.randomUUID().toString() + "-" + originalFileName;
-        
-        // objectName sẽ là đường dẫn đầy đủ trên MinIO
-        String objectName = uploadType + "/" + currentUser.getId() + "/" + uniqueFileName;
-
-        // 3. Gọi service upload với 2 tham số
-        String fileUrl = fileStorageService.uploadFile(file, objectName); 
-
-        // 4. Cập nhật URL vào đối tượng user
-        if ("license".equals(uploadType)) {
-            currentUser.setLicenseImage(fileUrl); 
-        } else if ("identity".equals(uploadType)) {
-            currentUser.setIdentityImage(fileUrl); 
-        } else {
-            // Bạn nên có xử lý cho trường hợp uploadType không hợp lệ
-             return ResponseEntity.badRequest().build(); // Hoặc throw exception
+        try {
+            // 1. Lấy thông tin user hiện tại
+            String username = principal.getName();
+            User currentUser = userService.getProfile(username);
+            
+            // 2. Validate uploadType
+            DocumentType documentType;
+            if ("license".equals(uploadType)) {
+                documentType = DocumentType.LICENSE;
+            } else if ("identity".equals(uploadType)) {
+                documentType = DocumentType.IDENTITY;
+            } else {
+                return ResponseEntity.badRequest().body("Invalid upload type");
+            }
+            
+            // 3. Tạo tên file duy nhất và upload vào MinIO
+            String originalFileName = file.getOriginalFilename();
+            String uniqueFileName = UUID.randomUUID().toString() + "-" + originalFileName;
+            String objectName = "pending/" + uploadType + "/" + currentUser.getId() + "/" + uniqueFileName;
+            
+            String fileUrl = fileStorageService.uploadFile(file, objectName);
+            
+            // 4. Tạo verification request
+            DocumentVerification verification = documentVerificationService.createVerificationRequest(
+                currentUser.getId(), 
+                documentType, 
+                fileUrl
+            );
+            
+            // 5. Trả về thông báo cho user
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Tài liệu đã được tải lên. Vui lòng chờ trong 2 ngày để admin xác thực.");
+            response.put("verificationId", verification.getId());
+            response.put("status", verification.getStatus().name());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi tải lên: " + e.getMessage());
         }
+    }
+    
+    // === API LẤY TRẠNG THÁI VERIFICATION CỦA USER ===
+    @GetMapping("/my-verifications")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<DocumentVerificationResponse>> getMyVerifications(Principal principal) {
+        String username = principal.getName();
+        User currentUser = userService.getProfile(username);
+        List<DocumentVerificationResponse> verifications = 
+                documentVerificationService.getUserVerifications(currentUser.getId());
+        return ResponseEntity.ok(verifications);
+    }
+    
+    // === API ADMIN: LẤY TẤT CẢ DOCUMENTS (PENDING, APPROVED, REJECTED) ===
+    @GetMapping("/admin/all-verifications")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<List<DocumentVerificationResponse>> getAllVerifications() {
+        List<DocumentVerificationResponse> allDocs = documentVerificationService.getAllVerifications();
+        return ResponseEntity.ok(allDocs);
+    }
+    
+    // === API ADMIN: LẤY TẤT CẢ DOCUMENTS ĐANG CHỜ XÁC THỰC ===
+    @GetMapping("/admin/pending-verifications")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<List<DocumentVerificationResponse>> getPendingVerifications() {
+        List<DocumentVerificationResponse> pendingDocs = documentVerificationService.getPendingVerifications();
+        return ResponseEntity.ok(pendingDocs);
+    }
+    
+    // === API ADMIN: XÁC THỰC DOCUMENT ===
+    @PostMapping("/admin/verify-document/{verificationId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<?> verifyDocument(
+            @PathVariable Long verificationId,
+            @Valid @RequestBody VerifyDocumentRequest request,
+            Principal principal) {
         
-        // 5. Lưu user đã cập nhật vào DB
-        User updatedUser = userService.save(currentUser); 
-        
-        return ResponseEntity.ok(updatedUser);
+        try {
+            String username = principal.getName();
+            User admin = userService.getProfile(username);
+            
+            DocumentVerification verification = documentVerificationService.verifyDocument(
+                verificationId, 
+                request, 
+                admin.getId()
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Document đã được " + 
+                    (verification.getStatus().name().equals("APPROVED") ? "xác thực" : "từ chối"));
+            response.put("verificationId", verification.getId());
+            response.put("status", verification.getStatus().name());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi xác thực: " + e.getMessage());
+        }
     }
 
     // === API ADMIN TẠO TÀI KHOẢN STAFF ===

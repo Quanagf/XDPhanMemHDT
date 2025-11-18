@@ -21,14 +21,6 @@ public class UpdateProfileRequest {
     @Size(max = 255)
     private String facebook;
     
-    // Yêu cầu 12 số cho GPLX
-    @Size(min = 12, max = 12, message = "Số giấy phép lái xe phải có đúng 12 ký tự")
-    @Pattern(regexp = "^[0-9]*$", message = "Số giấy phép lái xe chỉ được chứa số")
-    private String licenseNumber;
-
-    // Yêu cầu 9 hoặc 12 số cho CMND/CCCD
-    @Pattern(regexp = "^([0-9]{9}|[0-9]{12})$", message = "Số CMND/CCCD phải là 9 hoặc 12 số")
-    private String identityNumber;
-    // email và phoneNumber không cho phép sửa - lấy từ CSDL
+    // email, phoneNumber, licenseNumber và identityNumber không cho phép sửa - lấy từ CSDL
     // licenseNumber và identityNumber sẽ được cập nhật qua API upload riêng
 }

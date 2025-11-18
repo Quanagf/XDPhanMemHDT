@@ -106,6 +106,17 @@ const AdminDashboard = () => {
               </span>
               Báo cáo & phân tích
             </button>
+            <button 
+              className={`admin-nav-item ${activeTab === 'documents' ? 'active' : ''}`}
+              onClick={() => setActiveTab('documents')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H13V12L11,16H14V19H10Z"/>
+                </svg>
+              </span>
+              Xác thực tài liệu
+            </button>
             
             {/* Nút đăng xuất */}
             <button 
@@ -129,6 +140,7 @@ const AdminDashboard = () => {
           {activeTab === 'staff' && <StaffManagement />}
           {activeTab === 'stations' && <StationManagement />}
           {activeTab === 'reports' && <ReportsAnalytics />}
+          {activeTab === 'documents' && <DocumentVerification />}
         </main>
       </div>
     </div>
@@ -1670,6 +1682,315 @@ const ReportsAnalytics = () => {
           <p>Biểu đồ đường sẽ được hiển thị ở đây</p>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Component: Xác thực tài liệu
+const DocumentVerification = () => {
+  const [allDocs, setAllDocs] = useState([]);
+  const [filteredDocs, setFilteredDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [filters, setFilters] = useState({
+    documentType: 'ALL', // ALL, LICENSE, IDENTITY
+    status: 'PENDING' // PENDING, APPROVED, REJECTED, ALL
+  });
+  const [verifyForm, setVerifyForm] = useState({
+    documentNumber: '',
+    action: 'APPROVED',
+    rejectionReason: ''
+  });
+
+  useEffect(() => {
+    fetchAllDocuments();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, allDocs]);
+
+  const fetchAllDocuments = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/users/admin/all-verifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAllDocs(data);
+      } else {
+        console.error('Failed to fetch documents');
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...allDocs];
+
+    // Lọc theo loại tài liệu
+    if (filters.documentType !== 'ALL') {
+      filtered = filtered.filter(doc => doc.documentType === filters.documentType);
+    }
+
+    // Lọc theo trạng thái
+    if (filters.status !== 'ALL') {
+      filtered = filtered.filter(doc => doc.status === filters.status);
+    }
+
+    setFilteredDocs(filtered);
+  };
+
+  const handleVerify = async (verificationId) => {
+    // Chỉ validate documentNumber khi APPROVED
+    if (verifyForm.action === 'APPROVED' && !verifyForm.documentNumber.trim()) {
+      alert('Vui lòng nhập số giấy tờ khi xác thực');
+      return;
+    }
+
+    if (verifyForm.action === 'REJECTED' && !verifyForm.rejectionReason.trim()) {
+      alert('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/admin/verify-document/${verificationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(verifyForm)
+      });
+
+      if (response.ok) {
+        alert(`Đã ${verifyForm.action === 'APPROVED' ? 'xác thực' : 'từ chối'} tài liệu thành công!`);
+        setSelectedDoc(null);
+        setVerifyForm({
+          documentNumber: '',
+          action: 'APPROVED',
+          rejectionReason: ''
+        });
+        fetchAllDocuments();
+      } else {
+        const error = await response.text();
+        alert(`Lỗi: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error verifying document:', error);
+      alert('Có lỗi xảy ra khi xác thực tài liệu');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      PENDING: { text: 'Chờ xác thực', class: 'pending' },
+      APPROVED: { text: 'Đã xác thực', class: 'approved' },
+      REJECTED: { text: 'Đã từ chối', class: 'rejected' }
+    };
+    return badges[status] || badges.PENDING;
+  };
+
+  const getStatusCount = (status) => {
+    if (status === 'ALL') return allDocs.length;
+    return allDocs.filter(doc => doc.status === status).length;
+  };
+
+  const getDocTypeCount = (type) => {
+    if (type === 'ALL') return allDocs.length;
+    return allDocs.filter(doc => doc.documentType === type).length;
+  };
+
+  if (loading) {
+    return <div className="loading-state">Đang tải...</div>;
+  }
+
+  return (
+    <div className="document-verification-container">
+      <div className="section-header">
+        <h2>Xác thực tài liệu</h2>
+        <p className="subtitle">Tổng số: {allDocs.length} tài liệu</p>
+      </div>
+
+      {/* Filters */}
+      <div className="doc-filters">
+        <div className="filter-group">
+          <label>Loại tài liệu:</label>
+          <div className="filter-buttons">
+            <button 
+              className={`filter-btn ${filters.documentType === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, documentType: 'ALL'})}
+            >
+              Tất cả ({getDocTypeCount('ALL')})
+            </button>
+            <button 
+              className={`filter-btn ${filters.documentType === 'LICENSE' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, documentType: 'LICENSE'})}
+            >
+              GPLX ({getDocTypeCount('LICENSE')})
+            </button>
+            <button 
+              className={`filter-btn ${filters.documentType === 'IDENTITY' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, documentType: 'IDENTITY'})}
+            >
+              CCCD ({getDocTypeCount('IDENTITY')})
+            </button>
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <label>Trạng thái:</label>
+          <div className="filter-buttons">
+            <button 
+              className={`filter-btn ${filters.status === 'PENDING' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, status: 'PENDING'})}
+            >
+              Chờ xác thực ({getStatusCount('PENDING')})
+            </button>
+            <button 
+              className={`filter-btn ${filters.status === 'APPROVED' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, status: 'APPROVED'})}
+            >
+              Đã xác thực ({getStatusCount('APPROVED')})
+            </button>
+            <button 
+              className={`filter-btn ${filters.status === 'REJECTED' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, status: 'REJECTED'})}
+            >
+              Đã từ chối ({getStatusCount('REJECTED')})
+            </button>
+            <button 
+              className={`filter-btn ${filters.status === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilters({...filters, status: 'ALL'})}
+            >
+              Tất cả ({getStatusCount('ALL')})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {filteredDocs.length === 0 ? (
+        <div className="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="#94a3b8">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H13V12L11,16H14V19H10Z"/>
+          </svg>
+          <p>Không có tài liệu nào</p>
+        </div>
+      ) : (
+        <div className="documents-grid-compact">
+          {filteredDocs.map((doc) => {
+            const statusBadge = getStatusBadge(doc.status);
+            return (
+              <div key={doc.id} className="document-card-compact">
+                <div className="doc-image-compact">
+                  <img 
+                    src={doc.imageUrl} 
+                    alt={doc.documentType}
+                    onClick={() => window.open(doc.imageUrl, '_blank')}
+                  />
+                  <span className={`status-tag ${statusBadge.class}`}>
+                    {statusBadge.text}
+                  </span>
+                </div>
+
+                <div className="doc-details-compact">
+                  <div className="doc-title-row">
+                    <strong>{doc.documentType === 'LICENSE' ? '🚗 GPLX' : '🪪 CCCD'}</strong>
+                    <span className="doc-date">{new Date(doc.createdAt).toLocaleDateString('vi-VN')}</span>
+                  </div>
+                  
+                  <div className="doc-info-compact">
+                    <p><strong>{doc.fullName}</strong> (@{doc.username})</p>
+                    {doc.status === 'REJECTED' && doc.rejectionReason && (
+                      <p className="rejection-reason">❌ {doc.rejectionReason}</p>
+                    )}
+                  </div>
+
+                  {doc.status === 'PENDING' && (
+                    selectedDoc === doc.id ? (
+                      <div className="verify-form-compact">
+                        {verifyForm.action === 'APPROVED' && (
+                          <input
+                            type="text"
+                            value={verifyForm.documentNumber}
+                            onChange={(e) => setVerifyForm({...verifyForm, documentNumber: e.target.value})}
+                            placeholder={`Số ${doc.documentType === 'LICENSE' ? 'GPLX' : 'CCCD'}`}
+                            maxLength={12}
+                          />
+                        )}
+
+                        <select
+                          value={verifyForm.action}
+                          onChange={(e) => setVerifyForm({...verifyForm, action: e.target.value})}
+                        >
+                          <option value="APPROVED">✓ Xác thực</option>
+                          <option value="REJECTED">✗ Từ chối</option>
+                        </select>
+
+                        {verifyForm.action === 'REJECTED' && (
+                          <textarea
+                            value={verifyForm.rejectionReason}
+                            onChange={(e) => setVerifyForm({...verifyForm, rejectionReason: e.target.value})}
+                            placeholder="Lý do từ chối..."
+                            rows="2"
+                          />
+                        )}
+
+                        <div className="form-actions-compact">
+                          <button 
+                            className="btn-confirm"
+                            onClick={() => handleVerify(doc.id)}
+                          >
+                            {verifyForm.action === 'APPROVED' ? 'Xác thực' : 'Từ chối'}
+                          </button>
+                          <button 
+                            className="btn-cancel"
+                            onClick={() => {
+                              setSelectedDoc(null);
+                              setVerifyForm({
+                                documentNumber: '',
+                                action: 'APPROVED',
+                                rejectionReason: ''
+                              });
+                            }}
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button 
+                        className="btn-action-compact"
+                        onClick={() => {
+                          setSelectedDoc(doc.id);
+                          const currentNumber = doc.documentType === 'LICENSE' 
+                            ? doc.currentLicenseNumber 
+                            : doc.currentIdentityNumber;
+                          setVerifyForm({
+                            documentNumber: currentNumber || '',
+                            action: 'APPROVED',
+                            rejectionReason: ''
+                          });
+                        }}
+                      >
+                        Xác thực ngay
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

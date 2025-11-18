@@ -1123,3 +1123,72 @@
     font-size: 0.85rem;
   }
 }
+
+/* Verification Alert Banner */
+.verification-alert-banner {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+.verification-alert-banner .alert-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.verification-alert-banner .alert-content {
+  flex: 1;
+}
+
+.verification-alert-banner .alert-content h4 {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.verification-alert-banner .alert-content p {
+  margin: 0 0 1rem 0;
+  color: #856404;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.verification-alert-banner .alert-item {
+  margin: 0.5rem 0;
+}
+
+.verification-alert-banner .status-pending {
+  color: #ff9800;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.verification-alert-banner .status-rejected {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.verification-alert-banner .status-none {
+  color: #666;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .verification-alert-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .verification-alert-banner .alert-icon {
+    font-size: 1.5rem;
+  }
+}

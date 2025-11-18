@@ -61,7 +61,33 @@ public class BookingServiceImpl implements IBookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Xe không sẵn sàng (Not Available).");
         }
         
-        // TODO: GỌI API SANG USER-SERVICE ĐỂ KIỂM TRA USER
+        // --- KIỂM TRA USER ĐÃ XÁC THỰC GPLX VÀ CCCD CHƯA ---
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> userVerification = restTemplate.getForObject(
+                userServiceUrl + "/api/users/verification-status/" + userId,
+                java.util.Map.class
+            );
+            
+            if (userVerification == null) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể kiểm tra trạng thái xác thực người dùng.");
+            }
+            
+            Boolean hasVerifiedLicense = (Boolean) userVerification.get("hasVerifiedLicense");
+            Boolean hasVerifiedIdentity = (Boolean) userVerification.get("hasVerifiedIdentity");
+            
+            if (hasVerifiedLicense == null || !hasVerifiedLicense) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn cần xác thực Giấy phép lái xe (GPLX) trước khi đặt xe.");
+            }
+            
+            if (hasVerifiedIdentity == null || !hasVerifiedIdentity) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn cần xác thực Căn cước công dân (CCCD) trước khi đặt xe.");
+            }
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi kiểm tra trạng thái xác thực: " + e.getMessage());
+        }
 
         // --- BƯỚC 3: TẠO BOOKING MỚI ---
         Booking booking = Booking.builder()

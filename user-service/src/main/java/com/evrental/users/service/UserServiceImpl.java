@@ -124,6 +124,12 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
+    public User findById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    @Override
     public User verifyUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -160,14 +166,7 @@ public class UserServiceImpl implements IUserService {
         
         user.setFacebook(request.getFacebook());
 
-        if (request.getLicenseNumber() != null) {
-            user.setLicenseNumber(request.getLicenseNumber());
-        }
-
-        if (request.getIdentityNumber() != null) {
-            user.setIdentityNumber(request.getIdentityNumber());
-        }
-        // Lưu ý: email, phoneNumber, username không cho phép sửa 
+        // Lưu ý: email, phoneNumber, username, licenseNumber, identityNumber không cho phép sửa 
 
         // 3. Lưu và trả về
         return userRepository.save(user);
