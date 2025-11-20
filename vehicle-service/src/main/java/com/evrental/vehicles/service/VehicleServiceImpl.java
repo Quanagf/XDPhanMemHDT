@@ -40,6 +40,12 @@ public class VehicleServiceImpl implements IVehicleService {
         Station station = stationRepository.findById(request.getStationId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Station not found"));
 
+        // Kiểm tra biển số đã tồn tại
+        if (vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Biển số xe '" + request.getLicensePlate() + "' đã tồn tại trong hệ thống");
+        }
+
         Vehicle vehicle = new Vehicle();
         vehicle.setLicensePlate(request.getLicensePlate());
         vehicle.setType(request.getType());
@@ -67,7 +73,24 @@ public class VehicleServiceImpl implements IVehicleService {
         
         vehicle.setStation(station);
 
-        return vehicleRepository.save(vehicle);
+        try {
+            return vehicleRepository.save(vehicle);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            String message = e.getMessage();
+            if (message != null && (message.contains("Duplicate entry") || message.contains("duplicate"))) {
+                if (message.contains("license_plate") || message.contains("UK9vovnbiegxevdhqfcwvp2g8pj")) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                        "Biển số xe '" + request.getLicensePlate() + "' đã tồn tại trong hệ thống");
+                }
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Thông tin xe đã tồn tại trong hệ thống");
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Lỗi dữ liệu: " + e.getMostSpecificCause().getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Lỗi khi tạo xe: " + e.getMessage());
+        }
     }
 
     @Override

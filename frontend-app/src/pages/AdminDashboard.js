@@ -256,6 +256,24 @@ const VehicleManagement = () => {
 
   const handleAddOrUpdate = async (e) => {
     e.preventDefault();
+    
+    // Validate license plate format
+    if (!form.licensePlate || form.licensePlate.trim() === '') {
+      alert('Vui lòng nhập biển số xe.');
+      return;
+    }
+    
+    // Check for duplicate license plate in current vehicles list (client-side check)
+    if (!editing) {
+      const duplicateVehicle = vehicles.find(v => 
+        v.licensePlate && v.licensePlate.toUpperCase() === form.licensePlate.toUpperCase()
+      );
+      if (duplicateVehicle) {
+        alert(`Biển số xe "${form.licensePlate}" đã tồn tại trong hệ thống. Vui lòng sử dụng biển số khác.`);
+        return;
+      }
+    }
+    
     try {
       const payload = {
         licensePlate: form.licensePlate,
@@ -320,7 +338,28 @@ const VehicleManagement = () => {
       fetchVehicles();
     } catch (err) {
       console.error('handleAddOrUpdate', err);
-      alert('Lỗi khi lưu xe: ' + (err.message || err.toString()));
+      
+      // Parse error message for user-friendly display
+      let userMessage = 'Lỗi khi lưu xe: ';
+      if (err.message) {
+        if (err.message.includes('Biển số xe') && err.message.includes('đã tồn tại')) {
+          userMessage = err.message; // Use the exact message from backend
+        } else if (err.message.includes('Duplicate entry') || err.message.includes('duplicate')) {
+          userMessage = `Biển số xe "${form.licensePlate}" đã tồn tại trong hệ thống. Vui lòng sử dụng biển số khác.`;
+        } else if (err.message.includes('HTTP 400')) {
+          userMessage = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.';
+        } else if (err.message.includes('HTTP 403')) {
+          userMessage = 'Bạn không có quyền thực hiện thao tác này.';
+        } else if (err.message.includes('HTTP 404')) {
+          userMessage = 'Không tìm thấy trạm xe. Vui lòng chọn trạm khác.';
+        } else {
+          userMessage += err.message;
+        }
+      } else {
+        userMessage += 'Vui lòng thử lại.';
+      }
+      
+      alert(userMessage);
     }
   };
 

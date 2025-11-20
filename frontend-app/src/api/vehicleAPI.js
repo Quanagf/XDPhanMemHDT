@@ -41,6 +41,15 @@ const handleResponse = async (response, operation = 'API call') => {
       errorMessage = response.statusText || errorMessage;
     }
     
+    // Log detailed error for debugging
+    console.error('API Error Details:', {
+      operation,
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      errorMessage
+    });
+    
     throw new Error(errorMessage);
   }
   
