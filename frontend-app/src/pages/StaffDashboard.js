@@ -200,46 +200,46 @@ const StaffDashboard = () => {
                   <p style={{ 
                     margin: 0, 
                     fontSize: '13px', 
-                    color: '#666',
+                    color: '#ffffff',
                     fontWeight: '500'
-                  }}>Trạm được phân công:</p>
+                  }}></p>
                   <p style={{ 
                     margin: '4px 0 0 0', 
                     fontSize: '14px', 
                     fontWeight: '600',
                     color: '#2196F3'
                   }}>
-                    🏢 {assignedStation.name}
+                    Trạm:{assignedStation.name}
                   </p>
                   <p style={{ 
                     margin: '2px 0 0 0', 
                     fontSize: '12px', 
-                    color: '#888'
+                    color: '#ffffff'
                   }}>
                     📍 {assignedStation.address}, {assignedStation.province}
                   </p>
                 </div>
               ) : user.stationId ? (
                 <p style={{
-                  background: 'rgba(255, 193, 7, 0.1)',
+                  background: 'rgba(33, 150, 243, 0.1)',
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  border: '1px solid rgba(255, 193, 7, 0.3)',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
                   color: '#f57c00',
                   fontSize: '13px',
-                  margin: '8px 0 0 0'
+                  margin: '8px 0'
                 }}>
-                  🏢 Trạm #{user.stationId} (Đang tải thông tin...)
+                  Đang tải thông tin...
                 </p>
               ) : (
                 <p style={{
-                  background: 'rgba(158, 158, 158, 0.1)',
+                  background: 'rgba(33, 150, 243, 0.1)',
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  border: '1px solid rgba(158, 158, 158, 0.3)',
-                  color: '#666',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
+                  color: '#ffffff',
                   fontSize: '13px',
-                  margin: '8px 0 0 0'
+                  margin: '8px 0'
                 }}>
                   ⚠️ Chưa được phân công trạm
                 </p>
@@ -525,13 +525,6 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     <div className="staff-section" data-tab={handoverType}>
       <div className="section-header">
         <h1>Quản lý giao - nhận xe</h1>
-        {assignedStation && (
-          <div className="station-info">
-            <span className="station-badge">
-              🏢 {assignedStation.name} - {assignedStation.province}
-            </span>
-          </div>
-        )}
       </div>
       
       {/* Tab Switch */}
@@ -952,13 +945,6 @@ const CustomerVerification = ({ assignedStation }) => {
     <div className="staff-section">
       <div className="section-header">
         <h1>Xác thực khách hàng</h1>
-        {assignedStation && (
-          <div className="station-info">
-            <span className="station-badge">
-              🏢 {assignedStation.name} - {assignedStation.province}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="verification-card">
@@ -1100,13 +1086,6 @@ const PaymentManagement = ({ assignedStation }) => {
     <div className="staff-section">
       <div className="section-header">
         <h1>Thanh toán tại điểm</h1>
-        {assignedStation && (
-          <div className="station-info">
-            <span className="station-badge">
-              🏢 {assignedStation.name} - {assignedStation.province}
-            </span>
-          </div>
-        )}
       </div>
       
       <div className="stats-grid">
@@ -1432,13 +1411,6 @@ const VehicleMaintenance = ({ assignedStation }) => {
     <div className="staff-section">
       <div className="section-header">
         <h1>Quản lý xe tại điểm</h1>
-        {assignedStation && (
-          <div className="station-info">
-            <span className="station-badge">
-              🏢 {assignedStation.name} - {assignedStation.province}
-            </span>
-          </div>
-        )}
       </div>
 
       {error && (
@@ -1598,51 +1570,6 @@ const VehicleMaintenance = ({ assignedStation }) => {
                         
                         <div className="details-content">
                           <div className="details-section">
-                            <h5>Tình trạng kỹ thuật</h5>
-                            <div className="details-grid">
-                              <div className="detail-row">
-                                <span className="label">Trạng thái kỹ thuật:</span>
-                                <span className={`value ${
-                                  v.technicalCondition === 'excellent' ? 'text-green-600' :
-                                  v.technicalCondition === 'good' ? 'text-blue-600' :
-                                  v.technicalCondition === 'fair' ? 'text-yellow-600' :
-                                  v.technicalCondition === 'poor' ? 'text-red-600' : ''
-                                }`}>
-                                  {v.technicalCondition === 'excellent' ? 'Tuyệt vời' :
-                                   v.technicalCondition === 'good' ? 'Tốt' :
-                                   v.technicalCondition === 'fair' ? 'Trung bình' :
-                                   v.technicalCondition === 'poor' ? 'Kém' : 'Chưa đánh giá'}
-                                </span>
-                              </div>
-                              <div className="detail-row">
-                                <span className="label">Mức pin hiện tại:</span>
-                                <span className={`value ${
-                                  v.batteryLevel >= 60 ? 'text-green-600' :
-                                  v.batteryLevel >= 30 ? 'text-yellow-600' : 
-                                  'text-red-600'
-                                }`}>
-                                  {v.batteryLevel != null ? `${v.batteryLevel}%` : 'N/A'}
-                                </span>
-                              </div>
-                              <div className="detail-row">
-                                <span className="label">Ghi chú bảo trì:</span>
-                                <span className="value">{v.maintenanceNotes || 'Không có ghi chú'}</span>
-                              </div>
-                              <div className="detail-row">
-                                <span className="label">Ngày bảo trì cuối:</span>
-                                <span className="value">{
-                                  v.lastMaintenanceDate ? 
-                                    new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN', {
-                                      day: '2-digit',
-                                      month: '2-digit', 
-                                      year: 'numeric'
-                                    }) : 'Chưa bảo trì'
-                                }</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="details-section">
                             <h5>Thông số kỹ thuật</h5>
                             <div className="details-grid">
                               <div className="detail-row">
@@ -1686,6 +1613,39 @@ const VehicleMaintenance = ({ assignedStation }) => {
                               <div className="detail-row">
                                 <span className="label">Mô tả:</span>
                                 <span className="value">{v.description || 'N/A'}</span>
+                              </div>
+                            </div>
+                            
+                            <h6 style={{ marginTop: '16px', marginBottom: '12px', color: '#6366f1', fontWeight: '600', fontSize: '14px' }}>Tình trạng kỹ thuật</h6>
+                            <div className="details-grid">
+                              <div className="detail-row">
+                                <span className="label">Trạng thái kỹ thuật:</span>
+                                <span className={`value ${
+                                  v.technicalCondition === 'excellent' ? 'text-green-600' :
+                                  v.technicalCondition === 'good' ? 'text-blue-600' :
+                                  v.technicalCondition === 'fair' ? 'text-yellow-600' :
+                                  v.technicalCondition === 'poor' ? 'text-red-600' : ''
+                                }`}>
+                                  {v.technicalCondition === 'excellent' ? 'Tuyệt vời' :
+                                   v.technicalCondition === 'good' ? 'Tốt' :
+                                   v.technicalCondition === 'fair' ? 'Trung bình' :
+                                   v.technicalCondition === 'poor' ? 'Kém' : 'Chưa đánh giá'}
+                                </span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Ghi chú bảo trì:</span>
+                                <span className="value">{v.maintenanceNotes || 'Không có ghi chú'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="label">Ngày bảo trì cuối:</span>
+                                <span className="value">{
+                                  v.lastMaintenanceDate ? 
+                                    new Date(v.lastMaintenanceDate).toLocaleDateString('vi-VN', {
+                                      day: '2-digit',
+                                      month: '2-digit', 
+                                      year: 'numeric'
+                                    }) : 'Chưa bảo trì'
+                                }</span>
                               </div>
                             </div>
                           </div>
@@ -2079,14 +2039,7 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
     <div className="staff-content">
       <div className="content-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h2>Khiếu nại được phân công</h2>
-          {assignedStation && (
-            <div className="station-info">
-              <span className="station-badge">
-                🏢 {assignedStation.name} - {assignedStation.province}
-              </span>
-            </div>
-          )}
+          <h1>Khiếu nại được phân công</h1>
         </div>
         <p style={{ color: '#666', marginTop: '8px' }}>Danh sách khiếu nại bạn cần xử lý</p>
       </div>

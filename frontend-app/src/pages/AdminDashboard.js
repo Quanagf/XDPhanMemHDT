@@ -413,7 +413,7 @@ const VehicleManagement = () => {
               <th>Pin (%)</th>
               <th>Trạng thái</th>
               <th>Giá/giờ</th>
-              <th>Hành động</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -1055,7 +1055,7 @@ const CustomerManagement = () => {
                 <th>Điểm rủi ro</th>
                 <th>Trạng thái</th>
                 <th>Khiếu nại</th>
-                <th>Hành động</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -1082,7 +1082,9 @@ const CustomerManagement = () => {
                       onClick={() => openRiskForm(customer)}
                       title="Thêm điểm rủi ro"
                     >
-                      ⚠️
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M1,21H23L12,2M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/>
+                      </svg>
                     </button>
                     <button 
                       className="admin-btn-action"
@@ -1090,14 +1092,18 @@ const CustomerManagement = () => {
                       title="Reset điểm rủi ro"
                       disabled={customer.riskPoints === 0}
                     >
-                      🔄
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                      </svg>
                     </button>
                     <button 
                       className="admin-btn-action delete"
                       onClick={() => handleDeleteCustomer(customer.id)}
                       title="Xóa khách hàng"
                     >
-                      🗑️
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                        <path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H10V19H8V9M14,9H16V19H14V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/>
+                      </svg>
                     </button>
                   </td>
                 </tr>
@@ -1118,7 +1124,7 @@ const CustomerManagement = () => {
             <div className="customer-info">
               <p><strong>Điểm rủi ro hiện tại:</strong> {selectedCustomer.riskPoints}/3</p>
               <p><strong>Trạng thái:</strong> 
-                <span className={`badge ${selectedCustomer.isRisky ? 'badge-danger' : 'badge-success'}`}>
+                <span className={`badge ${selectedCustomer.isRisky ? 'badge-danger' : 'badge-success'}`} style={{marginLeft: '8px'}}>
                   {selectedCustomer.isRisky ? 'Rủi ro' : 'Tốt'}
                 </span>
               </p>
@@ -1155,7 +1161,26 @@ const CustomerManagement = () => {
               </div>
               <div className="form-actions">
                 <button type="submit" className="admin-btn-primary">Thêm điểm rủi ro (+1)</button>
-                <button type="button" className="admin-btn-secondary" onClick={() => setShowRiskForm(false)}>
+                <button type="button" className="admin-btn-close" onClick={() => setShowRiskForm(false)} style={{
+                  padding: '0.5rem 1rem', 
+                  fontSize: '0.9rem', 
+                  fontWeight: '500', 
+                  background: '#6b7280', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = '#4b5563';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = '#6b7280';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+                >
                   Đóng
                 </button>
               </div>
@@ -1200,6 +1225,8 @@ const StaffManagement = () => {
   const [stations, setStations] = React.useState([]);
   const [showCreateForm, setShowCreateForm] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState(null);
+  const [showDetailModal, setShowDetailModal] = React.useState(false);
+  const [selectedUser, setSelectedUser] = React.useState(null);
   const [formData, setFormData] = React.useState({
     fullName: '',
     username: '',
@@ -1478,72 +1505,239 @@ const StaffManagement = () => {
         <table className="staff-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Họ tên</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Số điện thoại</th>
-              <th>Role</th>
-              <th>Trạm</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
+              <th style={{ padding: '0.6rem 1.2rem', minWidth: '80px', whiteSpace: 'nowrap' }}>Chi tiết</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '70px' }}>ID</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '160px' }}>Tên</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '180px' }}>Email</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '130px' }}>SĐT</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '100px', textAlign: 'center' }}>Role</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '150px' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {users.map(user => (
-              <tr key={user.id}>
-                <td>#{user.id}</td>
-                <td>{user.fullName}</td>
-                <td>{user.username}</td>
-                <td>{user.email}</td>
-                <td>{user.phoneNumber || 'N/A'}</td>
-                <td>
+              <tr key={user.id} style={{ fontSize: '0.85rem' }}>
+                <td style={{ textAlign: 'center', width: '80px', padding: '0.5rem 1.2rem' }}>
+                  <button 
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setShowDetailModal(true);
+                    }}
+                    style={{ 
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      padding: '0.4rem',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      lineHeight: '1',
+                      transition: 'color 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.color = '#374151';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.color = '#6b7280';
+                    }}
+                    title="Xem chi tiết nhân viên"
+                  >
+                    ⋮
+                  </button>
+                </td>
+                <td style={{ fontWeight: '500', color: '#6b7280', padding: '0.5rem 1rem' }}>#{user.id}</td>
+                <td style={{ fontWeight: '600', padding: '0.5rem 1rem' }}>{user.fullName}</td>
+                <td style={{ padding: '0.5rem 1rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</td>
+                <td style={{ padding: '0.5rem 1rem' }}>{user.phoneNumber || 'N/A'}</td>
+                <td style={{ padding: '0.5rem 1rem', textAlign: 'center' }}>
                   <span className={`badge ${
                     user.role === 'ADMIN' ? 'badge-danger' :
                     user.role === 'STAFF' ? 'badge-info' :
                     'badge-success'
-                  }`}>
+                  }`} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
                     {user.role}
                   </span>
                 </td>
-                <td>
-                  {user.stationId ? (
-                    <span style={{ color: '#2196F3', fontWeight: '600' }}>
-                      🏢 {stations.find(s => s.id === user.stationId)?.name || `Station #${user.stationId}`}
-                    </span>
-                  ) : (
-                    <span style={{ color: '#999' }}>Chưa có trạm</span>
-                  )}
-                </td>
-                <td>
-                  <span className={`badge ${
-                    user.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'
-                  }`}>
-                    {user.status}
-                  </span>
-                </td>
-                <td>
-                  <button 
-                    className="admin-btn-action"
-                    onClick={() => handleChangeRole(user.id, user.role)}
-                  >
-                    Đổi role
-                  </button>
-                  {user.role === 'STAFF' && (
+                <td style={{ padding: '0.5rem 1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <button 
                       className="admin-btn-action"
-                      onClick={() => handleUpdateStation(user)}
-                      style={{ marginLeft: '8px', background: '#2196F3' }}
+                      onClick={() => handleChangeRole(user.id, user.role)}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                     >
-                      Cập nhật trạm
+                      Đổi role
                     </button>
-                  )}
+                    {user.role === 'STAFF' && (
+                      <button 
+                        className="admin-btn-action"
+                        onClick={() => handleUpdateStation(user)}
+                        style={{ 
+                          marginLeft: '0', 
+                          background: '#2196F3', 
+                          fontSize: '0.75rem', 
+                          padding: '0.25rem 0.5rem' 
+                        }}
+                      >
+                        Cập nhật trạm
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Modal chi tiết nhân viên */}
+      {showDetailModal && selectedUser && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <h2>Chi tiết nhân viên - {selectedUser.fullName}</h2>
+                <p style={{ margin: '0.5rem 0 0 0', color: '#6b7280', fontSize: '0.95rem' }}>
+                  {selectedUser.email}
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '1.5rem' }}>
+              {/* Grid thông tin */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '1.5rem',
+                marginBottom: '1.5rem'
+              }}>
+                {/* Thông tin cá nhân */}
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Thông tin cá nhân
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>ID:</span>
+                      <span style={{ fontWeight: '500' }}>#{selectedUser.id}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Username:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedUser.username}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Số điện thoại:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedUser.phoneNumber || 'N/A'}</span>
+                    </div>
+                    {selectedUser.birthDate && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Ngày sinh:</span>
+                        <span style={{ fontWeight: '500' }}>{selectedUser.birthDate}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thông tin công việc */}
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Thông tin công việc
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Role:</span>
+                      <span className={`badge ${
+                        selectedUser.role === 'ADMIN' ? 'badge-danger' :
+                        selectedUser.role === 'STAFF' ? 'badge-info' :
+                        'badge-success'
+                      }`} style={{ fontSize: '0.8rem' }}>
+                        {selectedUser.role}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Trạng thái:</span>
+                      <span className={`badge ${
+                        selectedUser.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'
+                      }`} style={{ fontSize: '0.8rem' }}>
+                        {selectedUser.status === 'ACTIVE' ? 'HOẠT ĐỘNG' : 'TẠM NGỪNG'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Trạm làm việc:</span>
+                      <span style={{ fontWeight: '500' }}>
+                        {selectedUser.stationId ? (
+                          stations.find(s => s.id === selectedUser.stationId)?.name || `Station #${selectedUser.stationId}`
+                        ) : (
+                          'Chưa có trạm'
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                marginTop: '1.5rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                <button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="admin-btn-action"
+                  style={{
+                    padding: '0.5rem 1rem', 
+                    fontSize: '0.9rem', 
+                    fontWeight: '500', 
+                    background: '#6b7280', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = '#4b5563';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = '#6b7280';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1559,6 +1753,8 @@ const StationManagement = () => {
   const [deletingStationName, setDeletingStationName] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedStation, setSelectedStation] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -1942,76 +2138,73 @@ const StationManagement = () => {
         <table className="staff-table">
           <thead>
             <tr>
-              <th>Tên trạm</th>
-              <th>Địa chỉ</th>
-              <th>Điện thoại</th>
-              <th>Tỉnh/TP</th>
-              <th>Vĩ độ</th>
-              <th>Kinh độ</th>
-              <th>Sức chứa</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th style={{ padding: '0.6rem 1.2rem', minWidth: '80px', whiteSpace: 'nowrap' }}>Chi tiết</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '70px' }}>ID</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '160px' }}>Tên trạm</th>
+              <th style={{ padding: '0.6rem 0.8rem', minWidth: '200px' }}>Địa chỉ</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '110px', textAlign: 'center' }}>Sức chứa</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '130px', textAlign: 'center' }}>Trạng thái</th>
+              <th style={{ padding: '0.6rem 1rem', minWidth: '150px' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {stations.map((station) => (
               <tr key={station.id}>
-                <td style={{ fontWeight: '600' }}>{station.name}</td>
-                <td>{station.address}</td>
-                <td>{station.phoneNumber}</td>
-                <td>{station.province}</td>
-                <td>{station.latitude || '-'}</td>
-                <td>{station.longitude || '-'}</td>
-                <td>
+                <td style={{ textAlign: 'center', width: '80px', padding: '0.5rem 1.2rem' }}>
+                  <button 
+                    onClick={() => {
+                      setSelectedStation(station);
+                      setShowDetailModal(true);
+                    }}
+                    style={{ 
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      padding: '0.4rem',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      lineHeight: '1',
+                      transition: 'color 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.color = '#374151';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.color = '#6b7280';
+                    }}
+                    title="Xem chi tiết trạm"
+                  >
+                    ⋮
+                  </button>
+                </td>
+                <td style={{ fontWeight: '500', color: '#6b7280', padding: '0.5rem 1rem' }}>#{station.id}</td>
+                <td style={{ fontWeight: '600', padding: '0.5rem 1rem', minWidth: '160px' }}>{station.name}</td>
+                <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0.5rem 0.8rem' }}>
+                  {station.address}
+                </td>
+                <td style={{ padding: '0.5rem 1rem', textAlign: 'center' }}>
                   <span className="badge badge-info">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3C15 2.45 14.55 2 14 2H10C9.45 2 9 2.45 9 3V5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01Z"/>
-                    </svg>
                     {station.capacity || 0} xe
                   </span>
                 </td>
-                <td>
+                <td style={{ padding: '0.5rem 1rem', textAlign: 'center' }}>
                   <span className={`badge ${
                     station.status === 'OPEN' ? 'badge-success' : 
                     station.status === 'CLOSED' ? 'badge-danger' : 'badge-warning'
                   }`}>
-                    {station.status === 'OPEN' ? (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                          <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
-                        </svg>
-                        Hoạt động
-                      </>
-                    ) : station.status === 'CLOSED' ? (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                          <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                        </svg>
-                        Đóng cửa
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                          <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
-                        </svg>
-                        Tạm ngừng
-                      </>
-                    )}
+                    {station.status === 'OPEN' ? 'HOẠT ĐỘNG' : 
+                     station.status === 'CLOSED' ? 'ĐÓNG CỬA' : 'TẠM NGỪNG'}
                   </span>
                 </td>
-                <td>
-                  <button onClick={() => handleEdit(station)} className="admin-btn-action">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                      <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
-                    </svg>
-                    Sửa
-                  </button>
-                  <button onClick={() => handleDelete(station)} className="admin-btn-action danger">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '0.3rem'}}>
-                      <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
-                    </svg>
-                    Xóa
-                  </button>
+                <td style={{ padding: '0.5rem 1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button onClick={() => handleEdit(station)} className="admin-btn-action">
+                      Sửa
+                    </button>
+                    <button onClick={() => handleDelete(station)} className="admin-btn-action danger">
+                      Xóa
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -2088,6 +2281,169 @@ const StationManagement = () => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal chi tiết trạm */}
+      {showDetailModal && selectedStation && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <h2>Chi tiết trạm - {selectedStation.name}</h2>
+                <p style={{ margin: '0.5rem 0 0 0', color: '#6b7280', fontSize: '0.95rem' }}>
+                  {selectedStation.address}
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '1.5rem' }}>
+              {/* Grid thông tin */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '1.5rem',
+                marginBottom: '1.5rem'
+              }}>
+                {/* Thông tin liên lạc */}
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Thông tin liên lạc
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>ID:</span>
+                      <span style={{ fontWeight: '500' }}>#{selectedStation.id}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Điện thoại:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedStation.phoneNumber}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Tỉnh/TP:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedStation.province}</span>
+                    </div>
+                    {selectedStation.city && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Quận/Huyện:</span>
+                        <span style={{ fontWeight: '500' }}>{selectedStation.city}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thông tin vận hành */}
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Vận hành
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Sức chứa:</span>
+                      <span className="badge badge-info" style={{ fontSize: '0.8rem' }}>
+                        {selectedStation.capacity || 0} xe
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Trạng thái:</span>
+                      <span className={`badge ${
+                        selectedStation.status === 'OPEN' ? 'badge-success' : 
+                        selectedStation.status === 'CLOSED' ? 'badge-danger' : 'badge-warning'
+                      }`} style={{ fontSize: '0.8rem' }}>
+                        {selectedStation.status === 'OPEN' ? 'HOẠT ĐỘNG' : 
+                         selectedStation.status === 'CLOSED' ? 'ĐÓNG CỬA' : 'TẠM NGỪNG'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+                marginTop: '1.5rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                {selectedStation.latitude && selectedStation.longitude && (
+                  <a 
+                    href={`https://www.google.com/maps?q=${selectedStation.latitude},${selectedStation.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ 
+                      display: 'inline-block',
+                      padding: '0.5rem 1rem',
+                      background: '#10b981',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
+                      transition: 'background 0.2s',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#059669'}
+                    onMouseOut={(e) => e.target.style.background = '#10b981'}
+                  >
+                    Xem trên Google Maps
+                  </a>
+                )}
+                <button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="admin-btn-action"
+                  style={{
+                    padding: '0.5rem 1rem', 
+                    fontSize: '0.9rem', 
+                    fontWeight: '500', 
+                    background: '#6b7280', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = '#4b5563';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = '#6b7280';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
