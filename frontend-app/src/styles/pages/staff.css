@@ -2,15 +2,19 @@
 
 .staff-dashboard {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: block; /* Thay đổi từ flex sang block */
+  position: relative; /* Thêm position relative */
+  margin: 0; /* Loại bỏ margin */
+  padding: 0; /* Loại bỏ padding */
 }
 
 .staff-container {
   display: flex;
-  flex: 1;
+  min-height: 100vh; /* Thay đổi từ flex: 1 sang min-height */
   background-color: #f5f7fa;
   position: relative;
+  margin: 0; /* Loại bỏ margin */
+  padding: 0; /* Loại bỏ padding */
 }
 
 /* Sidebar */
@@ -23,18 +27,21 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0; /* Bắt đầu từ top để không có khoảng trống */
+  top: 0; /* Bắt đầu từ top */
   left: 0;
   height: 100vh; /* Full height */
   z-index: 900; /* Giảm z-index để không che modal */
-  padding-top: 90px; /* Padding để tránh header (90px height) */
+  padding-top: 0; /* Loại bỏ padding-top để sát đầu */
+  overflow: hidden; /* Ngăn sidebar tự cuộn */
 }
 
+/* Header Profile - cố định ở đầu */
 .staff-profile {
   text-align: center;
   padding: 2rem 1.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.03);
+  flex-shrink: 0; /* Không cho shrink */
 }
 
 .staff-avatar {
@@ -88,20 +95,46 @@
   display: inline-block;
 }
 
+/* Navigation Menu - có thể cuộn */
 .staff-nav {
   padding: 1rem 0;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1; /* Chiếm hết không gian còn lại */
   position: relative;
+  overflow-y: auto; /* Cho phép cuộn dọc */
+  overflow-x: hidden; /* Ẩn cuộn ngang */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255,255,255,0.2) transparent; /* Firefox */
 }
 
-/* Sidebar Footer for Logout */
+/* Custom scrollbar cho Webkit browsers */
+.staff-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.staff-nav::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+}
+
+.staff-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.staff-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Sidebar Footer for Logout - cố định ở cuối */
 .sidebar-footer {
-  margin-top: auto;
+  margin-top: 0; /* Không dùng margin-top auto nữa */
   padding: 1rem 0;
   border-top: 1px solid rgba(255,255,255,0.1);
   background: rgba(0,0,0,0.1);
+  flex-shrink: 0; /* Không cho shrink */
 }
 
 /* Logout button styling */
@@ -111,6 +144,7 @@
   margin: 0;
   border-top: none;
   padding-top: 1rem;
+  flex-shrink: 0; /* Đảm bảo logout button không bị ảnh hưởng */
 }
 
 .staff-nav-item {
@@ -172,7 +206,7 @@
   flex: 1;
   margin-left: 280px;
   padding: 2rem;
-  padding-top: calc(90px + 2rem); /* Padding top để tránh header (90px) + spacing */
+  padding-top: 2rem; /* Chỉ padding bình thường, không cần tránh header */
   overflow-y: auto;
   min-height: 100vh;
   background-color: #f5f7fa;
@@ -650,42 +684,7 @@
   font-size: 0.8rem;
 }
 
-/* Responsive cho mobile */
-@media (max-width: 768px) {
-  .verification-header {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .contact-compact {
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-  
-  .verification-actions {
-    align-self: stretch;
-    justify-content: stretch;
-  }
-  
-  .verification-actions .btn-success,
-  .verification-actions .btn-danger {
-    flex: 1;
-    text-align: center;
-  }
-  
-  .document-info {
-    grid-template-columns: 1fr;
-  }
-  
-  .notes-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .btn-small {
-    width: 100%;
-  }
-}
+
 
 .customer-info-grid {
   display: grid;
@@ -1032,29 +1031,7 @@
   border: 2px solid white;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
-  .details-content {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .image-section {
-    grid-column: 1 / -1;
-    justify-self: center;
-    margin-top: 1rem;
-  }
-}
 
-@media (max-width: 768px) {
-  .details-content {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
-  .vehicle-details-container {
-    padding: 1rem;
-  }
-}
 
 /* Status Badge trong table */
 .staff-table .status-badge {
@@ -1340,7 +1317,22 @@
   box-shadow: 0 4px 12px rgba(95, 207, 134, 0.3);
 }
 
-/* Responsive Design */
+/* ====================== RESPONSIVE STYLES ====================== */
+
+/* Large tablets and small desktops (max-width: 1200px) */
+@media (max-width: 1200px) {
+  .details-content {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .image-section {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin-top: 1rem;
+  }
+}
+
+/* Tablets and larger phones (max-width: 1024px) */
 @media (max-width: 1024px) {
   .staff-container {
     flex-direction: column;
@@ -1357,6 +1349,8 @@
     z-index: 999;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     padding-top: 0; /* Không cần padding-top ở mobile */
+    overflow-x: auto; /* Cho phép cuộn ngang trên mobile */
+    overflow-y: hidden; /* Ẩn cuộn dọc */
   }
   
   .staff-main {
@@ -1377,15 +1371,35 @@
     border-top: none;
     border-left: 1px solid rgba(255,255,255,0.1);
     background: none;
+    flex-shrink: 0;
   }
   
   .staff-nav {
     display: flex;
     flex-direction: row;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 0.5rem;
     gap: 0.5rem;
     flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+  
+  /* Scrollbar cho navigation trên tablet */
+  .staff-nav::-webkit-scrollbar {
+    height: 4px; /* Scrollbar ngang */
+    width: auto;
+  }
+  
+  .staff-nav::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+  }
+  
+  .staff-nav::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
   }
   
   .staff-nav-item {
@@ -1397,6 +1411,7 @@
     border-bottom: 3px solid transparent;
     border-radius: 8px;
     font-size: 0.9rem;
+    flex-shrink: 0; /* Ngăn item bị shrink */
   }
   
   .staff-nav-item:hover {
@@ -1421,8 +1436,13 @@
   .document-section {
     grid-template-columns: 1fr;
   }
+  
+  .sidebar-toggle {
+    display: block;
+  }
 }
 
+/* Mobile phones (max-width: 768px) */
 @media (max-width: 768px) {
   .staff-sidebar {
     height: 60px; /* Compact sidebar cho mobile */
@@ -1473,6 +1493,81 @@
   .staff-table th,
   .staff-table td {
     padding: 0.75rem 0.5rem;
+  }
+  
+  /* Verification responsive styles */
+  .verification-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .contact-compact {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .verification-actions {
+    align-self: stretch;
+    justify-content: stretch;
+  }
+  
+  .verification-actions .btn-success,
+  .verification-actions .btn-danger {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .document-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .notes-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn-small {
+    width: 100%;
+  }
+  
+  /* Vehicle details responsive */
+  .details-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .vehicle-details-container {
+    padding: 1rem;
+  }
+}
+
+/* Small mobile phones (max-width: 640px) */
+@media (max-width: 640px) {
+  .modal-content {
+    width: 95%;
+    margin: 0.5rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-content form {
+    padding: 1rem;
+  }
+  
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .form-actions button {
+    width: 100%;
   }
 }
 
@@ -1691,38 +1786,4 @@
   cursor: pointer;
 }
 
-@media (max-width: 1024px) {
-  .sidebar-toggle {
-    display: block;
-  }
-}
 
-/* Responsive Adjustments */
-@media (max-width: 640px) {
-  .modal-content {
-    width: 95%;
-    margin: 0.5rem;
-  }
-  
-  .modal-header {
-    padding: 1rem;
-  }
-  
-  .modal-content form {
-    padding: 1rem;
-  }
-  
-  .detail-row {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .form-actions button {
-    width: 100%;
-  }
-}

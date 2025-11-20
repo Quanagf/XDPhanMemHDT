@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getVehicles } from '../api/vehicles';
+import { getVehicles } from '../api/vehicleAPI';
 import { getStations } from '../api/stations';
 
 const statusClass = (status) => {
@@ -64,14 +64,29 @@ const FeaturedCars = () => {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch 9 vehicles có sẵn cho trang chủ (KHÔNG có filter)
+  // Fetch vehicles cho trang chủ
   useEffect(() => {
     const fetchVehicles = async () => {
       setLoading(true);
       try {
-        const data = await getVehicles({ status: 'AVAILABLE' });
-        // Giới hạn 9 xe cho trang chủ
-        setCars((data || []).slice(0, 9));
+        const data = await getVehicles({ limit: 50 });
+        
+        let vehicles = [];
+        
+        // Xử lý response dựa trên structure
+        if (Array.isArray(data)) {
+          vehicles = data;
+        } else if (data && data.content && Array.isArray(data.content)) {
+          vehicles = data.content;
+        } else if (data && Array.isArray(data.data)) {
+          vehicles = data.data;
+        } else {
+          vehicles = [];
+        }
+        
+        // Filter chỉ xe AVAILABLE và giới hạn 9 xe
+        const availableVehicles = vehicles.filter(car => car.status === 'AVAILABLE').slice(0, 9);
+        setCars(availableVehicles);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         setCars([]);

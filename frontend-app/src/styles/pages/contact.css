@@ -81,6 +81,19 @@
   height: fit-content;
 }
 
+/* Force layout for info items */
+.contact-info .info-item {
+  display: flex;
+  align-items: flex-start;
+  text-align: left;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-radius: var(--border-radius-base, 8px);
+  transition: all 0.3s ease;
+}
+
 .info-title {
   font-size: 1.8rem;
   font-weight: 600;
@@ -89,18 +102,31 @@
   padding-bottom: 0.5rem;
 }
 
-.info-item {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  border-radius: var(--border-radius-base, 8px);
-  transition: all 0.3s ease;
-}
-
-.info-item:hover {
+.contact-info .info-item:hover {
   background-color: var(--color-gray-light, #f7f7f7);
   transform: translateY(-2px);
+}
+
+/* Force icon positioning */
+.contact-info .info-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(95, 207, 134, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(95, 207, 134, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem !important;
+  margin-left: 0 !important;
+  flex-shrink: 0;
+}
+
+/* Force content positioning */
+.contact-info .info-content {
+  flex: 1;
+  text-align: left !important;
 }
 
 .clickable-item {
@@ -125,20 +151,6 @@
 .info-arrow svg {
   width: 16px;
   height: 16px;
-}
-
-.info-icon {
-  width: 50px;
-  height: 50px;
-  background: rgba(95, 207, 134, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(95, 207, 134, 0.2);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-  flex-shrink: 0;
 }
 
 .info-icon svg {

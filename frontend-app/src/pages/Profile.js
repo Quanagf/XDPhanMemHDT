@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -801,7 +801,7 @@ const handleChangePassword = async () => {
                       )}
                     </>
                   ) : (
-                    <span className="profile-info-value">
+                    <span className={`profile-info-value ${field === 'facebook' ? 'facebook-link' : ''}`} style={field === 'facebook' ? {textAlign: 'right', direction: 'rtl', unicodeBidi: 'plaintext'} : {}}>
                       {field === 'birthDate' ? formatDate(user.birthDate) : user[field] || '---'}
                     </span>
                   )}
@@ -886,9 +886,24 @@ const handleChangePassword = async () => {
                            verificationStatus[doc].status === 'APPROVED' ? '#155724' : '#721c24',
                     fontSize: '0.9rem'
                   }}>
-                    {verificationStatus[doc].status === 'PENDING' && '⏳ Đang chờ admin xác thực (trong vòng 2 ngày)'}
-                    {verificationStatus[doc].status === 'APPROVED' && '✅ Đã được xác thực'}
-                    {verificationStatus[doc].status === 'REJECTED' && `❌ Bị từ chối: ${verificationStatus[doc].rejectionReason || 'Không rõ lý do'}`}
+                    {verificationStatus[doc].status === 'PENDING' && (
+                      <span>
+                        <iconify-icon icon="material-symbols:schedule" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        Đang chờ admin xác thực (trong vòng 2 ngày)
+                      </span>
+                    )}
+                    {verificationStatus[doc].status === 'APPROVED' && (
+                      <span>
+                        <iconify-icon icon="material-symbols:check-circle" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        Đã được xác thực
+                      </span>
+                    )}
+                    {verificationStatus[doc].status === 'REJECTED' && (
+                      <span>
+                        <iconify-icon icon="material-symbols:cancel" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        Bị từ chối: {verificationStatus[doc].rejectionReason || 'Không rõ lý do'}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -1343,22 +1358,40 @@ const handleChangePassword = async () => {
                 {!user.licenseNumber && (
                   <div className="alert-item">
                     {verificationStatus.license?.status === 'PENDING' ? (
-                      <span className="status-pending">⏳ GPLX: Đang chờ xác thực</span>
+                      <span className="status-pending">
+                        <iconify-icon icon="material-symbols:schedule" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        GPLX: Đang chờ xác thực
+                      </span>
                     ) : verificationStatus.license?.status === 'REJECTED' ? (
-                      <span className="status-rejected">❌ GPLX: Bị từ chối - Vui lòng upload lại</span>
+                      <span className="status-rejected">
+                        <iconify-icon icon="material-symbols:cancel" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        GPLX: Bị từ chối - Vui lòng upload lại
+                      </span>
                     ) : (
-                      <span className="status-none">📄 GPLX: Chưa upload</span>
+                      <span className="status-none">
+                        <iconify-icon icon="material-symbols:description" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        GPLX: Chưa upload
+                      </span>
                     )}
                   </div>
                 )}
                 {!user.identityNumber && (
                   <div className="alert-item">
                     {verificationStatus.identity?.status === 'PENDING' ? (
-                      <span className="status-pending">⏳ CCCD: Đang chờ xác thực</span>
+                      <span className="status-pending">
+                        <iconify-icon icon="material-symbols:schedule" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        CCCD: Đang chờ xác thực
+                      </span>
                     ) : verificationStatus.identity?.status === 'REJECTED' ? (
-                      <span className="status-rejected">❌ CCCD: Bị từ chối - Vui lòng upload lại</span>
+                      <span className="status-rejected">
+                        <iconify-icon icon="material-symbols:cancel" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        CCCD: Bị từ chối - Vui lòng upload lại
+                      </span>
                     ) : (
-                      <span className="status-none">📄 CCCD: Chưa upload</span>
+                      <span className="status-none">
+                        <iconify-icon icon="material-symbols:description" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                        CCCD: Chưa upload
+                      </span>
                     )}
                   </div>
                 )}

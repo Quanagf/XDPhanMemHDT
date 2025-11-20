@@ -234,13 +234,13 @@ const Contact = () => {
                         <p className="complaint-description">{complaint.description}</p>
                         <div className="complaint-meta">
                           <span className="complaint-category">
-                            {complaint.category === 'VEHICLE_ISSUE' && '🚗 Vấn đề xe'}
-                            {complaint.category === 'BILLING' && '💰 Thanh toán'}
-                            {complaint.category === 'SERVICE_QUALITY' && '⭐ Chất lượng dịch vụ'}
-                            {complaint.category === 'STAFF_BEHAVIOR' && '👤 Nhân viên'}
-                            {complaint.category === 'STATION_FACILITY' && '🏢 Cơ sở vật chất'}
-                            {complaint.category === 'APP_TECHNICAL' && '💻 Kỹ thuật'}
-                            {complaint.category === 'OTHER' && '📋 Khác'}
+                            {complaint.category === 'VEHICLE_ISSUE' && <><iconify-icon icon="mdi:car" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Vấn đề xe</>}
+                            {complaint.category === 'BILLING' && <><iconify-icon icon="material-symbols:payments" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Thanh toán</>}
+                            {complaint.category === 'SERVICE_QUALITY' && <><iconify-icon icon="material-symbols:star" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Chất lượng dịch vụ</>}
+                            {complaint.category === 'STAFF_BEHAVIOR' && <><iconify-icon icon="material-symbols:person" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Nhân viên</>}
+                            {complaint.category === 'STATION_FACILITY' && <><iconify-icon icon="material-symbols:business" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Cơ sở vật chất</>}
+                            {complaint.category === 'APP_TECHNICAL' && <><iconify-icon icon="material-symbols:computer" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Kỹ thuật</>}
+                            {complaint.category === 'OTHER' && <><iconify-icon icon="material-symbols:description" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon> Khác</>}
                           </span>
                           <span className="complaint-date">
                             {new Date(complaint.createdAt).toLocaleDateString('vi-VN')}
@@ -588,7 +588,10 @@ const Contact = () => {
                           <p className="contact-station-address">{station.address}</p>
                           <p className="contact-station-phone">{station.phone}</p>
                           {station.operatingHours && (
-                            <p className="contact-station-hours">⏰ {station.operatingHours}</p>
+                            <p className="contact-station-hours">
+                              <iconify-icon icon="material-symbols:schedule" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'baseline'}}></iconify-icon>
+                              {station.operatingHours}
+                            </p>
                           )}
                         </div>
                       </div>

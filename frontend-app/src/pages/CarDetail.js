@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
 import vehicleService from '../utils/vehicleService';
-import { getVehicle } from '../api/vehicles';
+import { getVehicle } from '../api/vehicleAPI';
 import '../styles/pages/car-detail.css';
 
 const CarDetail = () => {

@@ -64,7 +64,8 @@ const FeaturedLocations = () => {
           className="toggle-map-btn"
           onClick={() => setShowMap(!showMap)}
         >
-          {showMap ? '📋 Xem danh sách' : '🗺️ Xem bản đồ'}
+          <iconify-icon icon={showMap ? "mdi:format-list-bulleted" : "mdi:map"} aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'text-bottom'}}></iconify-icon>
+          {showMap ? 'Xem danh sách' : 'Xem bản đồ'}
         </button>
       </div>
 
@@ -90,7 +91,7 @@ const FeaturedLocations = () => {
                     <p>📍 {station.address}</p>
                     <p>📞 {station.phoneNumber || 'Chưa cập nhật'}</p>
                     {station.vehicleCount > 0 && (
-                      <p>🚗 {station.vehicleCount} xe khả dụng</p>
+                      <p><iconify-icon icon="mdi:car-multiple" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'text-bottom'}}></iconify-icon> {station.vehicleCount} xe khả dụng</p>
                     )}
                   </div>
                 </Popup>
@@ -110,7 +111,10 @@ const FeaturedLocations = () => {
                   <p className="station-phone">📞 {station.phoneNumber}</p>
                 )}
                 {station.vehicleCount > 0 && (
-                  <p className="station-vehicles">🚗 {station.vehicleCount} xe khả dụng</p>
+                  <p className="station-vehicles">
+                    <iconify-icon icon="mdi:car-multiple" aria-hidden="true" style={{marginRight: '6px', verticalAlign: 'text-bottom'}}></iconify-icon>
+                    {station.vehicleCount} xe khả dụng
+                  </p>
                 )}
               </div>
             </article>

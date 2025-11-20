@@ -5,8 +5,18 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
-import vehiclesApi from '../api/vehiclesApi';
+import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
+
+// Add CSS animation for spinner
+const spinnerStyle = document.createElement('style');
+spinnerStyle.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(spinnerStyle);
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('handover'); // handover, verification, payment, maintenance
@@ -30,7 +40,36 @@ const StaffDashboard = () => {
   }, []);
 
   if (!user) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'white',
+          padding: '2rem',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid #f3f4f6',
+            borderTop: '5px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ color: '#6b7280', margin: 0, fontSize: '16px', fontWeight: '500' }}>Đang tải...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleLogout = () => {
@@ -939,7 +978,7 @@ const VehicleMaintenance = () => {
         ...filters
       };
 
-      const response = await vehiclesApi.getVehicles(params);
+      const response = await vehicleAPI.getVehicles(params);
       
       // Adapt backend response structure
       setVehicles(response.content || []);
@@ -1002,7 +1041,7 @@ const VehicleMaintenance = () => {
         }
       });
 
-      await vehiclesApi.updateVehicle(editing.id, updateData);
+      await vehicleAPI.updateVehicle(editing.id, updateData);
       
       setEditing(null);
       
@@ -1075,7 +1114,7 @@ const VehicleMaintenance = () => {
       if (issueReportForm.severity === 'critical') {
         const vehicle = vehicles.find(v => v.id === issueReportForm.vehicleId);
         if (vehicle) {
-          await vehiclesApi.updateVehicle(vehicle.id, { status: 'MAINTENANCE' });
+          await vehicleAPI.updateVehicle(vehicle.id, { status: 'MAINTENANCE' });
           await loadVehicles(); // Reload vehicles
         }
       }
@@ -1135,8 +1174,31 @@ const VehicleMaintenance = () => {
         </div>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-            Đang tải danh sách xe...
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            padding: '3rem',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid #f3f4f6',
+                borderTop: '4px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Đang tải danh sách xe...</p>
+            </div>
           </div>
         )}
 
@@ -1636,7 +1698,7 @@ const MyComplaintsManagement = ({ user }) => {
 
     try {
       await staffCompleteComplaint(selectedComplaint.id, staffNotes);
-      alert('✅ Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
+      alert('Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
       setCompleteModal(false);
       setStaffNotes('');
       setSelectedComplaint(null);
@@ -1694,13 +1756,13 @@ const MyComplaintsManagement = ({ user }) => {
 
   const getCategoryLabel = (category) => {
     const categoryMap = {
-      'VEHICLE_ISSUE': '🚗 Vấn đề xe',
-      'BILLING': '💰 Thanh toán',
-      'SERVICE_QUALITY': '⭐ Chất lượng dịch vụ',
-      'DAMAGE_DISPUTE': '🔧 Tranh chấp hư hỏng',
-      'ACCOUNT_ISSUE': '👤 Vấn đề tài khoản',
-      'STATION_ISSUE': '📍 Vấn đề trạm',
-      'OTHER': '📌 Khác'
+      'VEHICLE_ISSUE': 'Vấn đề xe',
+      'BILLING': 'Thanh toán',
+      'SERVICE_QUALITY': 'Chất lượng dịch vụ',
+      'DAMAGE_DISPUTE': 'Tranh chấp hư hỏng',
+      'ACCOUNT_ISSUE': 'Vấn đề tài khoản',
+      'STATION_ISSUE': 'Vấn đề trạm',
+      'OTHER': 'Khác'
     };
     return categoryMap[category] || category;
   };
@@ -1715,7 +1777,7 @@ const MyComplaintsManagement = ({ user }) => {
   return (
     <div className="staff-content">
       <div className="content-header">
-        <h2>📋 Khiếu nại được phân công</h2>
+        <h2>Khiếu nại được phân công</h2>
         <p style={{ color: '#666', marginTop: '8px' }}>Danh sách khiếu nại bạn cần xử lý</p>
       </div>
 
@@ -1723,22 +1785,42 @@ const MyComplaintsManagement = ({ user }) => {
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.total}</div>
-          <div style={{ fontSize: '14px', opacity: 0.9 }}>📊 Tổng số</div>
+          <div style={{ fontSize: '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', color: '#ffffff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6ZM6 4H13V9H18V20H6V4ZM8 12V14H16V12H8ZM8 16V18H13V16H8Z"/>
+            </svg>
+            Tổng số
+          </div>
         </div>
         
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.inProgress}</div>
-          <div style={{ fontSize: '14px', opacity: 0.9 }}>⏳ Đang xử lý</div>
+          <div style={{ fontSize: '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style={{filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'}}>
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+            <strong>Đang xử lý</strong>
+          </div>
         </div>
 
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.completed}</div>
-          <div style={{ fontSize: '14px', opacity: 0.9 }}>✅ Đã hoàn thành</div>
+          <div style={{ fontSize: '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style={{filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'}}>
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <strong>Đã hoàn thành</strong>
+          </div>
         </div>
 
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white', padding: '20px', borderRadius: '12px' }}>
           <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '8px' }}>{stats.resolved}</div>
-          <div style={{ fontSize: '14px', opacity: 0.9 }}>🎉 Đã duyệt</div>
+          <div style={{ fontSize: '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', color: '#ffffff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Đã duyệt
+          </div>
         </div>
       </div>
 
@@ -1808,12 +1890,35 @@ const MyComplaintsManagement = ({ user }) => {
 
       {/* Complaints List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', background: 'white', borderRadius: '12px' }}>
-          <div style={{ fontSize: '18px', color: '#2196F3' }}>⏳ Đang tải...</div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          padding: '3rem',
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f4f6',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Đang tải khiếu nại...</p>
+          </div>
         </div>
       ) : complaints.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '60px', marginBottom: '16px' }}>📭</div>
+          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6'}}>📭</div>
           <p style={{ color: '#999', fontSize: '16px' }}>Không có khiếu nại nào</p>
         </div>
       ) : (
@@ -1847,8 +1952,11 @@ const MyComplaintsManagement = ({ user }) => {
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '8px', fontSize: '15px' }}>{complaint.title}</div>
                 <p style={{ color: '#666', lineHeight: '1.6', marginBottom: '12px' }}>{complaint.description}</p>
-                <div style={{ fontSize: '13px', color: '#999' }}>
-                  📅 {new Date(complaint.createdAt).toLocaleDateString('vi-VN', {
+                <div style={{ fontSize: '13px', color: '#999', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#999">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                  </svg>
+                  {new Date(complaint.createdAt).toLocaleDateString('vi-VN', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -1881,8 +1989,11 @@ const MyComplaintsManagement = ({ user }) => {
                 }}>
                   <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}>📝 Ghi chú của bạn:</strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.staffNotes}</p>
-                  <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '8px' }}>
-                    ⏰ {new Date(complaint.staffCompletedAt).toLocaleDateString('vi-VN')}
+                  <small style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    {new Date(complaint.staffCompletedAt).toLocaleDateString('vi-VN')}
                   </small>
                 </div>
               )}
@@ -1895,10 +2006,18 @@ const MyComplaintsManagement = ({ user }) => {
                   marginBottom: '16px',
                   borderLeft: '4px solid #4CAF50'
                 }}>
-                  <strong style={{ color: '#1B5E20', display: 'block', marginBottom: '8px' }}>✅ Kết quả cuối cùng (Admin):</strong>
+                  <strong style={{ color: '#1B5E20', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1B5E20">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    Kết quả cuối cùng (Admin):
+                  </strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.resolution}</p>
-                  <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '8px' }}>
-                    ⏰ {new Date(complaint.resolvedAt).toLocaleDateString('vi-VN')}
+                  <small style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    {new Date(complaint.resolvedAt).toLocaleDateString('vi-VN')}
                   </small>
                 </div>
               )}
@@ -1924,7 +2043,10 @@ const MyComplaintsManagement = ({ user }) => {
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      ✅ Đánh dấu hoàn thành
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '6px', verticalAlign: 'baseline'}}>
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                      Đánh dấu hoàn thành
                     </button>
                     <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
                       💡 Hãy hoàn thành công việc và nhấn nút này để báo admin
@@ -1933,17 +2055,22 @@ const MyComplaintsManagement = ({ user }) => {
                 )}
                 {complaint.status === 'STAFF_COMPLETED' && (
                   <div style={{ fontSize: '13px', color: '#4CAF50', fontWeight: '600', padding: '8px 16px', background: '#E8F5E9', borderRadius: '8px' }}>
-                    ⏳ Đang chờ admin xem xét và duyệt...
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff9800">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                      </svg>
+                      Đang chờ admin xem xét và duyệt...
+                    </div>
                   </div>
                 )}
                 {complaint.status === 'RESOLVED' && (
                   <div style={{ fontSize: '13px', color: '#4CAF50', fontWeight: '600', padding: '8px 16px', background: '#E8F5E9', borderRadius: '8px' }}>
-                    🎉 Admin đã duyệt - Khiếu nại hoàn tất!
+                    Admin đã duyệt - Khiếu nại hoàn tất!
                   </div>
                 )}
                 {complaint.status === 'REJECTED' && (
                   <div style={{ fontSize: '13px', color: '#F44336', fontWeight: '600', padding: '8px 16px', background: '#FFEBEE', borderRadius: '8px' }}>
-                    ❌ Admin đã từ chối khiếu nại này
+                    Admin đã từ chối khiếu nại này
                   </div>
                 )}
               </div>
@@ -1976,7 +2103,12 @@ const MyComplaintsManagement = ({ user }) => {
             overflow: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>✅ Đánh dấu hoàn thành #{selectedComplaint.id}</h3>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#4caf50">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                Đánh dấu hoàn thành #{selectedComplaint.id}
+              </h3>
               <button onClick={() => setCompleteModal(false)} style={{
                 background: 'none',
                 border: 'none',
@@ -1994,7 +2126,7 @@ const MyComplaintsManagement = ({ user }) => {
               color: '#1976D2',
               fontSize: '14px'
             }}>
-              📝 Vui lòng mô tả chi tiết công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
+              Vui lòng mô tả chi tiết công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
             </div>
             
             <div style={{ marginBottom: '20px' }}>
@@ -2038,7 +2170,10 @@ const MyComplaintsManagement = ({ user }) => {
                 fontWeight: '600',
                 boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
               }}>
-                ✅ Xác nhận hoàn thành
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{marginRight: '6px', verticalAlign: 'baseline'}}>
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                Xác nhận hoàn thành
               </button>
             </div>
           </div>

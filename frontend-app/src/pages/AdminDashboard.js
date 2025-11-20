@@ -6,8 +6,7 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
-import vehiclesApi from '../api/vehiclesApi';
-import { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicles';
+import vehicleAPI, { getVehicles, getVehicle, createVehicle, updateVehicle, deleteVehicle } from '../api/vehicleAPI';
 import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics, staffCompleteComplaint, adminApproveComplaint, adminRejectComplaint } from '../api/complaints';
 import { getAllCustomers, getAllUsers } from '../api/customers';
 import { getStations } from '../api/stations';
@@ -133,8 +132,9 @@ const AdminDashboard = () => {
               </span>
               Xác thực tài liệu
             </button>
-            
-            {/* Nút đăng xuất */}
+          </nav>
+          {/* Nút đăng xuất ở góc dưới - cố định */}
+          <div className="admin-sidebar-footer">
             <button 
               className="admin-nav-item logout-btn"
               onClick={handleLogout}
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
               </span>
               Đăng xuất
             </button>
-          </nav>
+          </div>
         </aside>
 
         {/* Main Content */}
@@ -219,11 +219,11 @@ const VehicleManagement = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const response = await vehiclesApi.getVehicles({ size: 1000 }); // Get all for admin
+      const response = await vehicleAPI.getVehicles({ size: 1000 }); // Get all for admin
       setVehicles(response.content || []);
     } catch (err) {
       console.error('fetchVehicles', err);
-      // Fallback to old fetch if vehiclesApi fails
+      // Fallback to old fetch if vehicleAPI fails
       try {
         const res = await fetch('/api/vehicles', { headers: getAuthHeader() });
         if (res.ok) {
@@ -277,7 +277,7 @@ const VehicleManagement = () => {
       };
 
       if (editing) {
-        await vehiclesApi.updateVehicle(editing.id, payload);
+        await vehicleAPI.updateVehicle(editing.id, payload);
         // upload image if any
         if (fileToUpload) {
           const fd = new FormData();
@@ -293,7 +293,7 @@ const VehicleManagement = () => {
         alert('Cập nhật thành công');
         setEditing(null);
       } else {
-        const created = await vehiclesApi.createVehicle(payload);
+        const created = await vehicleAPI.createVehicle(payload);
         // upload file if selected
         if (fileToUpload && created && created.id) {
           const fd = new FormData();
@@ -350,7 +350,7 @@ const VehicleManagement = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa xe này không?')) return;
     try {
-      await vehiclesApi.deleteVehicle(id);
+      await vehicleAPI.deleteVehicle(id);
       fetchVehicles();
     } catch (err) {
       console.error('handleDelete', err);
@@ -787,18 +787,9 @@ const CustomerManagement = () => {
   const [statistics, setStatistics] = React.useState({});
   const [loading, setLoading] = React.useState(false);
   const [filter, setFilter] = React.useState('all'); // all, risky, normal
-  const [showCreateForm, setShowCreateForm] = React.useState(false);
   const [showRiskForm, setShowRiskForm] = React.useState(false);
   const [selectedCustomer, setSelectedCustomer] = React.useState(null);
   const [riskHistory, setRiskHistory] = React.useState([]);
-  const [formData, setFormData] = React.useState({
-    username: '',
-    password: '',
-    fullName: '',
-    email: '',
-    phoneNumber: '',
-    address: ''
-  });
   const [riskFormData, setRiskFormData] = React.useState({
     reason: '',
     bookingId: '',
@@ -872,42 +863,6 @@ const CustomerManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching risk history:', error);
-    }
-  };
-
-  const handleCreateCustomer = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/admin/customers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      if (response.ok) {
-        alert('Tạo khách hàng thành công!');
-        setShowCreateForm(false);
-        setFormData({
-          username: '',
-          password: '',
-          fullName: '',
-          email: '',
-          phoneNumber: '',
-          address: ''
-        });
-        fetchCustomers();
-        fetchStatistics();
-      } else {
-        const error = await response.json();
-        alert(`Lỗi: ${error.error || 'Không thể tạo khách hàng'}`);
-      }
-    } catch (error) {
-      console.error('Error creating customer:', error);
-      alert('Có lỗi xảy ra khi tạo khách hàng!');
     }
   };
 
@@ -1045,9 +1000,6 @@ const CustomerManagement = () => {
             Rủi ro
           </button>
         </div>
-        <button className="admin-btn-primary" onClick={() => setShowCreateForm(true)}>
-          + Thêm khách hàng mới
-        </button>
       </div>
 
       {loading ? (
@@ -1116,76 +1068,7 @@ const CustomerManagement = () => {
         </div>
       )}
 
-      {/* Create Customer Form Modal */}
-      {showCreateForm && (
-        <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Thêm khách hàng mới</h2>
-            <form onSubmit={handleCreateCustomer}>
-              <div className="form-group">
-                <label>Tên đăng nhập *</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Mật khẩu *</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Họ tên *</label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Email *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Số điện thoại *</label>
-                <input
-                  type="tel"
-                  pattern="[0-9]{10}"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Địa chỉ</label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  rows="3"
-                />
-              </div>
-              <div className="form-actions">
-                <button type="submit" className="admin-btn-primary">Tạo khách hàng</button>
-                <button type="button" className="admin-btn-secondary" onClick={() => setShowCreateForm(false)}>
-                  Hủy
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       {/* Risk Point Form Modal */}
       {showRiskForm && selectedCustomer && (
@@ -2418,9 +2301,7 @@ const DocumentVerification = () => {
 
       {filteredDocs.length === 0 ? (
         <div className="empty-state">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="#94a3b8">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H13V12L11,16H14V19H10Z"/>
-          </svg>
+          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6'}}>📮</div>
           <p>Không có tài liệu nào</p>
         </div>
       ) : (
@@ -2674,7 +2555,7 @@ const ComplaintsManagement = () => {
 
     try {
       await staffCompleteComplaint(selectedComplaint.id, staffCompleteData.staffNotes);
-      alert('✅ Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
+      alert('Đã đánh dấu hoàn thành! Admin sẽ xem xét và duyệt.');
       setStaffCompleteModal(false);
       setStaffCompleteData({ staffNotes: '' });
       fetchComplaints();
@@ -2693,7 +2574,7 @@ const ComplaintsManagement = () => {
 
     try {
       await adminApproveComplaint(selectedComplaint.id, approveData.resolution);
-      alert('✅ Đã duyệt khiếu nại thành công!');
+      alert('Đã duyệt khiếu nại thành công!');
       setAdminApproveModal(false);
       setApproveData({ resolution: '' });
       fetchComplaints();
@@ -2712,7 +2593,7 @@ const ComplaintsManagement = () => {
 
     try {
       await adminRejectComplaint(selectedComplaint.id, rejectData.reason);
-      alert('❌ Đã từ chối khiếu nại');
+      alert('Đã từ chối khiếu nại');
       setResolveModal(false);
       setRejectData({ reason: '' });
       fetchComplaints();
@@ -2802,12 +2683,12 @@ const ComplaintsManagement = () => {
       {/* Header with Actions */}
       <div className="complaints-header-modern">
         <div className="header-left">
-          <h2>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '12px' }}>
+          <h3>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '12px' }}>
               <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M13,14H11V12H13M13,10H11V6H13"/>
             </svg>
             Quản lý khiếu nại
-          </h2>
+          </h3>
           <p className="header-subtitle">Theo dõi và xử lý khiếu nại từ khách hàng</p>
         </div>
         <div className="header-actions">
@@ -2958,9 +2839,7 @@ const ComplaintsManagement = () => {
         </div>
       ) : filteredComplaints.length === 0 ? (
         <div className="empty-state-modern">
-          <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
-            <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M13,9.94L14.06,11L13,12.06L11.94,11L13,9.94M13,14.06L14.06,15.12L13,16.18L11.94,15.12L13,14.06M16.18,11L17.24,12.06L16.18,13.12L15.12,12.06L16.18,11M8.82,11L9.88,12.06L8.82,13.12L7.76,12.06L8.82,11Z"/>
-          </svg>
+          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6' }}>📮</div>
           <h3>Không tìm thấy khiếu nại nào</h3>
           <p>{searchTerm ? 'Thử tìm kiếm với từ khóa khác' : 'Chưa có khiếu nại nào trong danh sách'}</p>
         </div>
@@ -3209,54 +3088,120 @@ const ComplaintsManagement = () => {
       {assignModal && (
         <div className="modal-overlay" onClick={() => setAssignModal(false)}>
           <div className="modal-content assign-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+            <div className="modal-header" style={{
+              background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '12px 12px 0 0',
+              marginBottom: '0'
+            }}>
               <div>
-                <h3>📋 Phân công xử lý khiếu nại</h3>
-                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#666' }}>
-                  Khiếu nại #{selectedComplaint.id} - {selectedComplaint.subject}
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '4px' }}>
+                    <path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V9H7V7M7,11H17V13H7V11M7,15H13V17H7V15Z"/>
+                  </svg>
+                  Phân công xử lý khiếu nại
+                </h3>
+                <p style={{ margin: '0', fontSize: '14px', opacity: '0.9' }}>
+                  Khiếu nại #{selectedComplaint.id}
                 </p>
               </div>
-              <button className="modal-close" onClick={() => setAssignModal(false)}>×</button>
+              <button 
+                className="modal-close" 
+                onClick={() => setAssignModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: 'none',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >×</button>
             </div>
             
-            <div className="modal-body">
+            <div className="modal-body" style={{ padding: '24px' }}>
               {/* Complaint Info Card */}
               <div style={{
                 background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                padding: '16px',
+                padding: '20px',
                 borderRadius: '12px',
                 marginBottom: '24px',
-                border: '1px solid #dee2e6'
+                border: '1px solid #dee2e6',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-                  <div style={{ fontSize: '24px' }}>📝</div>
+                  <div style={{ 
+                    fontSize: '32px',
+                    background: '#e3f2fd',
+                    borderRadius: '50%',
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>📝</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '8px' }}>
+                    <div style={{ 
+                      fontWeight: 600, 
+                      color: '#2c3e50', 
+                      marginBottom: '12px',
+                      fontSize: '16px',
+                      borderBottom: '2px solid #e3f2fd',
+                      paddingBottom: '8px'
+                    }}>
                       Nội dung khiếu nại:
                     </div>
-                    <div style={{ color: '#495057', fontSize: '14px', lineHeight: '1.6' }}>
+                    <div style={{ 
+                      color: '#495057', 
+                      fontSize: '14px', 
+                      lineHeight: '1.6',
+                      background: 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e0e7ff',
+                      marginBottom: '12px'
+                    }}>
                       {selectedComplaint.description}
                     </div>
                     <div style={{ 
-                      marginTop: '12px', 
                       display: 'flex', 
                       gap: '16px',
                       flexWrap: 'wrap',
-                      fontSize: '13px',
-                      color: '#6c757d'
+                      fontSize: '13px'
                     }}>
-                      <span>👤 {selectedComplaint.customerName}</span>
-                      <span>📧 {selectedComplaint.customerEmail}</span>
-                      <span>📞 {selectedComplaint.customerPhone || 'N/A'}</span>
+                      <div style={{
+                        background: 'white',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: '1px solid #e0e7ff',
+                        color: '#2c3e50'
+                      }}>
+                        👤 {selectedComplaint.userName}
+                      </div>
+                      <div style={{
+                        background: 'white',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: '1px solid #e0e7ff',
+                        color: '#2c3e50'
+                      }}>
+                        📧 {selectedComplaint.userEmail}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Staff Selection */}
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '24px' }}>
                 <label style={{ 
-                  fontSize: '15px', 
+                  fontSize: '16px', 
                   fontWeight: 600, 
                   color: '#2c3e50',
                   marginBottom: '12px',
@@ -3264,26 +3209,32 @@ const ComplaintsManagement = () => {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <span>👨‍💼</span>
                   Chọn nhân viên xử lý:
-                  <span style={{ color: '#dc3545' }}>*</span>
+                  <span style={{ color: '#dc3545', fontSize: '14px' }}>*</span>
                 </label>
                 <select 
                   value={assignData.staffId}
                   onChange={(e) => setAssignData({...assignData, staffId: e.target.value})}
                   style={{
                     width: '100%',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     fontSize: '14px',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '10px',
+                    border: '2px solid #e3f2fd',
+                    borderRadius: '12px',
                     outline: 'none',
                     transition: 'all 0.3s ease',
                     backgroundColor: 'white',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#2196F3'}
-                  onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#2196F3';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(33, 150, 243, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e3f2fd';
+                    e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                  }}
                 >
                   <option value="">-- Chọn nhân viên --</option>
                   {staffList.map(staff => {
@@ -3291,22 +3242,30 @@ const ComplaintsManagement = () => {
                     return (
                       <option key={staff.id} value={staff.id}>
                         {staff.fullName} ({staff.email})
-                        {station ? ` - 🏢 ${station.name} (${station.province})` : ' - Chưa có trạm'}
+                        {station ? ` - ${station.name} (${station.province})` : ' - Chưa có trạm'}
                       </option>
                     );
                   })}
                 </select>
                 {!assignData.staffId && (
-                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '6px', display: 'block' }}>
+                  <div style={{ 
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: '#fff3cd',
+                    borderLeft: '3px solid #ffc107',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#856404'
+                  }}>
                     💡 Chọn nhân viên phù hợp với khu vực của khiếu nại
-                  </small>
+                  </div>
                 )}
               </div>
 
               {/* Notes Input */}
-              <div className="form-group" style={{ marginTop: '24px' }}>
+              <div className="form-group">
                 <label style={{ 
-                  fontSize: '15px', 
+                  fontSize: '16px', 
                   fontWeight: 600, 
                   color: '#2c3e50',
                   marginBottom: '12px',
@@ -3314,28 +3273,35 @@ const ComplaintsManagement = () => {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <span>📝</span>
                   Hướng dẫn xử lý cho nhân viên:
                 </label>
                 <textarea 
                   value={assignData.notes}
                   onChange={(e) => setAssignData({...assignData, notes: e.target.value})}
-                  placeholder="Nhập hướng dẫn chi tiết về cách xử lý khiếu nại này...&#10;&#10;Ví dụ:&#10;- Liên hệ khách hàng trong vòng 2 giờ&#10;- Kiểm tra tình trạng xe tại địa điểm ABC&#10;- Chuẩn bị phụ tùng thay thế nếu cần&#10;- Báo cáo kết quả sau khi hoàn thành"
+                  placeholder="Nhập hướng dẫn chi tiết về cách xử lý khiếu nại này...&#10;&#10;Ví dụ:&#10;• Liên hệ khách hàng trong vòng 2 giờ&#10;• Kiểm tra tình trạng xe tại địa điểm ABC&#10;• Chuẩn bị phụ tùng thay thế nếu cần&#10;• Báo cáo kết quả sau khi hoàn thành"
                   rows="6"
                   style={{
                     width: '100%',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     fontSize: '14px',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '10px',
+                    border: '2px solid #e3f2fd',
+                    borderRadius: '12px',
                     outline: 'none',
                     transition: 'all 0.3s ease',
                     resize: 'vertical',
                     fontFamily: 'inherit',
-                    lineHeight: '1.6'
+                    lineHeight: '1.6',
+                    backgroundColor: 'white',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#2196F3'}
-                  onBlur={(e) => e.target.style.borderColor = '#dee2e6'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#2196F3';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(33, 150, 243, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e3f2fd';
+                    e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                  }}
                 />
                 <div style={{
                   marginTop: '8px',
@@ -3355,8 +3321,9 @@ const ComplaintsManagement = () => {
               display: 'flex', 
               gap: '12px', 
               justifyContent: 'flex-end',
-              paddingTop: '20px',
-              borderTop: '2px solid #f1f3f5'
+              padding: '20px 24px',
+              borderTop: '2px solid #f1f3f5',
+              borderRadius: '0 0 12px 12px'
             }}>
               <button 
                 className="btn-secondary" 
@@ -3373,7 +3340,7 @@ const ComplaintsManagement = () => {
                   transition: 'all 0.3s ease'
                 }}
               >
-                ❌ Hủy
+                Hủy
               </button>
               <button 
                 className="btn-primary" 
@@ -3394,7 +3361,7 @@ const ComplaintsManagement = () => {
                   boxShadow: assignData.staffId ? '0 4px 12px rgba(33, 150, 243, 0.3)' : 'none'
                 }}
               >
-                ✅ Phân công ngay
+                Phân công ngay
               </button>
             </div>
           </div>
@@ -3404,31 +3371,150 @@ const ComplaintsManagement = () => {
       {/* Resolve Modal (Admin Reject) */}
       {resolveModal && (
         <div className="modal-overlay" onClick={() => setResolveModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Từ chối khiếu nại #{selectedComplaint.id}</h3>
-              <button className="modal-close" onClick={() => setResolveModal(false)}>×</button>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div className="modal-header" style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '12px 12px 0 0',
+              position: 'relative'
+            }}>
+              <h3 style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+                Từ chối khiếu nại #{selectedComplaint.id}
+              </h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setResolveModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '20px',
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '24px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >×</button>
             </div>
-            <div className="modal-body">
+            
+            <div className="modal-body" style={{ padding: '24px' }}>
               <div className="form-group">
-                <label>Lý do từ chối:</label>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  fontSize: '14px'
+                }}>
+                  Lý do từ chối: 
+                  <span style={{color: '#ef4444', marginLeft: '2px'}}>*</span>
+                </label>
                 <textarea 
                   value={rejectData.reason}
                   onChange={(e) => setRejectData({...rejectData, reason: e.target.value})}
                   placeholder="Nhập lý do từ chối khiếu nại..."
-                  rows="5"
+                  rows="6"
                   required
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    border: '2px solid #e5e7eb',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                    resize: 'vertical',
+                    transition: 'border-color 0.2s',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setResolveModal(false)}>
+            
+            <div className="modal-footer" style={{
+              padding: '20px 24px',
+              background: '#f8fafc',
+              borderRadius: '0 0 12px 12px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px'
+            }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setResolveModal(false)}
+                style={{
+                  background: '#64748b',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  minWidth: '120px',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#475569'}
+                onMouseLeave={(e) => e.target.style.background = '#64748b'}
+              >
                 Hủy
               </button>
               <button 
                 className="btn-danger"
                 onClick={handleAdminReject}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  minWidth: '160px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                }}
               >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
                 Xác nhận từ chối
               </button>
             </div>
@@ -3441,7 +3527,7 @@ const ComplaintsManagement = () => {
         <div className="modal-overlay" onClick={() => setStaffCompleteModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>✅ Đánh dấu hoàn thành #{selectedComplaint.id}</h3>
+              <h3>Đánh dấu hoàn thành #{selectedComplaint.id}</h3>
               <button className="modal-close" onClick={() => setStaffCompleteModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -3453,7 +3539,7 @@ const ComplaintsManagement = () => {
                 color: '#1976D2',
                 fontSize: '14px'
               }}>
-                📝 Vui lòng mô tả công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
+                Vui lòng mô tả công việc bạn đã làm để xử lý khiếu nại này. Admin sẽ xem xét và duyệt.
               </div>
               <div className="form-group">
                 <label>Ghi chú công việc đã làm: <span style={{color: 'red'}}>*</span></label>
@@ -3484,7 +3570,7 @@ const ComplaintsManagement = () => {
                   background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
                 }}
               >
-                ✅ Xác nhận hoàn thành
+                Xác nhận hoàn thành
               </button>
             </div>
           </div>
@@ -3494,54 +3580,182 @@ const ComplaintsManagement = () => {
       {/* Admin Approve Modal */}
       {adminApproveModal && (
         <div className="modal-overlay" onClick={() => setAdminApproveModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>✅ Duyệt khiếu nại #{selectedComplaint.id}</h3>
-              <button className="modal-close" onClick={() => setAdminApproveModal(false)}>×</button>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div className="modal-header" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '12px 12px 0 0',
+              position: 'relative'
+            }}>
+              <h3 style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                Duyệt khiếu nại #{selectedComplaint.id}
+              </h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setAdminApproveModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '20px',
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '24px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >×</button>
             </div>
-            <div className="modal-body">
+            
+            <div className="modal-body" style={{ padding: '24px' }}>
               {selectedComplaint.staffNotes && (
-                <div className="alert-success" style={{
-                  background: '#E8F5E9',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  marginBottom: '16px',
-                  borderLeft: '4px solid #4CAF50'
+                <div style={{
+                  background: 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '24px',
+                  borderLeft: '4px solid #4CAF50',
+                  boxShadow: '0 2px 8px rgba(76, 175, 80, 0.1)'
                 }}>
-                  <strong style={{color: '#1B5E20'}}>📝 Ghi chú của Staff:</strong>
-                  <p style={{margin: '8px 0 0 0', color: '#2E7D32'}}>{selectedComplaint.staffNotes}</p>
+                  <strong style={{
+                    color: '#1B5E20',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px'
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1B5E20">
+                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    Ghi chú của Staff:
+                  </strong>
+                  <p style={{
+                    margin: 0, 
+                    color: '#2E7D32',
+                    lineHeight: '1.6',
+                    fontSize: '14px'
+                  }}>{selectedComplaint.staffNotes}</p>
                 </div>
               )}
+              
               <div className="form-group">
-                <label>Kết quả xử lý cuối cùng: <span style={{color: 'red'}}>*</span></label>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  fontSize: '14px'
+                }}>
+                  Kết quả xử lý cuối cùng: 
+                  <span style={{color: '#ef4444', marginLeft: '2px'}}>*</span>
+                </label>
                 <textarea 
                   value={approveData.resolution}
                   onChange={(e) => setApproveData({...approveData, resolution: e.target.value})}
                   placeholder="Nhập kết quả xử lý cuối cùng (có thể tham khảo ghi chú của staff ở trên)..."
-                  rows="5"
+                  rows="6"
                   required
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid #ddd',
-                    fontSize: '14px'
+                    padding: '14px',
+                    borderRadius: '10px',
+                    border: '2px solid #e5e7eb',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                    resize: 'vertical',
+                    transition: 'border-color 0.2s',
+                    fontFamily: 'inherit'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setAdminApproveModal(false)}>
+            
+            <div className="modal-footer" style={{
+              padding: '20px 24px',
+              background: '#f8fafc',
+              borderRadius: '0 0 12px 12px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px'
+            }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setAdminApproveModal(false)}
+                style={{
+                  background: '#64748b',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  minWidth: '120px',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#475569'}
+                onMouseLeave={(e) => e.target.style.background = '#64748b'}
+              >
                 Hủy
               </button>
               <button 
                 className="btn-primary"
                 onClick={handleAdminApprove}
                 style={{
-                  background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  minWidth: '160px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(76, 175, 80, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.3)';
                 }}
               >
-                ✅ Xác nhận duyệt
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                Xác nhận duyệt
               </button>
             </div>
           </div>

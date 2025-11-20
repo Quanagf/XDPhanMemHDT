@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
-import { getVehicles } from '../api/vehicles';
+import { getVehicles } from '../api/vehicleAPI';
 import { checkAvailability } from '../api/bookings';
 
 // CarCard hiển thị xe từ API
@@ -170,7 +170,7 @@ const SearchPage = () => {
     const fetchVehicles = async () => {
       setLoading(true);
       try {
-        const params = { status: 'AVAILABLE' };
+        const params = { status: 'AVAILABLE', limit: 100 };
         
         // Thêm stationId nếu có
         if (searchInfo.stationId) {
@@ -179,6 +179,19 @@ const SearchPage = () => {
         
         // Lấy tất cả xe AVAILABLE tại trạm
         const allVehicles = await getVehicles(params);
+        
+        let vehicles = [];
+        
+        // Xử lý response dựa trên structure
+        if (Array.isArray(allVehicles)) {
+          vehicles = allVehicles;
+        } else if (allVehicles && allVehicles.content && Array.isArray(allVehicles.content)) {
+          vehicles = allVehicles.content;
+        } else if (allVehicles && Array.isArray(allVehicles.data)) {
+          vehicles = allVehicles.data;
+        } else {
+          vehicles = [];
+        }
         
         // Nếu có startDate và endDate, kiểm tra xe nào đã được booking
         if (searchInfo.startDate && searchInfo.endDate) {
@@ -189,18 +202,18 @@ const SearchPage = () => {
             );
             
             // Lọc bỏ các xe đã được booking
-            const availableVehicles = allVehicles.filter(
+            const availableVehicles = vehicles.filter(
               vehicle => !bookedVehicleIds.includes(vehicle.id)
             );
             setCars(availableVehicles || []);
           } catch (error) {
             console.error('Error checking availability:', error);
             // Nếu lỗi khi check availability, vẫn hiển thị tất cả xe
-            setCars(allVehicles || []);
+            setCars(vehicles || []);
           }
         } else {
           // Không có thời gian, hiển thị tất cả xe
-          setCars(allVehicles || []);
+          setCars(vehicles || []);
         }
       } catch (error) {
         console.error('Error fetching vehicles:', error);
