@@ -20,10 +20,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Tìm các xe đang được đặt (chưa lấy) hoặc đang thuê (2.a)
     List<Booking> findByVehicleIdAndStatusIn(Long vehicleId, List<BookingStatus> statuses);
     
+    // Tìm các booking tại trạm (2.a)
+    List<Booking> findByStartStationIdOrderByBookingTimeDesc(Long stationId);
+    
     // Tìm các booking trùng với khoảng thời gian (để kiểm tra xe có sẵn)
     @Query("SELECT DISTINCT b.vehicleId FROM Booking b WHERE " +
-           "(b.startTime < :endTime AND b.endTime > :startTime) AND " +
+           "(b.estimatedStartTime < :endTime AND b.estimatedEndTime > :startTime) AND " +
            "b.status IN ('PENDING', 'ACTIVE')")
     List<Long> findBookedVehicleIds(@Param("startTime") LocalDateTime startTime, 
                                      @Param("endTime") LocalDateTime endTime);
+    
+    // Tìm các booking đang chờ xử lý tại trạm cụ thể
+    List<Booking> findByStartStationIdAndStatusOrderByBookingTimeAsc(Long stationId, BookingStatus status);
+    
+    // Tìm các booking theo status
+    List<Booking> findByStatusOrderByBookingTimeDesc(BookingStatus status);
 }

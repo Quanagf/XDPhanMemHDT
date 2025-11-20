@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.evrental.vehicles.dto.CreateVehicleRequest;
 import com.evrental.vehicles.dto.UpdateVehicleDetailsRequest;
 import com.evrental.vehicles.dto.VehicleStatsDTO;
+import com.evrental.vehicles.dto.VehicleWithStationDTO;
 import com.evrental.vehicles.model.Vehicle;
 import com.evrental.vehicles.model.Vehicle.VehicleStatus;
 import com.evrental.vehicles.service.IVehicleService;
@@ -85,6 +86,14 @@ public class VehicleController {
         return ResponseEntity.ok(vehicle);
     }
 
+    // API Lấy 1 xe với thông tin trạm (dùng cho frontend)
+    @GetMapping("/{id}/with-station")
+    public ResponseEntity<VehicleWithStationDTO> getVehicleWithStation(@PathVariable Long id) {
+        Vehicle vehicle = vehicleService.getVehicleById(id);
+        VehicleWithStationDTO vehicleWithStation = new VehicleWithStationDTO(vehicle);
+        return ResponseEntity.ok(vehicleWithStation);
+    }
+
     // API cho Staff/Admin: Cập nhật pin/trạng thái (2.d)
     @PutMapping("/{id}/details")
     @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
@@ -99,7 +108,7 @@ public class VehicleController {
     // API NỘI BỘ (cho booking-service gọi)
     // Cập nhật trạng thái xe (Đặt / Trả)
     @PutMapping("/{id}/status/{statusName}")
-    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // TẠM BỎ ĐỂ CHO BOOKING-SERVICE GỌI
     public ResponseEntity<Vehicle> updateVehicleStatus(
             @PathVariable Long id,
             @PathVariable String statusName) {

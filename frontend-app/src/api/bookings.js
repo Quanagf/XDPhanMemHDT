@@ -39,3 +39,58 @@ export async function getMyBookings() {
   if (!res.ok) throw new Error('Failed to fetch bookings');
   return res.json();
 }
+
+// Lấy booking đang chờ xử lý tại trạm (cho staff)
+export async function getPendingBookingsByStation(stationId) {
+  const res = await fetch(`${base}/station/${stationId}/pending`, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) throw new Error('Failed to fetch pending bookings');
+  return res.json();
+}
+
+// Lấy booking đang chờ xử lý với thông tin chi tiết (cho staff)
+export async function getPendingBookingsWithDetailsForStation(stationId) {
+  const res = await fetch(`${base}/station/${stationId}/pending-detailed`, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) throw new Error('Failed to fetch detailed pending bookings');
+  return res.json();
+}
+
+// Lấy tất cả booking tại trạm (cho staff)
+export async function getStationBookings(stationId) {
+  const res = await fetch(`${base}/station/${stationId}`, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) throw new Error('Failed to fetch station bookings');
+  return res.json();
+}
+
+// Giao xe (check-in)
+export async function checkInVehicle(bookingId, checkInData) {
+  const res = await fetch(`${base}/${bookingId}/check-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(checkInData)
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Failed to check in vehicle' }));
+    throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: Failed to check in vehicle`);
+  }
+  return res.json();
+}
+
+// Nhận xe (check-out)  
+export async function checkOutVehicle(bookingId, checkOutData) {
+  const res = await fetch(`${base}/${bookingId}/check-out`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(checkOutData)
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Failed to check out vehicle' }));
+    throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: Failed to check out vehicle`);
+  }
+  return res.json();
+}

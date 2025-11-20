@@ -24,6 +24,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Customer management queries
     List<User> findByRole(Role role);
     List<User> findByRoleAndIsRisky(Role role, Boolean isRisky);
+    List<User> findByRoleAndStationId(Role role, Long stationId);
     long countByRole(Role role);
     long countByRoleAndIsRisky(Role role, Boolean isRisky);
 }

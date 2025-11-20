@@ -5,7 +5,8 @@ import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
 import vehicleService from '../utils/vehicleService';
-import { getVehicle } from '../api/vehicleAPI';
+import { getVehicleWithStation } from '../api/vehicleAPI';
+import { createBooking } from '../api/bookings';
 import '../styles/pages/car-detail.css';
 
 const CarDetail = () => {
@@ -23,6 +24,21 @@ const CarDetail = () => {
   const [carData, setCarData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Date picker states
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [selectedStartDate, setSelectedStartDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  });
+  const [selectedEndDate, setSelectedEndDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+  });
+  const [startTime, setStartTime] = useState('10:00');
+  const [endTime, setEndTime] = useState('10:00');
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10)); // Tháng 11/2025
 
   // Load user and check favorite status
   useEffect(() => {
@@ -47,30 +63,33 @@ const CarDetail = () => {
       setError(null);
       
       try {
-        const apiVehicle = await getVehicle(carId);
+        const apiVehicle = await getVehicleWithStation(carId);
         if (apiVehicle) {
+          console.log('Vehicle data with station from API:', apiVehicle);
+
           setCarData({
             id: apiVehicle.id,
             name: apiVehicle.description || apiVehicle.type || 'Xe điện',
             images: [apiVehicle.imageUrl || '/assets/images/cars/placeholder.webp'],
             rating: apiVehicle.rating || 4.6,
-            trips: apiVehicle.trips || Math.floor(Math.random() * 50) + 10,
-            location: apiVehicle.station ? `${apiVehicle.station.name} - ${apiVehicle.station.province}` : 'Chưa xác định',
+            trips: apiVehicle.tripCount || Math.floor(Math.random() * 50) + 10,
+            location: apiVehicle.location || 'Chưa xác định vị trí',
+            stationName: apiVehicle.stationName || 'Chưa xác định trạm',
             pricePerDay: apiVehicle.pricePerHour ? apiVehicle.pricePerHour * 24 : 780000,
             pricePerHour: apiVehicle.pricePerHour || 32500,
             licensePlate: apiVehicle.licensePlate || 'N/A',
             lastMaintenance: apiVehicle.lastMaintenanceDate || '2025-10-01',
             specs: {
-              transmission: apiVehicle.transmission || 'Số tự động',
+              transmission: 'Số tự động',
               seats: `${apiVehicle.seats || 4} Ghế`,
               battery: apiVehicle.batteryLevel != null ? `${apiVehicle.batteryLevel}%` : '~87.7 kWh',
-              range: apiVehicle.range || '~420km',
-              chargePort: apiVehicle.chargePort || 'CCS2',
-              chargeSpeed: apiVehicle.chargeSpeed || '10 - 70% trong ~25 mins'
+              range: apiVehicle.range ? `${apiVehicle.range}km` : '~420km',
+              chargePort: apiVehicle.chargingType || 'CCS2',
+              chargeSpeed: apiVehicle.chargingSpeed || '10 - 70% trong ~25 mins'
             },
             condition: {
               pin: apiVehicle.batteryLevel != null ? `${apiVehicle.batteryLevel}%` : '85%',
-              status: `Tình trạng kỹ thuật: ${apiVehicle.condition || 'Tốt'}`,
+              status: `Tình trạng kỹ thuật: ${apiVehicle.technicalCondition || 'Tốt'}`,
               rental: apiVehicle.status === 'AVAILABLE' ? 'Cho thuê: Có sẵn' : 
                       apiVehicle.status === 'RENTED' ? 'Cho thuê: Đang cho thuê' : 'Cho thuê: Đã đặt trước'
             },
@@ -84,59 +103,48 @@ const CarDetail = () => {
         
         const localVehicle = vehicleService.getVehicleById(carId);
         if (localVehicle) {
+          console.log('Vehicle data from local service:', localVehicle);
+          
+          // Tạo tên trạm từ location string cho local vehicle
+          let stationName = 'Chưa xác định trạm';
+          if (localVehicle.location) {
+            const locationParts = localVehicle.location.split(',');
+            if (locationParts.length > 0) {
+              stationName = `Trạm ${locationParts[0].trim()}`;
+            }
+          }
+
           setCarData({
             id: localVehicle.id,
             name: localVehicle.description || localVehicle.type || 'Xe điện',
             images: [localVehicle.image_url || '/assets/images/cars/placeholder.webp'],
             rating: 4.6,
-            trips: 19,
-            location: localVehicle.station_id || 'Phường 3, quận Bình Thạnh',
+            trips: localVehicle.trip_count || 19,
+            location: localVehicle.location || 'Phường 3, quận Bình Thạnh',
+            stationName: stationName, // Tên trạm được tạo từ location
             pricePerDay: localVehicle.price_per_hour ? localVehicle.price_per_hour * 24 : 780000,
             pricePerHour: localVehicle.price_per_hour || 32500,
-            licensePlate: localVehicle.licence_plate || 'N/A',
+            licensePlate: localVehicle.license_plate || localVehicle.licence_plate || 'N/A',
             lastMaintenance: localVehicle.last_maintenance_date || '2025-10-01',
             specs: {
               transmission: 'Số tự động',
-              seats: '4 Ghế',
+              seats: `${localVehicle.seats || 4} Ghế`,
               battery: localVehicle.battery_level != null ? `${localVehicle.battery_level}%` : '~87.7 kWh',
-              range: '~420km',
-              chargePort: 'CCS2',
-              chargeSpeed: '10 - 70% trong ~25 mins'
+              range: localVehicle.range ? `${localVehicle.range}km` : '~420km',
+              chargePort: localVehicle.charging_type || 'CCS2',
+              chargeSpeed: localVehicle.charging_speed || '10 - 70% trong ~25 mins'
             },
             condition: {
               pin: localVehicle.battery_level != null ? `${localVehicle.battery_level}%` : '85%',
-              status: 'Tình trạng kỹ thuật: Tốt',
+              status: `Tình trạng kỹ thuật: ${localVehicle.technical_condition || 'Tốt'}`,
               rental: localVehicle.status === 'AVAILABLE' ? 'Cho thuê: Có sẵn' : 
                       localVehicle.status === 'RENTED' ? 'Cho thuê: Đang cho thuê' : 'Cho thuê: Đã đặt trước'
             },
             raw: localVehicle
           });
         } else {
-          setCarData({
-            id: carId,
-            name: "VINFAST VF 8 Eco 2024",
-            images: ["/assets/images/cars/tu-nhan-chao-khach-mua-vinfast-vf-3-dat-hon-50-trieu-dong-so-voi-gia-niem-yet-anh5-edited-1723451100085.webp"],
-            rating: 4.6,
-            trips: 19,
-            location: "Phường 3, quận Bình Thạnh",
-            pricePerDay: 780000,
-            pricePerHour: 32500,
-            licensePlate: "30A-12345",
-            lastMaintenance: "2025-10-01",
-            specs: {
-              transmission: "Số tự động",
-              seats: "4 Ghế",
-              battery: "~87.7 kWh",
-              range: "~420km",
-              chargePort: "CCS2",
-              chargeSpeed: "10 - 70% trong ~25 mins"
-            },
-            condition: {
-              pin: "85%",
-              status: "Tình trạng kỹ thuật: Tốt",
-              rental: "Cho thuê: Có sẵn"
-            }
-          });
+          console.log('No vehicle found in both API and local service');
+          setError('Không tìm thấy thông tin xe');
         }
       } finally {
         setLoading(false);
@@ -212,10 +220,10 @@ const CarDetail = () => {
         id: vehicleId,
         name: carData.name,
         mainImage: carData.images[0],
+        location: carData.location,
         pricePerHour: carData.pricePerHour,
         seats: carData.specs.seats.replace(' Ghế', ''),
-        transmission: carData.specs.transmission,
-        stationName: carData.location
+        transmission: carData.specs.transmission
       };
       
       const newFavorites = [...favorites, carToSave];
@@ -296,8 +304,34 @@ const CarDetail = () => {
     }
     
     console.log('Đặt xe:', { carId, bookingType, agreeToTerms });
-    alert('Đặt xe thành công! Bạn sẽ được liên hệ sớm.');
-    navigate('/');
+    
+    // Tạo booking request
+    try {
+      const startDateTime = new Date(selectedStartDate);
+      startDateTime.setHours(parseInt(startTime.split(':')[0]), parseInt(startTime.split(':')[1]));
+      
+      const endDateTime = new Date(selectedEndDate);
+      endDateTime.setHours(parseInt(endTime.split(':')[0]), parseInt(endTime.split(':')[1]));
+      
+      const bookingRequest = {
+        vehicleId: parseInt(carId),
+        startStationId: carData?.station?.id || 1, // Default to station 1 if not available
+        estimatedStartTime: startDateTime.toISOString(),
+        estimatedEndTime: endDateTime.toISOString()
+      };
+      
+      console.log('Sending booking request:', bookingRequest);
+      
+      const newBooking = await createBooking(bookingRequest);
+      console.log('Booking created:', newBooking);
+      
+      alert(`✅ Đặt xe thành công!\n\nMã đặt xe: #${newBooking.id}\nThời gian nhận xe: ${startDateTime.toLocaleString('vi-VN')}\nThời gian trả xe: ${endDateTime.toLocaleString('vi-VN')}\n\nStaff sẽ liên hệ với bạn sớm để xác nhận.`);
+      navigate('/');
+      
+    } catch (error) {
+      console.error('Lỗi khi đặt xe:', error);
+      alert(`❌ Có lỗi xảy ra khi đặt xe: ${error.message}\n\nVui lòng thử lại sau.`);
+    }
   };
 
   const handleTermsCheckboxClick = (e) => {
@@ -323,12 +357,142 @@ const CarDetail = () => {
     e.preventDefault();
     const termsSection = document.getElementById('terms-section');
     if (termsSection) {
-      termsSection.scrollIntoView({ 
+      termsSection.scrollIntoView({
         behavior: 'smooth',
-        block: 'start'
+        block: 'center'
       });
     }
   };
+
+  // Calendar functions
+  const isDateSelected = (date) => {
+    return (selectedStartDate && date.getTime() === selectedStartDate.getTime()) ||
+           (selectedEndDate && date.getTime() === selectedEndDate.getTime());
+  };
+
+  const isDateInRange = (date) => {
+    return selectedStartDate && selectedEndDate &&
+           date >= selectedStartDate && date <= selectedEndDate;
+  };
+
+  const handleDateSelect = (date) => {
+    // Không cho chọn ngày trong quá khứ
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) {
+      return;
+    }
+    
+    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+      // Bắt đầu chọn mới hoặc chọn lại
+      setSelectedStartDate(date);
+      setSelectedEndDate(null);
+    } else {
+      // Chọn ngày kết thúc
+      if (date < selectedStartDate) {
+        setSelectedEndDate(selectedStartDate);
+        setSelectedStartDate(date);
+      } else {
+        setSelectedEndDate(date);
+      }
+    }
+  };
+
+  const renderCalendar = (monthOffset = 0) => {
+    const month = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + monthOffset, 1);
+    const startOfCalendar = new Date(month.getFullYear(), month.getMonth(), 1);
+    const endOfCalendar = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+    
+    const firstDay = startOfCalendar.getDay();
+    const daysInMonth = endOfCalendar.getDate();
+    
+    const days = [];
+    
+    // Empty cells for days before start of month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+    }
+    
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(month.getFullYear(), month.getMonth(), day);
+      const isSelected = isDateSelected(date);
+      const isInRange = isDateInRange(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPast = date < today;
+      
+      days.push(
+        <div
+          key={day}
+          className={`calendar-day ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isPast ? 'disabled' : ''}`}
+          onClick={() => !isPast && handleDateSelect(date)}
+          style={isPast ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
+        >
+          {day}
+        </div>
+      );
+    }
+    
+    const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                       'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+    const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    
+    return (
+      <div className="calendar-month">
+        <div className="calendar-header">
+          <h3>{monthNames[month.getMonth()]} {month.getFullYear()}</h3>
+        </div>
+        <div className="calendar-weekdays">
+          {weekdays.map((label) => (
+            <div key={label} className="calendar-weekday">{label}</div>
+          ))}
+        </div>
+        <div className="calendar-grid">
+          {days}
+        </div>
+      </div>
+    );
+  };
+
+  const formatSelectedDate = (date) => {
+    if (!date) return 'Chọn ngày';
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  // Tính toán số giờ và tiền
+  const calculateRentalDetails = () => {
+    if (!selectedStartDate || !selectedEndDate || !startTime || !endTime) {
+      return {
+        hours: 1,
+        totalPrice: carData?.raw?.pricePerHour || carData?.pricePerHour || 0
+      };
+    }
+
+    // Tạo Date objects với giờ cụ thể
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(selectedStartDate);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    
+    const endDateTime = new Date(selectedEndDate);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
+
+    // Tính toán số giờ
+    const diffMs = endDateTime.getTime() - startDateTime.getTime();
+    const diffHours = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60))); // Tối thiểu 1 giờ
+
+    const pricePerHour = carData?.raw?.pricePerHour || carData?.pricePerHour || 0;
+    const totalPrice = diffHours * pricePerHour;
+
+    return {
+      hours: diffHours,
+      totalPrice: totalPrice
+    };
+  };
+
+  const rentalDetails = calculateRentalDetails();
 
   if (loading) {
     return (
@@ -382,7 +546,7 @@ const CarDetail = () => {
   }
 
   return (
-    <div className="CarDetail">
+    <div className="CarDetail">"
       <Header 
         onOpenLogin={handleOpenLogin} 
         user={user} 
@@ -428,91 +592,84 @@ const CarDetail = () => {
             </div>
 
             <div className="car-info-section">
-              <div className="car-title-section">
-                <h1>{carData.name}</h1>
-                <div className="car-meta">
-                  <div className="rating-info">
-                    <iconify-icon icon="material-symbols:star" className="star-icon"></iconify-icon>
-                    <span>{carData.rating}</span>
-                    <span className="separator">•</span>
-                    <iconify-icon icon="material-symbols:work-outline" className="trip-icon"></iconify-icon>
-                    <span>{carData.trips} Chuyến</span>
-                    <span className="separator">•</span>
-                    <span>{carData.location}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="car-specs">
-                <div className="specs-row-horizontal">
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:wallet-outline"></iconify-icon>
-                    <span>{carData.specs.transmission}</span>
-                  </div>
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:car-seat"></iconify-icon>
-                    <span>{carData.specs.seats}</span>
-                  </div>
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:engine-outline"></iconify-icon>
-                    <span>{carData.specs.battery}</span>
-                  </div>
-                </div>
-                
-                <div className="specs-vertical">
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:road-variant"></iconify-icon>
-                    <span>Phạm vi di chuyển {carData.specs.range}</span>
-                  </div>
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:power-plug-outline"></iconify-icon>
-                    <span>Loại cổng sạc: {carData.specs.chargePort}</span>
-                  </div>
-                  <div className="spec-item">
-                    <iconify-icon icon="mdi:lightning-bolt-outline"></iconify-icon>
-                    <span>Tốc độ sạc: {carData.specs.chargeSpeed}</span>
-                  </div>
-                </div>
-                
-                <div className="location-info">
-                  <iconify-icon icon="material-symbols:location-on-outline"></iconify-icon>
-                  <span>{carData.location}</span>
-                </div>
-              </div>
-
               <div className="vehicle-details">
                 <h3>Thông tin xe</h3>
                 <div className="detail-items">
                   <div className="detail-item">
+                    <iconify-icon icon="mdi:garage"></iconify-icon>
+                    <span>Trạm: {carData.stationName || 'Chưa xác định trạm'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:map-marker-outline"></iconify-icon>
+                    <span>Vị trí: {carData.raw?.location || carData.location || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:counter"></iconify-icon>
+                    <span>Số chuyến: {carData.raw?.tripCount || carData.trips || 0}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:car-seat"></iconify-icon>
+                    <span>Số ghế: {carData.raw?.seats || 4} ghế</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:battery"></iconify-icon>
+                    <span>Tình trạng pin: {carData.raw?.batteryLevel != null ? `${carData.raw.batteryLevel}%` : 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:battery-charging"></iconify-icon>
+                    <span>Dung lượng pin: {carData.raw?.batteryCapacity ? `${carData.raw.batteryCapacity} kWh` : 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:road-variant"></iconify-icon>
+                    <span>Phạm vi: {carData.raw?.range ? `${carData.raw.range}km` : 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:power-plug-outline"></iconify-icon>
+                    <span>Loại sạc: {carData.raw?.chargingType || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:lightning-bolt-outline"></iconify-icon>
+                    <span>Tốc độ sạc: {carData.raw?.chargingSpeed ? `${carData.raw.chargingSpeed}kW` : '10 - 70% trong ~25 mins'}</span>
+                  </div>
+                  <div className="detail-item">
                     <iconify-icon icon="mdi:card-text-outline"></iconify-icon>
-                    <span>Biển số: {carData.licensePlate}</span>
+                    <span>Biển số: {carData.raw?.licensePlate || carData.licensePlate}</span>
                   </div>
                   <div className="detail-item">
                     <iconify-icon icon="mdi:calendar-check"></iconify-icon>
-                    <span>Bảo trì cuối: {carData.lastMaintenance}</span>
+                    <span>Bảo trì cuối: {carData.raw?.lastMaintenanceDate || carData.lastMaintenance}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:cog-outline"></iconify-icon>
+                    <span>Tình trạng kỹ thuật: {carData.raw?.technicalCondition === 'EXCELLENT' ? 'Xuất sắc' :
+                                                      carData.raw?.technicalCondition === 'GOOD' ? 'Tốt' :
+                                                      carData.raw?.technicalCondition === 'FAIR' ? 'Khá' :
+                                                      carData.raw?.technicalCondition === 'POOR' ? 'Yếu' : 'Tốt'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <iconify-icon icon="mdi:check-circle-outline"></iconify-icon>
+                    <span>Trạng thái: {carData.raw?.status === 'AVAILABLE' ? 'Có sẵn' : 
+                                     carData.raw?.status === 'RENTED' ? 'Đang cho thuê' : 
+                                     carData.raw?.status === 'RESERVED' ? 'Đã đặt trước' :
+                                     carData.raw?.status === 'MAINTENANCE' ? 'Đang bảo trì' : 'Không xác định'}</span>
                   </div>
                   <div className="detail-item">
                     <iconify-icon icon="mdi:currency-usd"></iconify-icon>
-                    <span>Giá thuê: {carData.pricePerHour.toLocaleString()}đ/giờ</span>
+                    <span>Giá thuê: {(carData.raw?.pricePerHour || carData.pricePerHour).toLocaleString()}đ/giờ</span>
                   </div>
                 </div>
               </div>
 
-              <div className="car-condition">
-                <h3>Trạng thái xe</h3>
-                <div className="condition-items">
-                  <div className="condition-item green">
-                    <span>Pin: {carData.condition.pin}</span>
-                  </div>
-                  <div className="condition-item green">
-                    <span>{carData.condition.status}</span>
-                  </div>
-                  <div className="condition-item green">
-                    <span>{carData.condition.rental}</span>
-                  </div>
+            {/* Description Section - Hiển thị mô tả xe nếu có */}
+            {carData.raw?.description && (
+              <div className="vehicle-description">
+                <h3>Mô tả chi tiết</h3>
+                <div className="description-content">
+                  <p>{carData.raw.description}</p>
                 </div>
               </div>
-            
+            )}
+
             {/* Terms Section */}
             <div id="terms-section" className="terms-section">
               <h3>Điều khoản</h3>
@@ -564,23 +721,27 @@ const CarDetail = () => {
           <div className="right-column">
             <div className="booking-section">
               <div className="price-display">
-                <span className="price">780K/Ngày</span>
+                <span className="price">{(carData.raw?.pricePerHour || carData.pricePerHour).toLocaleString()}đ/giờ</span>
               </div>
               
               <div className="date-selection">
                 <div className="date-input-group">
                   <label>Ngày nhận</label>
-                  <div className="date-time-input">
-                    <span>10:00</span>
-                    <span>08/10/2025</span>
+                  <div className="input-field datetime-field" onClick={() => setShowDateModal(true)}>
+                    <iconify-icon icon="mdi:clock-outline"></iconify-icon>
+                    <span>{startTime} SA</span>
+                    <iconify-icon icon="mdi:calendar-month"></iconify-icon>
+                    <span>{formatSelectedDate(selectedStartDate)}</span>
                   </div>
                 </div>
                 
                 <div className="date-input-group">
                   <label>Ngày trả</label>
-                  <div className="date-time-input">
-                    <span>10:00</span>
-                    <span>08/10/2025</span>
+                  <div className="input-field datetime-field" onClick={() => setShowDateModal(true)}>
+                    <iconify-icon icon="mdi:clock-outline"></iconify-icon>
+                    <span>{endTime} SA</span>
+                    <iconify-icon icon="mdi:calendar-month"></iconify-icon>
+                    <span>{formatSelectedDate(selectedEndDate)}</span>
                   </div>
                 </div>
               </div>
@@ -614,8 +775,14 @@ const CarDetail = () => {
               <div className="price-breakdown">
                 <div className="price-row">
                   <span>Đơn giá thuê</span>
-                  <span>780.000/Ngày</span>
+                  <span>{(carData.raw?.pricePerHour || carData.pricePerHour).toLocaleString()}đ/giờ</span>
                 </div>
+                {rentalDetails.hours > 1 && (
+                  <div className="price-row">
+                    <span>Số giờ thuê</span>
+                    <span>{rentalDetails.hours} giờ</span>
+                  </div>
+                )}
               </div>
 
               <div className="terms-checkbox">
@@ -634,11 +801,11 @@ const CarDetail = () => {
               <div className="total-section">
                 <div className="total-row">
                   <span>Tổng cộng</span>
-                  <span>780.000 x 1 Ngày</span>
+                  <span>{(carData.raw?.pricePerHour || carData.pricePerHour).toLocaleString()}đ x {rentalDetails.hours} giờ</span>
                 </div>
                 <div className="total-row final-total">
                   <span>Thành tiền</span>
-                  <span>780.000đ</span>
+                  <span>{rentalDetails.totalPrice.toLocaleString()}đ</span>
                 </div>
               </div>
 
@@ -775,6 +942,61 @@ const CarDetail = () => {
           onSwitchToLogin={handleSwitchToLogin}
           onRegisterSuccess={handleLoginSuccess}
         />
+      )}
+      
+      {/* Date Selection Modal */}
+      {showDateModal && (
+        <div className="modal-overlay" onClick={() => setShowDateModal(false)}>
+          <div className="modal-content date-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Chọn ngày thuê</h2>
+              <button className="close-button" onClick={() => setShowDateModal(false)}>
+                <iconify-icon icon="mdi:close"></iconify-icon>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="time-selection">
+                <div className="time-group">
+                  <label>Giờ nhận</label>
+                  <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
+                    {Array.from({length: 24}, (_, i) => {
+                      const hour = i.toString().padStart(2, '0');
+                      return <option key={hour} value={`${hour}:00`}>{hour}:00</option>
+                    })}
+                  </select>
+                </div>
+                <div className="time-group">
+                  <label>Giờ trả</label>
+                  <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
+                    {Array.from({length: 24}, (_, i) => {
+                      const hour = i.toString().padStart(2, '0');
+                      return <option key={hour} value={`${hour}:00`}>{hour}:00</option>
+                    })}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="calendar-container">
+                <div className="calendar-navigation">
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}>
+                    <iconify-icon icon="mdi:chevron-left"></iconify-icon>
+                  </button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}>
+                    <iconify-icon icon="mdi:chevron-right"></iconify-icon>
+                  </button>
+                </div>
+                <div className="calendars">
+                  {renderCalendar(0)}
+                  {renderCalendar(1)}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-button" onClick={() => setShowDateModal(false)}>Hủy</button>
+              <button className="confirm-button" onClick={() => setShowDateModal(false)}>Xác nhận</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

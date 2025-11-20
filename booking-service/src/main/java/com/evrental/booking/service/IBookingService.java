@@ -3,6 +3,7 @@ package com.evrental.booking.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.evrental.booking.dto.BookingResponseDTO;
 import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
@@ -30,4 +31,10 @@ public interface IBookingService {
     
     // 7. Kiểm tra xe đã được booking trong khoảng thời gian
     List<Long> getBookedVehicleIds(LocalDateTime startTime, LocalDateTime endTime);
+    
+    // 8. Lấy booking đang chờ xử lý tại trạm cho staff
+    List<Booking> getPendingBookingsByStation(Long stationId);
+    
+    // 9. Lấy booking với thông tin đầy đủ (bao gồm user và vehicle info)
+    List<BookingResponseDTO> getPendingBookingsWithDetailsForStation(Long stationId);
 }

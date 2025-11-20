@@ -215,6 +215,17 @@
     cursor: default;
 }
 
+.calendar-day.disabled {
+    color: #ccc !important;
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+}
+
+.calendar-day.disabled:hover {
+    background-color: transparent !important;
+    color: #ccc !important;
+}
+
 /* Time Selectors */
 .time-selectors {
     display: grid;

@@ -194,12 +194,16 @@ const Hero = () => {
                         (selectedEndDate && date.getTime() === selectedEndDate.getTime());
       const isInRange = selectedStartDate && selectedEndDate && 
                        date >= selectedStartDate && date <= selectedEndDate;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPast = date < today;
 
       days.push(
         <div
           key={day}
-          className={`calendar-day ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''}`}
-          onClick={() => handleDateClick(date)}
+          className={`calendar-day ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isPast ? 'disabled' : ''}`}
+          onClick={() => !isPast && handleDateClick(date)}
+          style={isPast ? { cursor: 'not-allowed', opacity: 0.5, color: '#ccc' } : {}}
         >
           {day}
         </div>
@@ -224,6 +228,13 @@ const Hero = () => {
   };
 
   const handleDateClick = (date) => {
+    // Không cho chọn ngày trong quá khứ
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) {
+      return;
+    }
+    
     if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
       setSelectedStartDate(date);
       setSelectedEndDate(null);

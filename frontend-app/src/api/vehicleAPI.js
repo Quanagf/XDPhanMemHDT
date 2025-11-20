@@ -123,6 +123,28 @@ class VehicleAPI {
   }
 
   /**
+   * Get a single vehicle by ID with station information
+   * @param {string|number} vehicleId - Vehicle ID
+   * @returns {Promise<Object>} Vehicle data with station info
+   */
+  async getVehicleWithStation(vehicleId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${vehicleId}/with-station`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      return await handleResponse(response, 'Get vehicle with station');
+    } catch (error) {
+      console.error(`Error fetching vehicle with station ${vehicleId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get a single vehicle by ID
    * @param {string|number} vehicleId - Vehicle ID
    * @returns {Promise<Object>} Vehicle data
@@ -270,6 +292,7 @@ const vehicleAPIInstance = new VehicleAPI();
 // Export individual functions for easy importing (backward compatibility)
 export const getVehicles = (params = {}) => vehicleAPIInstance.getVehicles(params);
 export const getVehicle = (vehicleId) => vehicleAPIInstance.getVehicleById(vehicleId);
+export const getVehicleWithStation = (vehicleId) => vehicleAPIInstance.getVehicleWithStation(vehicleId);
 export const getVehicleById = (vehicleId) => vehicleAPIInstance.getVehicleById(vehicleId);
 export const createVehicle = (vehicleData) => vehicleAPIInstance.createVehicle(vehicleData);
 export const updateVehicle = (vehicleId, updateData) => vehicleAPIInstance.updateVehicle(vehicleId, updateData);

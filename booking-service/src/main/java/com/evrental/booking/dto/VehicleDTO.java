@@ -8,8 +8,11 @@ import lombok.Data;
 @Data
 public class VehicleDTO {
     private Long id;
+    private String licensePlate;
+    private String type;
     private Double pricePerHour;
     private VehicleStatus status;
+    private Long stationId;
     
     public enum VehicleStatus {
         AVAILABLE,

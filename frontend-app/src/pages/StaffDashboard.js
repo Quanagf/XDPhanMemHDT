@@ -7,6 +7,9 @@ import '../styles/components/form.css';
 import vehicleService from '../utils/vehicleService';
 import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
+import { getStations } from '../api/stations';
+import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
+import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle } from '../api/bookings';
 
 // Add CSS animation for spinner
 const spinnerStyle = document.createElement('style');
@@ -21,6 +24,9 @@ document.head.appendChild(spinnerStyle);
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('handover'); // handover, verification, payment, maintenance
   const [user, setUser] = useState(null);
+  const [assignedStation, setAssignedStation] = useState(null);
+  const [stations, setStations] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,11 +39,105 @@ const StaffDashboard = () => {
       if (parsedUser.role !== 'STAFF') {
         alert('Bạn không có quyền truy cập trang này!');
         window.location.href = '/';
+      } else {
+        // Fetch thông tin stations để hiển thị tên trạm
+        fetchStationsAndSetAssigned(parsedUser);
       }
     } else {
       window.location.href = '/';
     }
   }, []);
+
+  useEffect(() => {
+    // Fetch unread count periodically
+    if (assignedStation?.id) {
+      fetchUnreadNotificationCount();
+      const interval = setInterval(fetchUnreadNotificationCount, 30000); // Poll every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [assignedStation]);
+
+  const fetchUnreadNotificationCount = async () => {
+    if (!assignedStation?.id) return;
+    try {
+      const count = await getUnreadCount(assignedStation.id);
+      setUnreadNotificationCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching unread notification count:', error);
+    }
+  };
+
+  const fetchStationsAndSetAssigned = async (userProfile) => {
+    try {
+      const stationsData = await getStations();
+      setStations(stationsData || []);
+      
+      // Tìm trạm được phân công cho nhân viên
+      if (userProfile.stationId && stationsData && stationsData.length > 0) {
+        const station = stationsData.find(s => s.id === userProfile.stationId);
+        setAssignedStation(station);
+        
+        // Fetch bookings cho trạm này
+        fetchStationBookings(userProfile.stationId);
+      }
+    } catch (error) {
+      console.error('Error fetching stations:', error);
+    }
+  };
+
+  const fetchStationBookings = async (stationId) => {
+    try {
+      setLoadingBookings(true);
+      
+      // Lấy booking đang chờ xử lý với thông tin chi tiết
+      const pendingBookingsDetailed = await getPendingBookingsWithDetailsForStation(stationId);
+      
+      // Lấy tất cả booking của trạm để tìm những booking đang trong quá trình thuê (ACTIVE) - đây là xe cần nhận lại
+      const allStationBookings = await getStationBookings(stationId);
+      const activeBookings = allStationBookings.filter(booking => booking.status === 'ACTIVE');
+      
+      // Transform data từ DTO format cho pending bookings
+      const transformedPendingBookings = pendingBookingsDetailed.map(booking => ({
+        id: booking.id,
+        customerName: booking.userInfo ? booking.userInfo.fullName : `User ${booking.userId}`,
+        vehicleInfo: {
+          model: booking.vehicleInfo ? booking.vehicleInfo.type : `Vehicle ${booking.vehicleId}`,
+          plate: booking.vehicleInfo ? booking.vehicleInfo.licensePlate : `ID: ${booking.vehicleId}`,
+          battery: booking.vehicleInfo ? booking.vehicleInfo.batteryLevel : 95
+        },
+        pickupTime: booking.estimatedStartTime,
+        status: booking.status
+      }));
+      
+      // Transform data cho active bookings (xe cần nhận lại)
+      const transformedActiveBookings = activeBookings.map(booking => ({
+        id: booking.id,
+        customerName: booking.userId, // Sẽ cần fetch thông tin user từ user-service sau
+        vehicleInfo: {
+          model: booking.vehicleId, // Sẽ cần fetch thông tin vehicle từ vehicle-service sau
+          plate: booking.vehicleId,
+          battery: 45 // Default value
+        },
+        returnTime: booking.estimatedEndTime,
+        status: booking.status
+      }));
+      
+      setBookings({
+        pickup: transformedPendingBookings,
+        return: transformedActiveBookings
+      });
+      
+    } catch (error) {
+      console.error('Error fetching station bookings:', error);
+      // Hiển thị dữ liệu fallback nếu có lỗi
+      setBookings({
+        pickup: [],
+        return: []
+      });
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -88,7 +188,63 @@ const StaffDashboard = () => {
             <div className="staff-avatar">{user.fullName.charAt(0)}</div>
             <h3>{user.fullName}</h3>
             <p className="staff-role">Nhân viên điểm thuê</p>
-            <p className="staff-station">Điểm: {user.position || 'Chưa phân công'}</p>
+            <div className="staff-station">
+              {assignedStation ? (
+                <div style={{
+                  background: 'rgba(33, 150, 243, 0.1)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
+                  margin: '8px 0'
+                }}>
+                  <p style={{ 
+                    margin: 0, 
+                    fontSize: '13px', 
+                    color: '#666',
+                    fontWeight: '500'
+                  }}>Trạm được phân công:</p>
+                  <p style={{ 
+                    margin: '4px 0 0 0', 
+                    fontSize: '14px', 
+                    fontWeight: '600',
+                    color: '#2196F3'
+                  }}>
+                    🏢 {assignedStation.name}
+                  </p>
+                  <p style={{ 
+                    margin: '2px 0 0 0', 
+                    fontSize: '12px', 
+                    color: '#888'
+                  }}>
+                    📍 {assignedStation.address}, {assignedStation.province}
+                  </p>
+                </div>
+              ) : user.stationId ? (
+                <p style={{
+                  background: 'rgba(255, 193, 7, 0.1)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 193, 7, 0.3)',
+                  color: '#f57c00',
+                  fontSize: '13px',
+                  margin: '8px 0 0 0'
+                }}>
+                  🏢 Trạm #{user.stationId} (Đang tải thông tin...)
+                </p>
+              ) : (
+                <p style={{
+                  background: 'rgba(158, 158, 158, 0.1)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(158, 158, 158, 0.3)',
+                  color: '#666',
+                  fontSize: '13px',
+                  margin: '8px 0 0 0'
+                }}>
+                  ⚠️ Chưa được phân công trạm
+                </p>
+              )}
+            </div>
           </div>
 
           <nav className="staff-nav">
@@ -102,6 +258,9 @@ const StaffDashboard = () => {
                 </svg>
               </span>
               Quản lý giao - nhận xe
+              {unreadNotificationCount > 0 && (
+                <span className="notification-badge">{unreadNotificationCount}</span>
+              )}
             </button>
             <button 
               className={`staff-nav-item ${activeTab === 'verification' ? 'active' : ''}`}
@@ -167,11 +326,14 @@ const StaffDashboard = () => {
 
         {/* Main Content */}
         <main className="staff-main">
-          {activeTab === 'handover' && <VehicleHandover />}
-          {activeTab === 'verification' && <CustomerVerification />}
-          {activeTab === 'payment' && <PaymentManagement />}
-          {activeTab === 'maintenance' && <VehicleMaintenance />}
-          {activeTab === 'complaints' && <MyComplaintsManagement user={user} />}
+          {activeTab === 'handover' && <VehicleHandover 
+            assignedStation={assignedStation} 
+            onNotificationUpdate={fetchUnreadNotificationCount}
+          />}
+          {activeTab === 'verification' && <CustomerVerification assignedStation={assignedStation} />}
+          {activeTab === 'payment' && <PaymentManagement assignedStation={assignedStation} />}
+          {activeTab === 'maintenance' && <VehicleMaintenance assignedStation={assignedStation} />}
+          {activeTab === 'complaints' && <MyComplaintsManagement user={user} assignedStation={assignedStation} />}
         </main>
       </div>
     </div>
@@ -179,10 +341,12 @@ const StaffDashboard = () => {
 };
 
 // Component: Quản lý giao - nhận xe
-const VehicleHandover = () => {
+const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
   const [handoverType, setHandoverType] = useState('pickup'); // pickup or return
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [checklist, setChecklist] = useState({
     exterior: false,
     battery: false,
@@ -193,6 +357,60 @@ const VehicleHandover = () => {
   const [customerSign, setCustomerSign] = useState('');
   const [staffSign, setStaffSign] = useState('');
   const [inspectionNotes, setInspectionNotes] = useState('');
+
+  // Fetch notifications when component mounts or station changes
+  useEffect(() => {
+    if (assignedStation?.id) {
+      fetchNotifications();
+      fetchUnreadCount();
+      // Set up polling for real-time updates
+      const interval = setInterval(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      }, 30000); // Poll every 30 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [assignedStation]);
+
+  const fetchNotifications = async () => {
+    if (!assignedStation?.id) return;
+    try {
+      const data = await getStaffNotifications(assignedStation.id);
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    if (!assignedStation?.id) return;
+    try {
+      const count = await getUnreadCount(assignedStation.id);
+      setUnreadCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    const success = await markNotificationAsRead(notificationId);
+    if (success) {
+      fetchNotifications();
+      fetchUnreadCount();
+      onNotificationUpdate && onNotificationUpdate(); // Update parent component
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!assignedStation?.id) return;
+    const success = await markAllNotificationsAsRead(assignedStation.id);
+    if (success) {
+      fetchNotifications();
+      fetchUnreadCount();
+      onNotificationUpdate && onNotificationUpdate(); // Update parent component
+    }
+  };
 
   // Danh sách xe và đơn đặt trước
   const [vehicles, setVehicles] = useState(() => {
@@ -205,45 +423,11 @@ const VehicleHandover = () => {
   });
 
   // Danh sách booking cần giao/nhận xe
-  const [bookings] = useState({
-    pickup: [
-      {
-        id: 'B12345',
-        customerName: 'Phạm Thị Hương',
-        vehicleInfo: {
-          model: 'VinFast VF3',
-          plate: '51H-12345',
-          battery: 95
-        },
-        pickupTime: '2025-11-09T14:00:00',
-        status: 'PENDING'
-      },
-      {
-        id: 'B12346',
-        customerName: 'Lê Minh Tuấn',
-        vehicleInfo: {
-          model: 'VinFast VF5',
-          plate: '51H-67890',
-          battery: 88
-        },
-        pickupTime: '2025-11-09T15:30:00',
-        status: 'PENDING'
-      }
-    ],
-    return: [
-      {
-        id: 'B12340',
-        customerName: 'Trần Văn Minh',
-        vehicleInfo: {
-          model: 'VinFast VF3',
-          plate: '51H-11111',
-          battery: 45
-        },
-        returnTime: '2025-11-09T16:00:00',
-        status: 'IN_PROGRESS'
-      }
-    ]
+  const [bookings, setBookings] = useState({
+    pickup: [],
+    return: []
   });
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   const handleStartHandover = (booking) => {
     setSelectedBooking(booking);
@@ -339,7 +523,16 @@ const VehicleHandover = () => {
 
   return (
     <div className="staff-section" data-tab={handoverType}>
-      <h1>Quản lý giao - nhận xe</h1>
+      <div className="section-header">
+        <h1>Quản lý giao - nhận xe</h1>
+        {assignedStation && (
+          <div className="station-info">
+            <span className="station-badge">
+              🏢 {assignedStation.name} - {assignedStation.province}
+            </span>
+          </div>
+        )}
+      </div>
       
       {/* Tab Switch */}
       <div className="tab-switch">
@@ -355,7 +548,88 @@ const VehicleHandover = () => {
         >
           Nhận xe
         </button>
+        <button 
+          className={`tab-btn ${handoverType === 'notifications' ? 'active' : ''}`}
+          onClick={() => setHandoverType('notifications')}
+        >
+          Thông báo {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+        </button>
       </div>
+
+      {/* Notifications Tab */}
+      {handoverType === 'notifications' && (
+        <div className="notifications-section">
+          <div className="notifications-header">
+            <h2>Thông báo đặt xe</h2>
+            {unreadCount > 0 && (
+              <button 
+                className="btn-secondary"
+                onClick={handleMarkAllAsRead}
+              >
+                Đánh dấu tất cả đã đọc ({unreadCount})
+              </button>
+            )}
+          </div>
+          
+          <div className="notifications-list">
+            {notifications.length === 0 ? (
+              <div className="empty-notifications">
+                <p>Chưa có thông báo nào</p>
+              </div>
+            ) : (
+              notifications.map(notification => (
+                <div 
+                  key={notification.id} 
+                  className={`notification-card ${!notification.isRead ? 'unread' : 'read'}`}
+                >
+                  <div className="notification-header">
+                    <div className="notification-type">
+                      {notification.notificationType === 'NEW_BOOKING' && '🆕 Đặt xe mới'}
+                    </div>
+                    <div className="notification-time">
+                      {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                    </div>
+                    {!notification.isRead && (
+                      <button 
+                        className="mark-read-btn"
+                        onClick={() => handleMarkAsRead(notification.id)}
+                      >
+                        ✓
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="notification-content">
+                    <h4>Booking #{notification.bookingId}</h4>
+                    <p className="customer-info">
+                      <strong>Khách hàng:</strong> {notification.customerName} - {notification.customerPhone}
+                    </p>
+                    <p className="vehicle-info">
+                      <strong>Xe:</strong> {notification.vehicleModel} ({notification.vehiclePlate})
+                    </p>
+                    <p className="time-info">
+                      <strong>Thời gian nhận dự kiến:</strong> {new Date(notification.estimatedStartTime).toLocaleString('vi-VN')}
+                    </p>
+                    <p className="message">{notification.message}</p>
+                  </div>
+                  
+                  <div className="notification-actions">
+                    <button 
+                      className="btn-primary"
+                      onClick={() => {
+                        setHandoverType('pickup');
+                        handleMarkAsRead(notification.id);
+                      }}
+                    >
+                      Xử lý giao xe
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="stats-grid">
@@ -573,7 +847,7 @@ const VehicleHandover = () => {
 };
 
 // Component: Xác thực khách hàng (bảng, notes, real-time timeago)
-const CustomerVerification = () => {
+const CustomerVerification = ({ assignedStation }) => {
   const STORAGE_KEY = 'verifications_v1';
 
   const sample = [
@@ -676,7 +950,16 @@ const CustomerVerification = () => {
 
   return (
     <div className="staff-section">
-      <h1>Xác thực khách hàng</h1>
+      <div className="section-header">
+        <h1>Xác thực khách hàng</h1>
+        {assignedStation && (
+          <div className="station-info">
+            <span className="station-badge">
+              🏢 {assignedStation.name} - {assignedStation.province}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="verification-card">
         <h2>Danh sách cần xác thực</h2>
@@ -812,10 +1095,19 @@ const CustomerVerification = () => {
 };
 
 // Component: Thanh toán tại điểm
-const PaymentManagement = () => {
+const PaymentManagement = ({ assignedStation }) => {
   return (
     <div className="staff-section">
-      <h1>Thanh toán tại điểm</h1>
+      <div className="section-header">
+        <h1>Thanh toán tại điểm</h1>
+        {assignedStation && (
+          <div className="station-info">
+            <span className="station-badge">
+              🏢 {assignedStation.name} - {assignedStation.province}
+            </span>
+          </div>
+        )}
+      </div>
       
       <div className="stats-grid">
         <div className="stat-card">
@@ -911,7 +1203,7 @@ const PaymentManagement = () => {
 };
 
 // Component: Quản lý xe tại điểm (cập nhật trạng thái và báo cáo sự cố)
-const VehicleMaintenance = () => {
+const VehicleMaintenance = ({ assignedStation }) => {
   const [vehicles, setVehicles] = useState([]);
   const [editing, setEditing] = useState(null);
   const [expandedVehicle, setExpandedVehicle] = useState(null);
@@ -1138,7 +1430,16 @@ const VehicleMaintenance = () => {
 
   return (
     <div className="staff-section">
-      <h1>Quản lý xe tại điểm</h1>
+      <div className="section-header">
+        <h1>Quản lý xe tại điểm</h1>
+        {assignedStation && (
+          <div className="station-info">
+            <span className="station-badge">
+              🏢 {assignedStation.name} - {assignedStation.province}
+            </span>
+          </div>
+        )}
+      </div>
 
       {error && (
         <div className="error-message" style={{
@@ -1656,7 +1957,7 @@ const VehicleMaintenance = () => {
 };
 
 // Component: Quản lý khiếu nại được phân công
-const MyComplaintsManagement = ({ user }) => {
+const MyComplaintsManagement = ({ user, assignedStation }) => {
   const [complaints, setComplaints] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
@@ -1777,7 +2078,16 @@ const MyComplaintsManagement = ({ user }) => {
   return (
     <div className="staff-content">
       <div className="content-header">
-        <h2>Khiếu nại được phân công</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h2>Khiếu nại được phân công</h2>
+          {assignedStation && (
+            <div className="station-info">
+              <span className="station-badge">
+                🏢 {assignedStation.name} - {assignedStation.province}
+              </span>
+            </div>
+          )}
+        </div>
         <p style={{ color: '#666', marginTop: '8px' }}>Danh sách khiếu nại bạn cần xử lý</p>
       </div>
 

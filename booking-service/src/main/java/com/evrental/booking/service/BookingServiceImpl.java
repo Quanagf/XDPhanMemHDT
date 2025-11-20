@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value; // <-- DÒNG MỚI (Import DTO để gửi đi)
 import org.springframework.http.HttpStatus;
@@ -11,10 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.evrental.booking.dto.BookingResponseDTO;
 import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
 import com.evrental.booking.dto.PaymentRequestDTO;
+import com.evrental.booking.dto.StaffNotificationDTO;
 import com.evrental.booking.dto.VehicleDTO; // Import công cụ gọi API
 import com.evrental.booking.model.Booking;
 import com.evrental.booking.model.BookingContract;
@@ -33,6 +36,10 @@ public class BookingServiceImpl implements IBookingService {
     
     // Inject công cụ gọi API
     private final RestTemplate restTemplate;
+    private final ExternalApiService externalApiService;
+    
+    // Inject notification service
+    private final NotificationService notificationService;
 
     // Lấy URL của service khác từ application.properties
     @Value("${service.url.vehicles}")
@@ -107,6 +114,56 @@ public class BookingServiceImpl implements IBookingService {
             vehicleServiceUrl + "/api/vehicles/" + request.getVehicleId() + "/status/RENTED",
             null
         );
+        
+        // --- BƯỚC 5: GỬI THÔNG BÁO ĐẾN STAFF QUA RABBITMQ ---
+        try {
+            // Lấy thông tin user để gửi thông báo
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> userInfo = restTemplate.getForObject(
+                userServiceUrl + "/api/users/" + userId,
+                java.util.Map.class
+            );
+            
+            // Lấy thông tin station để gửi đến đúng staff
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> stationInfo = restTemplate.getForObject(
+                "http://vehicle-service:8080/api/stations/" + request.getStartStationId(),
+                java.util.Map.class
+            );
+            
+            String customerName = userInfo != null ? (String) userInfo.get("fullName") : "Khách hàng";
+            String customerPhone = userInfo != null ? (String) userInfo.get("phoneNumber") : "";
+            String customerEmail = userInfo != null ? (String) userInfo.get("email") : "";
+            String stationName = stationInfo != null ? (String) stationInfo.get("name") : "";
+            String stationAddress = stationInfo != null ? (String) stationInfo.get("address") : "";
+            
+            // Tạo thông báo chi tiết
+            StaffNotificationDTO notification = StaffNotificationDTO.builder()
+                .bookingId(savedBooking.getId())
+                .userId(userId)
+                .vehicleId(request.getVehicleId())
+                .stationId(request.getStartStationId())
+                .customerName(customerName)
+                .customerPhone(customerPhone)
+                .customerEmail(customerEmail)
+                .vehicleModel(vehicle.getType())
+                .vehiclePlate(vehicle.getLicensePlate())
+                .estimatedStartTime(request.getEstimatedStartTime())
+                .estimatedEndTime(request.getEstimatedEndTime())
+                .bookingTime(LocalDateTime.now())
+                .notificationType("NEW_BOOKING")
+                .stationName(stationName)
+                .stationAddress(stationAddress)
+                .message(String.format("Có yêu cầu đặt xe mới từ khách hàng %s (%s). Xe: %s - %s. Thời gian nhận dự kiến: %s tại trạm %s", 
+                    customerName, customerPhone, vehicle.getType(), vehicle.getLicensePlate(), 
+                    request.getEstimatedStartTime(), stationName))
+                .build();
+            
+            notificationService.sendStaffNotification(notification);
+        } catch (Exception e) {
+            // Log lỗi nhưng không ảnh hưởng đến việc tạo booking
+            System.err.println("Lỗi khi gửi thông báo đến staff: " + e.getMessage());
+        }
         
         return savedBooking;
     }
@@ -218,8 +275,7 @@ public class BookingServiceImpl implements IBookingService {
     @Override
     public List<Booking> getStationBookings(Long stationId) {
         // (Chức năng 2.a)
-        // TODO: Cần 1 câu query phức tạp hơn
-        return List.of(); 
+        return bookingRepository.findByStartStationIdOrderByBookingTimeDesc(stationId);
     }
 
     @Override
@@ -232,6 +288,33 @@ public class BookingServiceImpl implements IBookingService {
     public List<Long> getBookedVehicleIds(LocalDateTime startTime, LocalDateTime endTime) {
         // Lấy danh sách vehicleId đã được booking trong khoảng thời gian
         return bookingRepository.findBookedVehicleIds(startTime, endTime);
+    }
+    
+    @Override
+    public List<Booking> getPendingBookingsByStation(Long stationId) {
+        // Lấy các booking đang chờ xử lý tại trạm (status = PENDING)
+        return bookingRepository.findByStartStationIdAndStatusOrderByBookingTimeAsc(stationId, Booking.BookingStatus.PENDING);
+    }
+    
+    @Override
+    public List<BookingResponseDTO> getPendingBookingsWithDetailsForStation(Long stationId) {
+        // Lấy các booking PENDING
+        List<Booking> bookings = getPendingBookingsByStation(stationId);
+        
+        // Convert sang DTO và enrich với user/vehicle info
+        return bookings.stream().map(booking -> {
+            BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
+            
+            // Fetch user info từ user-service
+            BookingResponseDTO.UserInfo userInfo = externalApiService.getUserInfo(booking.getUserId());
+            dto.setUserInfo(userInfo);
+            
+            // Fetch vehicle info từ vehicle-service
+            BookingResponseDTO.VehicleInfo vehicleInfo = externalApiService.getVehicleInfo(booking.getVehicleId());
+            dto.setVehicleInfo(vehicleInfo);
+            
+            return dto;
+        }).collect(Collectors.toList());
     }
     
 }

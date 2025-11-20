@@ -229,6 +229,65 @@
   font-size: 0.875rem;
 }
 
+/* Style like homepage input-field */
+.datetime-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+  transition: all 0.3s ease;
+  position: relative;
+  min-width: 0;
+  min-height: 52px;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.datetime-field:hover {
+  border-color: #47C778;
+  box-shadow: 0 0 0 2px rgba(71, 199, 120, 0.1);
+}
+
+.datetime-field:focus-within {
+  border-color: #47C778;
+  box-shadow: 0 0 0 2px rgba(71, 199, 120, 0.1);
+}
+
+.datetime-field iconify-icon {
+  font-size: 1.2rem;
+  color: #47C778;
+  margin: 0;
+}
+
+.datetime-field span {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.time-input-styled,
+.date-input-styled {
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  color: #333;
+  outline: none;
+  padding: 0;
+}
+
+.time-input-styled {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.date-input-styled {
+  flex: 1;
+  min-width: 130px;
+}
+
 .date-time-input {
   display: flex;
   justify-content: space-between;
@@ -1236,4 +1295,183 @@
   color: #333;
   font-size: 0.95rem;
   font-weight: 500;
+}
+
+/* ========================================================= */
+/* DATE PICKER MODAL */
+/* ========================================================= */
+
+.date-modal {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.time-selection {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.time-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.time-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.time-group select {
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  font-size: 1rem;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.time-group select:focus {
+  border-color: #47C778;
+  outline: none;
+}
+
+/* Calendar Styles */
+.calendar-container {
+  margin-bottom: 1rem;
+}
+
+.calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+}
+
+.calendar-navigation button {
+  background: #47C778;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.calendar-navigation button:hover {
+  background: #3ba866;
+}
+
+.calendars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.calendar-month {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.calendar-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.calendar-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.calendar-day:hover:not(.disabled):not(.empty) {
+  background: #e8f5e8;
+  color: #47C778;
+}
+
+.calendar-day.selected {
+  background: #47C778 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.calendar-day.in-range {
+  background: #e8f5e8;
+  color: #47C778;
+}
+
+.calendar-day.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+/* Modal Responsive */
+@media (max-width: 768px) {
+  .calendars {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .date-modal {
+    width: 95vw;
+  }
+  
+  .time-selection {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }

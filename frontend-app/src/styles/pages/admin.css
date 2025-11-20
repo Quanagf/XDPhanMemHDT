@@ -17,6 +17,40 @@
   padding: 0; /* Loại bỏ padding */
 }
 
+/* Station Info Styling */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.station-info {
+  display: flex;
+  align-items: center;
+}
+
+.station-badge {
+  background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.station-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
 /* Sidebar */
 .admin-sidebar {
   width: 280px;

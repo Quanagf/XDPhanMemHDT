@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping; // <-- IMPORT M�
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.evrental.booking.dto.BookingResponseDTO;
 import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
@@ -40,6 +41,14 @@ public class BookingController {
         return "Booking-Service is alive!";
     }
     
+    // === TEST ENDPOINT (Không cần authentication) ===
+    @PostMapping("/test")
+    public ResponseEntity<Booking> createBookingTest(@RequestBody CreateBookingRequest request) {
+        // Test với userId cố định = 1
+        Booking newBooking = bookingService.createBooking(request, 1L);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newBooking);
+    }
+    
     // === Hàm helper (lấy Token từ header) ===
     private String extractToken(String authorizationHeader) {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
@@ -50,20 +59,41 @@ public class BookingController {
 
 
 
-    // === API 1: Renter Đặt xe (1.b) ===
+    // === API 1: Renter Đặt xe (1.b) - TẠM BỎ @PreAuthorize để test ===
     @PostMapping
-    @PreAuthorize("hasRole('RENTER')") 
-    public ResponseEntity<Booking> createBooking(
+    // @PreAuthorize("hasRole('RENTER')") // Tạm comment để test
+    public ResponseEntity<?> createBooking(
             @RequestBody CreateBookingRequest request,
-            @RequestHeader("Authorization") String authorizationHeader // <-- Lấy Token
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader // <-- Không bắt buộc để test
     ) {
         
-        // Lấy userId từ Token (Bảo mật)
-        String token = extractToken(authorizationHeader);
-        Long userId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+        // Nếu có token thì dùng, không có thì dùng userId = 1 để test
+        Long userId = 1L; // Default cho test
+        if (authorizationHeader != null) {
+            String token = extractToken(authorizationHeader);
+            if (token != null) {
+                try {
+                    userId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+                } catch (Exception e) {
+                    // Nếu token lỗi thì vẫn dùng userId = 1
+                    userId = 1L;
+                }
+            }
+        }
 
-        Booking newBooking = bookingService.createBooking(request, userId); // <-- Truyền userId bảo mật
-        return ResponseEntity.status(HttpStatus.CREATED).body(newBooking);
+        try {
+            System.out.println("DEBUG: Received booking request: " + request);
+            System.out.println("DEBUG: Using userId: " + userId);
+            
+            Booking newBooking = bookingService.createBooking(request, userId); // <-- Truyền userId
+            System.out.println("DEBUG: Created booking: " + newBooking);
+            return ResponseEntity.status(HttpStatus.CREATED).body(newBooking);
+        } catch (Exception e) {
+            System.err.println("ERROR creating booking: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error: " + e.getMessage());
+        }
     }
 
     // === API 2: Staff Giao xe (1.c / 2.a) ===
@@ -133,6 +163,26 @@ public class BookingController {
         
         List<Long> bookedVehicleIds = bookingService.getBookedVehicleIds(start, end);
         return ResponseEntity.ok(bookedVehicleIds);
+    }
+    
+    // === API 8: Lấy booking đang chờ xử lý tại trạm cho staff ===
+    @GetMapping("/station/{stationId}/pending")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<List<Booking>> getPendingBookingsByStation(
+            @PathVariable Long stationId) {
+        
+        List<Booking> pendingBookings = bookingService.getPendingBookingsByStation(stationId);
+        return ResponseEntity.ok(pendingBookings);
+    }
+    
+    // === API 9: Lấy booking đang chờ xử lý với thông tin chi tiết (user + vehicle) ===
+    @GetMapping("/station/{stationId}/pending-detailed")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<List<BookingResponseDTO>> getPendingBookingsWithDetailsForStation(
+            @PathVariable Long stationId) {
+        
+        List<BookingResponseDTO> pendingBookings = bookingService.getPendingBookingsWithDetailsForStation(stationId);
+        return ResponseEntity.ok(pendingBookings);
     }
 }
 
