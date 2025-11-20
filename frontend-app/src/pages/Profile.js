@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import ImageCropper from '../components/ImageCropper';
+import FavoriteCarsList from '../components/FavoriteCarsList';
 
 
 const Profile = () => {
@@ -949,17 +950,7 @@ const handleChangePassword = async () => {
                 <h3 className="profile-box-title">Xe yêu thích của tôi</h3>
               </div>
               
-              {/* Empty state for favorites */}
-              <div className="favorites-empty-state">
-                <div className="favorites-empty-icon">
-                  <img 
-                    src="/assets/images/no data/Gemini_Generated_Image_tufjhwtufjhwtufj-removebg-preview.png" 
-                    alt="Không có xe yêu thích" 
-                    className="no-favorites-image"
-                  />
-                </div>
-                <p className="favorites-empty-text">Bạn chưa có xe yêu thích nào</p>
-              </div>
+              <FavoriteCarsList />
             </div>
           </div>
         );

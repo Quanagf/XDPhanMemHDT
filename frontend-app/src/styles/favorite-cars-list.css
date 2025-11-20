@@ -1,0 +1,308 @@
+/* ========================================
+   PROFILE FAVORITES LIST CSS
+   Namespace: profile-favorites-*, profile-favorite-*
+   ======================================== */
+
+/* Empty State Styling */
+.favorites-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  min-height: 400px;
+}
+
+.favorites-empty-icon {
+  margin-bottom: 24px;
+}
+
+.profile-no-favorites-image {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  opacity: 0.7;
+}
+
+.profile-favorites-empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.profile-favorites-empty-text {
+  font-size: 1rem;
+  color: #666;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.profile-browse-cars-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.profile-browse-cars-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  text-decoration: none;
+  color: white;
+}
+
+/* Favorites Content */
+.profile-favorites-content {
+  padding: 20px 0;
+}
+
+.profile-favorites-header {
+  margin-bottom: 24px;
+}
+
+.profile-favorites-count {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+/* Favorites Grid */
+.profile-favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 0;
+}
+
+/* Individual Favorite Car Card */
+.profile-favorite-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.profile-favorite-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Image Section */
+.profile-favorite-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.profile-favorite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.profile-favorite-card:hover .profile-favorite-img {
+  transform: scale(1.05);
+}
+
+/* Remove Favorite Button */
+.profile-remove-favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-remove-favorite-btn:hover {
+  background: #ff4757;
+  transform: scale(1.1);
+}
+
+.profile-remove-favorite-btn:hover iconify-icon {
+  color: white !important;
+}
+
+.profile-remove-favorite-btn iconify-icon {
+  font-size: 18px;
+  transition: color 0.3s ease;
+}
+
+/* Card Info Section */
+.profile-favorite-info {
+  padding: 20px;
+}
+
+.profile-favorite-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.profile-favorite-details {
+  margin-bottom: 16px;
+}
+
+.profile-favorite-specs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.profile-favorite-spec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.profile-favorite-spec iconify-icon {
+  font-size: 16px;
+  color: #888;
+}
+
+.profile-favorite-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.profile-favorite-location iconify-icon {
+  font-size: 14px;
+  color: #28a745;
+}
+
+/* Footer Section */
+.profile-favorite-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.profile-favorite-price {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-price-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.profile-view-detail-btn {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.profile-view-detail-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  text-decoration: none;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile-favorites-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .profile-favorite-card {
+    margin: 0 auto;
+    max-width: 400px;
+  }
+  
+  .profile-favorite-img-wrapper {
+    height: 180px;
+  }
+  
+  .profile-favorite-info {
+    padding: 16px;
+  }
+  
+  .profile-favorites-empty-text {
+    font-size: 0.9rem;
+    padding: 0 16px;
+  }
+  
+  .profile-no-favorites-image {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .favorites-empty-state {
+    padding: 40px 16px;
+    min-height: 300px;
+  }
+  
+  .profile-favorites-empty-title {
+    font-size: 1.3rem;
+  }
+  
+  .profile-favorite-specs {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .profile-favorite-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .profile-view-detail-btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+  }
+}

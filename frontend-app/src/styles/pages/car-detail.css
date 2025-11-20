@@ -147,6 +147,46 @@
   color: #e74c3c;
 }
 
+/* Detail page heart button - unique naming */
+.detail-heart-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detail-heart-btn:hover {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.detail-heart-btn iconify-icon {
+  font-size: 1.25rem;
+  color: #e74c3c;
+  transition: transform 0.2s ease;
+}
+
+.detail-heart-btn.is-liked {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.detail-heart-btn.is-liked:hover {
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.detail-heart-btn:hover iconify-icon {
+  transform: scale(1.1);
+}
+
 /* ========================================================= */
 /* BOOKING SECTION */
 /* ========================================================= */

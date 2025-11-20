@@ -19,9 +19,27 @@ const CarDetail = () => {
   const [bookingType, setBookingType] = useState('instant');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [carData, setCarData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Load user and check favorite status
+  useEffect(() => {
+    const userProfile = localStorage.getItem('userProfile');
+    if (userProfile) {
+      try {
+        setUser(JSON.parse(userProfile));
+      } catch (err) {
+        console.error('Error parsing user profile:', err);
+      }
+    }
+
+    // Check if this car is in favorites
+    const favorites = JSON.parse(localStorage.getItem('userFavorites') || '[]');
+    const isInFavorites = favorites.some(favCar => favCar.id === parseInt(carId));
+    setIsFavorite(isInFavorites);
+  }, [carId]);
 
   useEffect(() => {
     const fetchCarData = async () => {
@@ -169,6 +187,44 @@ const CarDetail = () => {
     setUser(null);
     localStorage.removeItem('userProfile');
     localStorage.removeItem('authToken');
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = () => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+
+    const favorites = JSON.parse(localStorage.getItem('userFavorites') || '[]');
+    const vehicleId = parseInt(carId);
+
+    if (isFavorite) {
+      // Remove from favorites
+      const newFavorites = favorites.filter(favCar => favCar.id !== vehicleId);
+      localStorage.setItem('userFavorites', JSON.stringify(newFavorites));
+      setIsFavorite(false);
+    } else {
+      // Add to favorites - save full car object with essential info
+      if (!carData) return;
+      
+      const carToSave = {
+        id: vehicleId,
+        name: carData.name,
+        mainImage: carData.images[0],
+        pricePerHour: carData.pricePerHour,
+        seats: carData.specs.seats.replace(' Ghế', ''),
+        transmission: carData.specs.transmission,
+        stationName: carData.location
+      };
+      
+      const newFavorites = [...favorites, carToSave];
+      localStorage.setItem('userFavorites', JSON.stringify(newFavorites));
+      setIsFavorite(true);
+    }
+    
+    // Trigger event để các component khác biết favorites đã thay đổi
+    window.dispatchEvent(new Event('favoritesUpdated'));
   };
 
   const handleBack = () => {
@@ -359,8 +415,14 @@ const CarDetail = () => {
                   <iconify-icon icon="material-symbols:chevron-right"></iconify-icon>
                 </button>
                 
-                <button className="favorite-button">
-                  <iconify-icon icon="material-symbols:favorite-outline"></iconify-icon>
+                <button 
+                  className={`detail-heart-btn ${isFavorite ? 'is-liked' : ''}`}
+                  onClick={handleFavoriteToggle}
+                  title={isFavorite ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
+                >
+                  <iconify-icon 
+                    icon={isFavorite ? 'material-symbols:favorite' : 'material-symbols:favorite-outline'}
+                  ></iconify-icon>
                 </button>
               </div>
             </div>

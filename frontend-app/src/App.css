@@ -36,3 +36,6 @@
     transform: rotate(360deg);
   }
 }
+
+/* Import favorite cars list CSS */
+@import './styles/favorite-cars-list.css';
