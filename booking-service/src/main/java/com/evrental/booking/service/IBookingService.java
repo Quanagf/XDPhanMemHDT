@@ -37,4 +37,7 @@ public interface IBookingService {
     
     // 9. Lấy booking với thông tin đầy đủ (bao gồm user và vehicle info)
     List<BookingResponseDTO> getPendingBookingsWithDetailsForStation(Long stationId);
+    
+    // 10. Lấy booking ACTIVE cần nhận xe tại trạm 
+    List<BookingResponseDTO> getActiveBookingsWithDetailsForStation(Long stationId);
 }

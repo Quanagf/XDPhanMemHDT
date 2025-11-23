@@ -7,7 +7,7 @@ services:
     # default 3306:3306
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
@@ -21,7 +21,7 @@ services:
     ports:
       - "8081:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -37,7 +37,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/vehicle_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -51,7 +51,7 @@ services:
     ports:
       - "8083:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/booking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -69,7 +69,7 @@ services:
     ports:
       - "8084:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db
@@ -83,7 +83,7 @@ services:
     ports:
       - "8085:8080"
     environment:
-      MYSQL_ROOT_PASSWORD: 2005
+      MYSQL_ROOT_PASSWORD: toann01032005
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/reporting_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     depends_on:
       - mysql-db

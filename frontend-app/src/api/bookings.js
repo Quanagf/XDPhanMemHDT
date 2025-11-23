@@ -58,6 +58,15 @@ export async function getPendingBookingsWithDetailsForStation(stationId) {
   return res.json();
 }
 
+// Lấy booking ACTIVE cần nhận xe với thông tin chi tiết (cho staff)
+export async function getActiveBookingsWithDetailsForStation(stationId) {
+  const res = await fetch(`${base}/station/${stationId}/active-detailed`, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) throw new Error('Failed to fetch detailed active bookings');
+  return res.json();
+}
+
 // Lấy tất cả booking tại trạm (cho staff)
 export async function getStationBookings(stationId) {
   const res = await fetch(`${base}/station/${stationId}`, {
@@ -93,4 +102,33 @@ export async function checkOutVehicle(bookingId, checkOutData) {
     throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: Failed to check out vehicle`);
   }
   return res.json();
+}
+
+// Upload ảnh lên Minio
+export async function uploadImage(file, folder = 'bookings') {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folder);
+
+  const res = await fetch('/api/upload/image', {
+    method: 'POST',
+    headers: { ...getAuthHeader() },
+    body: formData
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to upload image');
+  }
+
+  return res.json(); // { imageUrl: "http://..." }
+}
+
+// Upload ảnh xe
+export async function uploadVehicleImage(file, bookingId) {
+  return uploadImage(file, `vehicles/booking-${bookingId}`);
+}
+
+// Upload ảnh bằng lái
+export async function uploadLicenseImage(file, bookingId) {
+  return uploadImage(file, `licenses/booking-${bookingId}`);
 }

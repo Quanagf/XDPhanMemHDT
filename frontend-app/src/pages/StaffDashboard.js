@@ -4,12 +4,13 @@ import '../styles/pages/staff.css';
 import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
+import '../styles/components/customer-verification.css';
 import vehicleService from '../utils/vehicleService';
 import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
 import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
-import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle } from '../api/bookings';
+import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage } from '../api/bookings';
 
 // Add CSS animation for spinner
 const spinnerStyle = document.createElement('style');
@@ -78,64 +79,10 @@ const StaffDashboard = () => {
         setAssignedStation(station);
         
         // Fetch bookings cho trạm này
-        fetchStationBookings(userProfile.stationId);
+        // fetchStationBookings(userProfile.stationId); // Di chuyển xuống sau
       }
     } catch (error) {
       console.error('Error fetching stations:', error);
-    }
-  };
-
-  const fetchStationBookings = async (stationId) => {
-    try {
-      setLoadingBookings(true);
-      
-      // Lấy booking đang chờ xử lý với thông tin chi tiết
-      const pendingBookingsDetailed = await getPendingBookingsWithDetailsForStation(stationId);
-      
-      // Lấy tất cả booking của trạm để tìm những booking đang trong quá trình thuê (ACTIVE) - đây là xe cần nhận lại
-      const allStationBookings = await getStationBookings(stationId);
-      const activeBookings = allStationBookings.filter(booking => booking.status === 'ACTIVE');
-      
-      // Transform data từ DTO format cho pending bookings
-      const transformedPendingBookings = pendingBookingsDetailed.map(booking => ({
-        id: booking.id,
-        customerName: booking.userInfo ? booking.userInfo.fullName : `User ${booking.userId}`,
-        vehicleInfo: {
-          model: booking.vehicleInfo ? booking.vehicleInfo.type : `Vehicle ${booking.vehicleId}`,
-          plate: booking.vehicleInfo ? booking.vehicleInfo.licensePlate : `ID: ${booking.vehicleId}`,
-          battery: booking.vehicleInfo ? booking.vehicleInfo.batteryLevel : 95
-        },
-        pickupTime: booking.estimatedStartTime,
-        status: booking.status
-      }));
-      
-      // Transform data cho active bookings (xe cần nhận lại)
-      const transformedActiveBookings = activeBookings.map(booking => ({
-        id: booking.id,
-        customerName: booking.userId, // Sẽ cần fetch thông tin user từ user-service sau
-        vehicleInfo: {
-          model: booking.vehicleId, // Sẽ cần fetch thông tin vehicle từ vehicle-service sau
-          plate: booking.vehicleId,
-          battery: 45 // Default value
-        },
-        returnTime: booking.estimatedEndTime,
-        status: booking.status
-      }));
-      
-      setBookings({
-        pickup: transformedPendingBookings,
-        return: transformedActiveBookings
-      });
-      
-    } catch (error) {
-      console.error('Error fetching station bookings:', error);
-      // Hiển thị dữ liệu fallback nếu có lỗi
-      setBookings({
-        pickup: [],
-        return: []
-      });
-    } finally {
-      setLoadingBookings(false);
     }
   };
 
@@ -358,6 +305,17 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
   const [staffSign, setStaffSign] = useState('');
   const [inspectionNotes, setInspectionNotes] = useState('');
 
+  // State cho xác thực khách hàng và giao xe
+  const [vehicleImages, setVehicleImages] = useState([]); // Ảnh xe
+  const [licenseImage, setLicenseImage] = useState(null); // Ảnh bằng lái
+  const [customerVerified, setCustomerVerified] = useState(false); // Xác thực khách hàng
+  const [uploadingVehicleImage, setUploadingVehicleImage] = useState(false);
+  const [uploadingLicenseImage, setUploadingLicenseImage] = useState(false);
+  
+  // State cho nhận xe
+  const [batteryLevel, setBatteryLevel] = useState(95); // Mức pin xe
+  const [exteriorDamage, setExteriorDamage] = useState(false); // Có hư hỏng ngoại thất
+  
   // Fetch notifications when component mounts or station changes
   useEffect(() => {
     if (assignedStation?.id) {
@@ -429,6 +387,79 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
   });
   const [loadingBookings, setLoadingBookings] = useState(false);
 
+  // Refs
+  const signaturePadRef = useRef(null);
+
+  // Function để fetch booking data cho trạm
+  const fetchStationBookings = async (stationId) => {
+    try {
+      setLoadingBookings(true);
+      
+      console.log('Fetching bookings for station:', stationId);
+      
+      // Lấy booking đang chờ xử lý với thông tin chi tiết (PENDING - cần giao xe)
+      const pendingBookingsDetailed = await getPendingBookingsWithDetailsForStation(stationId);
+      console.log('Pending bookings detailed:', pendingBookingsDetailed);
+      
+      // Lấy booking ACTIVE cần nhận xe với thông tin chi tiết
+      const activeBookingsDetailed = await getActiveBookingsWithDetailsForStation(stationId);
+      console.log('Active bookings detailed:', activeBookingsDetailed);
+      
+      // Transform data từ DTO format cho pending bookings (xe cần giao)
+      const transformedPendingBookings = pendingBookingsDetailed.map(booking => ({
+        id: booking.id,
+        customerName: booking.userInfo ? booking.userInfo.fullName : `User ${booking.userId}`,
+        vehicleInfo: {
+          model: booking.vehicleInfo ? booking.vehicleInfo.type : `Vehicle ${booking.vehicleId}`,
+          plate: booking.vehicleInfo ? booking.vehicleInfo.licensePlate : `ID: ${booking.vehicleId}`,
+          battery: booking.vehicleInfo ? booking.vehicleInfo.batteryLevel : 95
+        },
+        pickupTime: booking.estimatedStartTime,
+        status: booking.status
+      }));
+      
+      console.log('Transformed pending bookings:', transformedPendingBookings);
+      
+      // Transform data cho active bookings (xe cần nhận lại)
+      const transformedActiveBookings = activeBookingsDetailed.map(booking => ({
+        id: booking.id,
+        customerName: booking.userInfo ? booking.userInfo.fullName : `User ${booking.userId}`,
+        vehicleInfo: {
+          model: booking.vehicleInfo ? booking.vehicleInfo.type : `Vehicle ${booking.vehicleId}`,
+          plate: booking.vehicleInfo ? booking.vehicleInfo.licensePlate : `ID: ${booking.vehicleId}`,
+          battery: booking.vehicleInfo ? booking.vehicleInfo.batteryLevel : 45
+        },
+        returnTime: booking.estimatedEndTime,
+        actualStartTime: booking.actualStartTime,
+        status: booking.status
+      }));
+      
+      console.log('Transformed active bookings:', transformedActiveBookings);
+      
+      setBookings({
+        pickup: transformedPendingBookings,
+        return: transformedActiveBookings
+      });
+      
+    } catch (error) {
+      console.error('Error fetching station bookings:', error);
+      // Hiển thị dữ liệu fallback nếu có lỗi
+      setBookings({
+        pickup: [],
+        return: []
+      });
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  // Effect để fetch bookings khi assignedStation thay đổi
+  useEffect(() => {
+    if (assignedStation?.id) {
+      fetchStationBookings(assignedStation.id);
+    }
+  }, [assignedStation]);
+
   const handleStartHandover = (booking) => {
     setSelectedBooking(booking);
     setShowHandoverModal(true);
@@ -455,6 +486,15 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     setCustomerSign('');
     setStaffSign('');
     setInspectionNotes('');
+    
+    // Reset state xác thực và giao xe
+    setVehicleImages([]);
+    setLicenseImage(null);
+    setCustomerVerified(false);
+    
+    // Reset state nhận xe
+    setBatteryLevel(95);
+    setExteriorDamage(false);
   };
 
   const handlePhotoUpload = (e) => {
@@ -472,52 +512,174 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     });
   };
 
-  const handleCompleteHandover = () => {
+  // Hàm upload ảnh xe
+  const handleVehicleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length || !selectedBooking) return;
+
+    setUploadingVehicleImage(true);
+    try {
+      const uploadPromises = files.map(file => uploadVehicleImage(file, selectedBooking.id));
+      const uploadResults = await Promise.all(uploadPromises);
+      const imageUrls = uploadResults.map(result => result.imageUrl);
+      
+      setVehicleImages(prev => [...prev, ...imageUrls]);
+    } catch (error) {
+      console.error('Error uploading vehicle images:', error);
+      alert('Lỗi khi tải ảnh xe lên. Vui lòng thử lại.');
+    } finally {
+      setUploadingVehicleImage(false);
+    }
+  };
+
+  // Hàm upload ảnh bằng lái
+  const handleLicenseImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedBooking) return;
+
+    setUploadingLicenseImage(true);
+    try {
+      const uploadResult = await uploadLicenseImage(file, selectedBooking.id);
+      setLicenseImage(uploadResult.imageUrl);
+    } catch (error) {
+      console.error('Error uploading license image:', error);
+      alert('Lỗi khi tải ảnh bằng lái lên. Vui lòng thử lại.');
+    } finally {
+      setUploadingLicenseImage(false);
+    }
+  };
+
+  // Hàm upload ảnh xe
+  const handleUploadVehicleImage = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !selectedBooking) return;
+
+    setUploadingVehicleImage(true);
+    try {
+      const result = await uploadVehicleImage(file, selectedBooking.id);
+      setVehicleImages(prev => [...prev, result.imageUrl]);
+      alert('Upload ảnh xe thành công!');
+    } catch (error) {
+      console.error('Error uploading vehicle image:', error);
+      alert('Lỗi khi upload ảnh xe: ' + error.message);
+    } finally {
+      setUploadingVehicleImage(false);
+    }
+  };
+
+  // Hàm upload ảnh bằng lái
+  const handleUploadLicenseImage = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !selectedBooking) return;
+
+    setUploadingLicenseImage(true);
+    try {
+      const result = await uploadLicenseImage(file, selectedBooking.id);
+      setLicenseImage(result.imageUrl);
+      alert('Upload ảnh bằng lái thành công!');
+    } catch (error) {
+      console.error('Error uploading license image:', error);
+      alert('Lỗi khi upload ảnh bằng lái: ' + error.message);
+    } finally {
+      setUploadingLicenseImage(false);
+    }
+  };
+
+  const handleCompleteHandover = async () => {
+    console.log('=== HANDLE COMPLETE HANDOVER START ===');
+    console.log('Selected booking:', selectedBooking);
+    console.log('Handover type:', handoverType);
+    console.log('Assigned station:', assignedStation);
+    
     if (!selectedBooking) return;
 
-    // Kiểm tra điều kiện hoàn tất
-    const isChecklistComplete = Object.values(checklist).every(item => item);
-    const hasPhotos = photos.length >= 4;
-    const hasSignatures = customerSign.trim() !== '' && staffSign.trim() !== '';
+    // Kiểm tra điều kiện hoàn tất cho giao xe
+    if (handoverType === 'pickup') {
+      const isChecklistComplete = Object.values(checklist).every(item => item);
+      const hasVehicleImages = vehicleImages.length > 0;
+      const hasLicenseImage = licenseImage !== null;
+      const hasSignatures = customerSign.trim() !== '' && staffSign.trim() !== '';
+      const isCustomerVerified = customerVerified;
 
-    if (!isChecklistComplete || !hasPhotos || !hasSignatures) {
-      alert('Vui lòng hoàn tất tất cả các bước kiểm tra và ký xác nhận!');
-      return;
-    }
-
-    // Cập nhật trạng thái xe
-    const vehicleUpdate = handoverType === 'pickup' 
-      ? { status: 'RENTED' }
-      : { status: 'AVAILABLE' };
-
-    // Lưu thông tin giao/nhận xe
-    const handoverRecord = {
-      bookingId: selectedBooking.id,
-      type: handoverType,
-      timestamp: new Date().toISOString(),
-      checklist: { ...checklist },
-      photos: [...photos],
-      customerSignature: customerSign,
-      staffSignature: staffSign,
-      inspectionNotes: inspectionNotes,
-      vehicleCondition: {
-        battery: selectedBooking.vehicleInfo.battery,
-        damages: [], // Thêm ghi nhận hư hỏng nếu có
-        notes: inspectionNotes
+      if (!isChecklistComplete || !hasVehicleImages || !hasLicenseImage || !hasSignatures || !isCustomerVerified) {
+        alert('Vui lòng hoàn tất tất cả các bước: \n- Checklist kiểm tra\n- Tải ảnh xe\n- Tải ảnh bằng lái khách hàng\n- Xác thực thông tin khách hàng\n- Ký xác nhận');
+        return;
       }
-    };
 
-    // Demo: Lưu vào localStorage
-    try {
-      const key = `handover_${selectedBooking.id}`;
-      localStorage.setItem(key, JSON.stringify(handoverRecord));
-      
-      // Cập nhật UI
-      alert(`${handoverType === 'pickup' ? 'Giao' : 'Nhận'} xe thành công!`);
-      handleCloseModal();
-    } catch (e) {
-      console.error('Lưu thông tin giao/nhận xe thất bại:', e);
-      alert('Có lỗi xảy ra, vui lòng thử lại!');
+      // Gọi API check-in
+      try {
+        const checkInData = {
+          staffSignature: staffSign,
+          renterSignature: customerSign,
+          checkinVehicleImageUrl: vehicleImages[0], // Lấy ảnh xe đầu tiên
+          customerLicenseImageUrl: licenseImage,
+          staffVerifiedCustomer: customerVerified
+        };
+
+        await checkInVehicle(selectedBooking.id, checkInData);
+        alert('Giao xe thành công!');
+        handleCloseModal();
+        
+        // Refresh danh sách booking
+        if (assignedStation?.id) {
+          fetchStationBookings(assignedStation.id);
+        }
+      } catch (error) {
+        console.error('Error during check-in:', error);
+        alert('Lỗi khi giao xe: ' + error.message);
+      }
+    } else {
+      // Logic cho nhận xe - cập nhật với API mới
+      const isChecklistComplete = Object.values(checklist).every(item => item);
+      const hasVehicleImages = vehicleImages.length > 0;
+      const hasSignatures = customerSign.trim() !== '' && staffSign.trim() !== '';
+      const hasInspectionNotes = inspectionNotes.trim() !== '';
+
+      if (!isChecklistComplete || !hasVehicleImages || !hasSignatures || !hasInspectionNotes) {
+        alert('Vui lòng hoàn tất tất cả các bước: \n- Checklist kiểm tra\n- Tải ảnh xe tại thời điểm nhận\n- Ghi chú tình trạng xe\n- Ký xác nhận');
+        return;
+      }
+
+      // Gọi API check-out
+      try {
+        console.log('=== STARTING CHECK-OUT PROCESS ===');
+        console.log('Vehicle images:', vehicleImages);
+        console.log('Inspection notes:', inspectionNotes);
+        console.log('Battery level:', batteryLevel);
+        console.log('Exterior damage:', exteriorDamage);
+        
+        // Tạo ghi chú tình trạng xe chi tiết
+        let vehicleCondition = inspectionNotes;
+        if (exteriorDamage) {
+          vehicleCondition += `\n🔴 Có hư hỏng ngoại thất được phát hiện.`;
+        }
+        vehicleCondition += `\n🔋 Mức pin: ${batteryLevel}%`;
+        
+        const checkOutData = {
+          endStationId: assignedStation.id,
+          checkoutVehicleImageUrl: vehicleImages[0], // Lấy ảnh xe đầu tiên
+          vehicleConditionNotes: vehicleCondition,
+          actualEndTime: new Date().toISOString()
+        };
+
+        console.log('Check-out data:', checkOutData);
+        console.log('Calling checkOutVehicle API...');
+        const result = await checkOutVehicle(selectedBooking.id, checkOutData);
+        console.log('API call successful:', result);
+        
+        alert('Nhận xe thành công!');
+        handleCloseModal();
+        
+        // Refresh danh sách booking
+        if (assignedStation?.id) {
+          console.log('Refreshing station bookings...');
+          fetchStationBookings(assignedStation.id);
+        }
+      } catch (error) {
+        console.error('Error during check-out:', error);
+        console.error('Error details:', error.message, error.stack);
+        alert('Lỗi khi nhận xe: ' + error.message);
+      }
     }
   };
 
@@ -750,43 +912,208 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                 </label>
               </div>
 
-              <div className="photo-upload-section">
-                <h3>Ảnh xe</h3>
-                <div className="photo-grid">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="photo-item">
-                      <img src={photo} alt={`Vehicle photo ${index + 1}`} />
-                      <button 
-                        className="remove-photo" 
-                        onClick={() => setPhotos(photos.filter((_, i) => i !== index))}
-                      >
-                        ×
-                      </button>
+              {handoverType === 'pickup' ? (
+                // Giao diện cho giao xe
+                <>
+                  <div className="vehicle-image-section">
+                    <h3>📸 Ảnh xe tại thời điểm giao</h3>
+                    <div className="image-upload-grid">
+                      {vehicleImages.map((imageUrl, index) => (
+                        <div key={index} className="image-item">
+                          <img src={imageUrl} alt={`Vehicle image ${index + 1}`} />
+                          <button 
+                            className="remove-image" 
+                            onClick={() => setVehicleImages(vehicleImages.filter((_, i) => i !== index))}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <div className="image-upload-box">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleUploadVehicleImage}
+                          disabled={uploadingVehicleImage}
+                          id="vehicle-images"
+                        />
+                        <label htmlFor="vehicle-images" className="upload-label">
+                          {uploadingVehicleImage ? (
+                            <div className="uploading">
+                              <div className="spinner"></div>
+                              Đang tải...
+                            </div>
+                          ) : (
+                            <>
+                              <span className="upload-icon">📷</span>
+                              <span>Tải ảnh xe</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
                     </div>
-                  ))}
-                  {photos.length < 4 && (
-                    <div className="photo-upload">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handlePhotoUpload}
-                      />
+                  </div>
+
+                  <div className="customer-verification-section">
+                    <h3>🆔 Xác thực khách hàng</h3>
+                    <div className="verification-content">
+                      <div className="license-upload">
+                        <h4>Ảnh bằng lái khách hàng:</h4>
+                        {licenseImage ? (
+                          <div className="license-preview">
+                            <img src={licenseImage} alt="Customer License" />
+                            <button 
+                              className="remove-license" 
+                              onClick={() => setLicenseImage(null)}
+                            >
+                              🗑️ Xóa ảnh
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="license-upload-box">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadLicenseImage}
+                              disabled={uploadingLicenseImage}
+                              id="license-image"
+                            />
+                            <label htmlFor="license-image" className="upload-label">
+                              {uploadingLicenseImage ? (
+                                <div className="uploading">
+                                  <div className="spinner"></div>
+                                  Đang tải...
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="upload-icon">🆔</span>
+                                  <span>Tải ảnh bằng lái</span>
+                                </>
+                              )}
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="verification-checklist">
+                        <h4>Kiểm tra thông tin:</h4>
+                        <div className="verification-notes">
+                          <p>📋 Đối chiếu thông tin sau:</p>
+                          <ul>
+                            <li>✓ Số CCCD trên hệ thống vs bằng lái</li>
+                            <li>✓ Số giấy phép lái xe</li>
+                            <li>✓ Hạn sử dụng bằng lái</li>
+                            <li>✓ Hình ảnh trên bằng lái vs khách hàng</li>
+                          </ul>
+                        </div>
+                        
+                        <div className="verification-action">
+                          <label className="verification-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={customerVerified}
+                              onChange={(e) => setCustomerVerified(e.target.checked)}
+                            />
+                            <span className="checkmark"></span>
+                            <strong>Xác nhận thông tin khách hàng chính xác</strong>
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                </>
+              ) : (
+                // Giao diện cho nhận xe 
+                <>
+                  <div className="vehicle-image-section">
+                    <h3>📸 Ảnh xe tại thời điểm nhận lại</h3>
+                    <div className="image-upload-grid">
+                      {vehicleImages.map((imageUrl, index) => (
+                        <div key={index} className="image-item">
+                          <img src={imageUrl} alt={`Vehicle return image ${index + 1}`} />
+                          <button 
+                            className="remove-image" 
+                            onClick={() => setVehicleImages(vehicleImages.filter((_, i) => i !== index))}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <div className="image-upload-box">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleUploadVehicleImage}
+                          disabled={uploadingVehicleImage}
+                          id="return-vehicle-images"
+                        />
+                        <label htmlFor="return-vehicle-images" className="upload-label">
+                          {uploadingVehicleImage ? (
+                            <div className="uploading">
+                              <div className="spinner"></div>
+                              Đang tải...
+                            </div>
+                          ) : (
+                            <>
+                              <span className="upload-icon">📷</span>
+                              <span>Tải ảnh xe</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="vehicle-condition-section">
+                    <h3>🔍 Kiểm tra tình trạng xe</h3>
+                    <div className="condition-checklist">
+                      <h4>Đánh giá mức pin:</h4>
+                      <div className="battery-level-input">
+                        <input 
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={batteryLevel}
+                          onChange={(e) => setBatteryLevel(e.target.value)}
+                        />
+                        <span className="battery-value">{batteryLevel}%</span>
+                      </div>
+                      
+                      <h4>Kiểm tra ngoại thất:</h4>
+                      <div className="condition-checks">
+                        <label>
+                          <input 
+                            type="checkbox" 
+                            checked={exteriorDamage}
+                            onChange={(e) => setExteriorDamage(e.target.checked)}
+                          />
+                          Có hư hỏng ngoại thất (trầy xước, móp méo)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="inspection-notes-section">
-                <h3>Ghi chú kiểm tra</h3>
+                <h3>📝 Ghi chú tình trạng xe</h3>
                 <div className="form-group">
-                  <label>Ghi chú (tùy chọn):</label>
+                  <label>
+                    {handoverType === 'pickup' ? 'Ghi chú (tùy chọn):' : 'Ghi chú tình trạng xe khi nhận lại:'}
+                  </label>
                   <textarea
                     value={inspectionNotes}
                     onChange={(e) => setInspectionNotes(e.target.value)}
-                    placeholder="Nhập ghi chú về tình trạng xe, vấn đề phát hiện hoặc các lưu ý khác (có thể để trống)"
+                    placeholder={
+                      handoverType === 'pickup' 
+                        ? "Nhập ghi chú về tình trạng xe, vấn đề phát hiện hoặc các lưu ý khác (có thể để trống)"
+                        : "Ghi chú về tình trạng xe: mức pin, hư hỏng ngoại thất, thiết bị còn thiếu, vệ sinh,..."
+                    }
                     rows="4"
                     className="inspection-notes-input"
+                    required={handoverType === 'return'}
                   />
                 </div>
               </div>

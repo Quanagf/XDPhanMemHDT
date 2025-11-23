@@ -28,6 +28,9 @@ public class BookingResponseDTO {
     private LocalDateTime actualStartTime;
     private LocalDateTime actualEndTime;
     private String checkoutVehicleImageUrl;
+    private String checkinVehicleImageUrl; // Ảnh xe lúc giao
+    private String customerLicenseImageUrl; // Ảnh bằng lái khách hàng
+    private Boolean staffVerifiedCustomer; // Nhân viên đã xác thực
     private Booking.BookingStatus status;
     private BigDecimal totalCost;
     
@@ -79,6 +82,9 @@ public class BookingResponseDTO {
                 .actualStartTime(booking.getActualStartTime())
                 .actualEndTime(booking.getActualEndTime())
                 .checkoutVehicleImageUrl(booking.getCheckoutVehicleImageUrl())
+                .checkinVehicleImageUrl(booking.getCheckinVehicleImageUrl())
+                .customerLicenseImageUrl(booking.getCustomerLicenseImageUrl())
+                .staffVerifiedCustomer(booking.getStaffVerifiedCustomer())
                 .status(booking.getStatus())
                 .totalCost(booking.getTotalCost())
                 .build();

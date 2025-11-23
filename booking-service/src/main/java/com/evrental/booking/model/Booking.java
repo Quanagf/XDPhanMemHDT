@@ -42,6 +42,18 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String checkoutVehicleImageUrl; // <-- THÊM DÒNG NÀY (Ảnh xe lúc trả)
 
+    @Column(columnDefinition = "TEXT")
+    private String vehicleConditionNotes; // Ghi chú tình trạng xe khi nhận lại
+
+    @Column(columnDefinition = "TEXT")
+    private String checkinVehicleImageUrl; // Ảnh xe lúc giao
+
+    @Column(columnDefinition = "TEXT")
+    private String customerLicenseImageUrl; // Ảnh bằng lái khách hàng
+
+    @Builder.Default
+    private Boolean staffVerifiedCustomer = false; // Nhân viên đã xác thực khách hàng
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;

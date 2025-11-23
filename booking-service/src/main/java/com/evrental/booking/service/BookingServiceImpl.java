@@ -178,8 +178,14 @@ public class BookingServiceImpl implements IBookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking không ở trạng thái PENDING");
         }
         
+        // Cập nhật trạng thái booking
         booking.setStatus(Booking.BookingStatus.ACTIVE);
         booking.setActualStartTime(LocalDateTime.now());
+        
+        // Cập nhật ảnh xe và ảnh bằng lái
+        booking.setCheckinVehicleImageUrl(request.getCheckinVehicleImageUrl());
+        booking.setCustomerLicenseImageUrl(request.getCustomerLicenseImageUrl());
+        booking.setStaffVerifiedCustomer(request.getStaffVerifiedCustomer());
         
         BookingContract contract = BookingContract.builder()
                 .booking(booking)
@@ -224,9 +230,16 @@ public class BookingServiceImpl implements IBookingService {
 
         // 3. Cập nhật Booking
         booking.setStatus(Booking.BookingStatus.COMPLETED);
-        booking.setActualEndTime(endTime);
+        
+        // Sử dụng thời gian từ request hoặc thời gian hiện tại
+        LocalDateTime finalEndTime = (request.getActualEndTime() != null) 
+            ? request.getActualEndTime() 
+            : endTime;
+        booking.setActualEndTime(finalEndTime);
+        
         booking.setEndStationId(request.getEndStationId());
         booking.setCheckoutVehicleImageUrl(request.getCheckoutVehicleImageUrl());
+        booking.setVehicleConditionNotes(request.getVehicleConditionNotes());
         booking.setTotalCost(totalCost);
         
         Booking savedBooking = bookingRepository.save(booking);
@@ -303,6 +316,29 @@ public class BookingServiceImpl implements IBookingService {
         
         // Convert sang DTO và enrich với user/vehicle info
         return bookings.stream().map(booking -> {
+            BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
+            
+            // Fetch user info từ user-service
+            BookingResponseDTO.UserInfo userInfo = externalApiService.getUserInfo(booking.getUserId());
+            dto.setUserInfo(userInfo);
+            
+            // Fetch vehicle info từ vehicle-service
+            BookingResponseDTO.VehicleInfo vehicleInfo = externalApiService.getVehicleInfo(booking.getVehicleId());
+            dto.setVehicleInfo(vehicleInfo);
+            
+            return dto;
+        }).collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<BookingResponseDTO> getActiveBookingsWithDetailsForStation(Long stationId) {
+        // Lấy các booking ACTIVE cần nhận xe tại trạm
+        // Sử dụng startStationId thay vì endStationId vì endStationId có thể null
+        List<Booking> activeBookings = bookingRepository.findByStartStationIdAndStatusOrderByActualStartTimeAsc(
+            stationId, Booking.BookingStatus.ACTIVE);
+        
+        // Convert sang DTO và enrich với user/vehicle info
+        return activeBookings.stream().map(booking -> {
             BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
             
             // Fetch user info từ user-service

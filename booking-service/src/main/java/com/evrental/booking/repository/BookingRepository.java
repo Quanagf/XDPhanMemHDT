@@ -33,6 +33,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Tìm các booking đang chờ xử lý tại trạm cụ thể
     List<Booking> findByStartStationIdAndStatusOrderByBookingTimeAsc(Long stationId, BookingStatus status);
     
+    // Tìm các booking ACTIVE cần nhận xe tại trạm (theo start station và thời gian bắt đầu thực tế)
+    List<Booking> findByStartStationIdAndStatusOrderByActualStartTimeAsc(Long stationId, BookingStatus status);
+    
+    // Tìm các booking ACTIVE cần nhận xe tại trạm (theo end station)
+    List<Booking> findByEndStationIdAndStatusOrderByActualStartTimeAsc(Long endStationId, BookingStatus status);
+    
     // Tìm các booking theo status
     List<Booking> findByStatusOrderByBookingTimeDesc(BookingStatus status);
 }
