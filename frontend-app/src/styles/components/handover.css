@@ -51,6 +51,94 @@
   color: #084298;
 }
 
+/* CSS cho thông tin liên hệ khách hàng - Staff Dashboard */
+.staff-customer-contact-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563eb !important;
+  font-weight: 500;
+}
+
+.staff-customer-contact-info i {
+  color: #10b981;
+  font-size: 14px;
+}
+
+/* CSS cho thông tin loại đặt xe - Staff Dashboard */
+.staff-booking-type-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.staff-booking-type-info i {
+  color: #f59e0b;
+  font-size: 14px;
+}
+
+/* CSS cho badge loại đặt xe */
+.booking-type-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.booking-type-badge.advance-booking {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.booking-type-badge.onspot-booking {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+/* Badge cho loại đặt xe */
+.booking-type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.booking-type-badge.advance-booking {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+}
+
+.booking-type-badge.onspot-booking {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+/* Hover effects cho booking type badges */
+.booking-type-badge.advance-booking:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(6, 182, 212, 0.4);
+  transition: all 0.2s ease;
+}
+
+.booking-type-badge.onspot-booking:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+  transition: all 0.2s ease;
+}
+
 /* Modal styles */
 .handover-modal {
   width: 90%;

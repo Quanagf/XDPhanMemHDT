@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/ping",
                                 "/api/users/check-duplicate",
-                                "/api/users/verification-status/**" // Cho phép booking-service gọi
+                                "/api/users/verification-status/**", // Cho phép booking-service gọi
+                                "/api/users/*" // Cho phép booking-service lấy thông tin user
                         ).permitAll()
 
                         // --- CÁC API CÒN LẠI (Private) ---

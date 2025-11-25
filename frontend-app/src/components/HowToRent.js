@@ -2,17 +2,17 @@ import React from 'react';
 
 const StepItem = ({ stepNumber, image, title, alt }) => {
   return (
-    <div className="step-item">
+    <div className="how-to-rent-step-item">
       <img 
         src={image}
         alt={alt}
-        className="step-image"
+        className="how-to-rent-step-image"
         width="276"
         height="270"
         loading="lazy"
       />
-      <p className="step-number" aria-hidden="true">{stepNumber}</p>
-      <p className="step-title">{title}</p>
+      <p className="how-to-rent-step-number" aria-hidden="true">{stepNumber}</p>
+      <p className="how-to-rent-step-title">{title}</p>
     </div>
   );
 };
@@ -47,12 +47,12 @@ const HowToRent = () => {
 
   return (
     <section className="how-to-rent-section" aria-labelledby="how-to-rent-title">
-      <div className="section-header">
+      <div className="how-to-rent-header">
         <h2 id="how-to-rent-title">Hướng Dẫn Thuê Xe</h2>
         <p>Chỉ với 4 bước đơn giản bạn đã có thể trải nghiệm thuê xe trên FEV một cách nhanh chóng.</p>
       </div>
 
-      <div className="steps-grid">
+      <div className="how-to-rent-steps-grid">
         {steps.map((step, index) => (
           <StepItem 
             key={index}

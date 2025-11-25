@@ -132,3 +132,15 @@ export async function uploadVehicleImage(file, bookingId) {
 export async function uploadLicenseImage(file, bookingId) {
   return uploadImage(file, `licenses/booking-${bookingId}`);
 }
+
+// Lấy thông tin countdown cho booking
+export async function getBookingCountdown(bookingId) {
+  const res = await fetch(`${base}/${bookingId}/countdown`);
+  if (!res.ok) {
+    if (res.status === 404) {
+      return null; // Booking không tồn tại
+    }
+    throw new Error('Failed to get countdown info');
+  }
+  return res.json();
+}

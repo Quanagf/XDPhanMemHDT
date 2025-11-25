@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
 import Register from '../components/Register';
+import PaymentModal from '../components/PaymentModal';
 import vehicleService from '../utils/vehicleService';
 import { getVehicleWithStation } from '../api/vehicleAPI';
 import { createBooking } from '../api/bookings';
@@ -25,8 +26,13 @@ const CarDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState(null);
+  
   // Date picker states
   const [showDateModal, setShowDateModal] = useState(false);
+  const [dateSelectionMode, setDateSelectionMode] = useState(null); // 'start' or 'end'
   const [selectedStartDate, setSelectedStartDate] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -38,6 +44,65 @@ const CarDetail = () => {
   });
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('10:00');
+
+  // Generate available time options (at least 1 hour from now)
+  const getAvailableTimeOptions = (selectedDate, isEndTime = false, startTimeValue = null) => {
+    const options = [];
+    const today = new Date();
+    const isToday = selectedDate && 
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear();
+    
+    const isOnSpotBooking = bookingType === 'request';
+    
+    for (let i = 0; i < 24; i++) {
+      const hour = i.toString().padStart(2, '0');
+      const timeValue = `${hour}:00`;
+      
+      // If it's today and start time, only allow times that are at least 1 hour from now
+      if (isToday && !isEndTime) {
+        const currentHour = today.getHours();
+        const currentMinute = today.getMinutes();
+        // If minutes >= 30, need to add 2 hours, otherwise 1 hour
+        const minAllowedHour = currentMinute >= 30 ? currentHour + 2 : currentHour + 1;
+        
+        if (i < minAllowedHour) {
+          continue; // Skip this hour
+        }
+      }
+      
+      // For end time, check minimum gap requirement
+      if (isEndTime && startTimeValue) {
+        const startHour = parseInt(startTimeValue.split(':')[0]);
+        const minHourGap = isOnSpotBooking ? 4 : 1; // ON_SPOT needs 4 hours, ADVANCE needs 1 hour
+        
+        // Calculate minimum end hour based on dates
+        let minEndHour;
+        if (selectedStartDate && selectedDate) {
+          const startDateTime = new Date(selectedStartDate.getFullYear(), selectedStartDate.getMonth(), selectedStartDate.getDate(), startHour, 0);
+          const endDateTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), i, 0);
+          const hourDiff = (endDateTime - startDateTime) / (1000 * 60 * 60);
+          
+          if (hourDiff < minHourGap) {
+            continue; // Skip this hour
+          }
+        } else {
+          // Fallback for same day calculation
+          minEndHour = startHour + minHourGap;
+          if (i < minEndHour) {
+            continue; // Skip this hour
+          }
+        }
+      }
+      
+      options.push(
+        <option key={hour} value={timeValue}>{timeValue}</option>
+      );
+    }
+    
+    return options;
+  };
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10)); // Tháng 11/2025
 
   // Load user and check favorite status
@@ -313,20 +378,54 @@ const CarDetail = () => {
       const endDateTime = new Date(selectedEndDate);
       endDateTime.setHours(parseInt(endTime.split(':')[0]), parseInt(endTime.split(':')[1]));
       
+      // Debug log timezone
+      console.log('Debug datetime creation:');
+      console.log('- selectedStartDate:', selectedStartDate);
+      console.log('- startTime:', startTime);
+      console.log('- startDateTime local:', startDateTime.toString());
+      console.log('- startDateTime ISO (UTC):', startDateTime.toISOString());
+      console.log('- Timezone offset:', startDateTime.getTimezoneOffset());
+      
+      // Format datetime as local string for backend (YYYY-MM-DD HH:mm:ss)
+      const formatLocalDateTime = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
+      
       const bookingRequest = {
         vehicleId: parseInt(carId),
         startStationId: carData?.station?.id || 1, // Default to station 1 if not available
-        estimatedStartTime: startDateTime.toISOString(),
-        estimatedEndTime: endDateTime.toISOString()
+        estimatedStartTime: formatLocalDateTime(startDateTime),
+        estimatedEndTime: formatLocalDateTime(endDateTime)
       };
+      // Map frontend bookingType to backend enum values
+      // frontend uses 'instant' for Đặt trước, 'request' for Đặt tại điểm
+      bookingRequest.bookingType = bookingType === 'request' ? 'ON_SPOT' : 'ADVANCE';
       
       console.log('Sending booking request:', bookingRequest);
       
-      const newBooking = await createBooking(bookingRequest);
-      console.log('Booking created:', newBooking);
-      
-      alert(`✅ Đặt xe thành công!\n\nMã đặt xe: #${newBooking.id}\nThời gian nhận xe: ${startDateTime.toLocaleString('vi-VN')}\nThời gian trả xe: ${endDateTime.toLocaleString('vi-VN')}\n\nStaff sẽ liên hệ với bạn sớm để xác nhận.`);
-      navigate('/');
+      // Check if this is advance booking (needs payment) or on-spot booking (pay later)
+      if (bookingType === 'instant') { // Đặt trước - cần thanh toán cọc
+        // Store booking data for payment modal
+        setPendingBookingData({
+          bookingRequest,
+          totalPrice: rentalDetails.totalPrice,
+          startDateTime,
+          endDateTime
+        });
+        setShowPaymentModal(true);
+      } else { // Đặt tại điểm - không cần thanh toán trước
+        const newBooking = await createBooking(bookingRequest);
+        console.log('Booking created:', newBooking);
+        
+        alert(`✅ Đặt xe thành công!\n\nMã đặt xe: #${newBooking.id}\nLoại đặt: Đặt tại điểm\nThời gian nhận xe: ${startDateTime.toLocaleString('vi-VN')}\nThời gian trả xe: ${endDateTime.toLocaleString('vi-VN')}\n\nBạn sẽ thanh toán khi nhận xe tại trạm.\nStaff sẽ liên hệ với bạn sớm để xác nhận.`);
+        navigate('/');
+      }
       
     } catch (error) {
       console.error('Lỗi khi đặt xe:', error);
@@ -353,6 +452,35 @@ const CarDetail = () => {
     setShowTermsModal(false);
   };
 
+  const handlePaymentSuccess = async (paymentResult) => {
+    try {
+      // Proceed with booking creation after successful payment
+      const newBooking = await createBooking(pendingBookingData.bookingRequest);
+      console.log('Booking created after payment:', newBooking);
+      
+      setShowPaymentModal(false);
+      setPendingBookingData(null);
+      
+      alert(`✅ Đặt xe và thanh toán thành công!\n\nMã đặt xe: #${newBooking.id}\nLoại đặt: Đặt trước\nĐã thanh toán cọc: ${Math.round(pendingBookingData.totalPrice * 0.2).toLocaleString()}đ\nThời gian nhận xe: ${pendingBookingData.startDateTime.toLocaleString('vi-VN')}\nThời gian trả xe: ${pendingBookingData.endDateTime.toLocaleString('vi-VN')}\n\nSố tiền còn lại sẽ thanh toán khi nhận xe: ${(pendingBookingData.totalPrice * 0.8).toLocaleString()}đ\n\nStaff sẽ liên hệ với bạn sớm để xác nhận.`);
+      navigate('/');
+      
+    } catch (error) {
+      console.error('Lỗi khi tạo booking sau thanh toán:', error);
+      alert(`❌ Thanh toán thành công nhưng có lỗi khi tạo booking: ${error.message}\n\nVui lòng liên hệ hỗ trợ.`);
+    }
+  };
+
+  const handlePaymentError = (errorMessage) => {
+    setShowPaymentModal(false);
+    setPendingBookingData(null);
+    alert(`❌ Thanh toán thất bại: ${errorMessage}\n\nVui lòng thử lại sau.`);
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    setPendingBookingData(null);
+  };
+
   const scrollToTerms = (e) => {
     e.preventDefault();
     const termsSection = document.getElementById('terms-section');
@@ -366,13 +494,17 @@ const CarDetail = () => {
 
   // Calendar functions
   const isDateSelected = (date) => {
-    return (selectedStartDate && date.getTime() === selectedStartDate.getTime()) ||
-           (selectedEndDate && date.getTime() === selectedEndDate.getTime());
+    if (dateSelectionMode === 'start') {
+      return selectedStartDate && date.getTime() === selectedStartDate.getTime();
+    } else if (dateSelectionMode === 'end') {
+      return selectedEndDate && date.getTime() === selectedEndDate.getTime();
+    }
+    return false;
   };
 
   const isDateInRange = (date) => {
-    return selectedStartDate && selectedEndDate &&
-           date >= selectedStartDate && date <= selectedEndDate;
+    // Không hiện range khi đang chọn từng ngày riêng biệt
+    return false;
   };
 
   const handleDateSelect = (date) => {
@@ -383,18 +515,19 @@ const CarDetail = () => {
       return;
     }
     
-    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-      // Bắt đầu chọn mới hoặc chọn lại
+    if (dateSelectionMode === 'start') {
       setSelectedStartDate(date);
-      setSelectedEndDate(null);
-    } else {
-      // Chọn ngày kết thúc
-      if (date < selectedStartDate) {
-        setSelectedEndDate(selectedStartDate);
-        setSelectedStartDate(date);
-      } else {
+      
+      // Nếu ngày kết thúc đã chọn mà nhỏ hơn ngày bắt đầu mới, reset ngày kết thúc
+      if (selectedEndDate && date > selectedEndDate) {
         setSelectedEndDate(date);
       }
+    } else if (dateSelectionMode === 'end') {
+      // Không cho chọn ngày trả trước ngày nhận
+      if (selectedStartDate && date < selectedStartDate) {
+        return;
+      }
+      setSelectedEndDate(date);
     }
   };
 
@@ -410,7 +543,7 @@ const CarDetail = () => {
     
     // Empty cells for days before start of month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+      days.push(<div key={`empty-${i}`} className="car-detail-calendar-day empty"></div>);
     }
     
     // Days of the month
@@ -422,12 +555,19 @@ const CarDetail = () => {
       today.setHours(0, 0, 0, 0);
       const isPast = date < today;
       
+      // For ON_SPOT booking (đặt tại điểm), only restrict start date to today
+      const isOnSpotBooking = bookingType === 'request';
+      const isNotToday = date.getTime() !== today.getTime();
+      const isStartDateRestricted = isOnSpotBooking && dateSelectionMode === 'start' && isNotToday;
+      
+      const isDisabled = isPast || isStartDateRestricted;
+      
       days.push(
         <div
           key={day}
-          className={`calendar-day ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isPast ? 'disabled' : ''}`}
-          onClick={() => !isPast && handleDateSelect(date)}
-          style={isPast ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
+          className={`car-detail-calendar-day ${isSelected ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${isDisabled ? 'disabled' : ''}`}
+          onClick={() => !isDisabled && handleDateSelect(date)}
+          style={isDisabled ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
         >
           {day}
         </div>
@@ -439,16 +579,16 @@ const CarDetail = () => {
     const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     
     return (
-      <div className="calendar-month">
-        <div className="calendar-header">
+      <div className="car-detail-calendar-month">
+        <div className="car-detail-calendar-header">
           <h3>{monthNames[month.getMonth()]} {month.getFullYear()}</h3>
         </div>
-        <div className="calendar-weekdays">
+        <div className="car-detail-calendar-weekdays">
           {weekdays.map((label) => (
-            <div key={label} className="calendar-weekday">{label}</div>
+            <div key={label} className="car-detail-calendar-weekday">{label}</div>
           ))}
         </div>
-        <div className="calendar-grid">
+        <div className="car-detail-calendar-grid">
           {days}
         </div>
       </div>
@@ -546,7 +686,7 @@ const CarDetail = () => {
   }
 
   return (
-    <div className="CarDetail">"
+    <div className="CarDetail">
       <Header 
         onOpenLogin={handleOpenLogin} 
         user={user} 
@@ -727,7 +867,10 @@ const CarDetail = () => {
               <div className="date-selection">
                 <div className="date-input-group">
                   <label>Ngày nhận</label>
-                  <div className="input-field datetime-field" onClick={() => setShowDateModal(true)}>
+                  <div className="input-field datetime-field" onClick={() => {
+                    setDateSelectionMode('start');
+                    setShowDateModal(true);
+                  }}>
                     <iconify-icon icon="mdi:clock-outline"></iconify-icon>
                     <span>{startTime} SA</span>
                     <iconify-icon icon="mdi:calendar-month"></iconify-icon>
@@ -737,7 +880,10 @@ const CarDetail = () => {
                 
                 <div className="date-input-group">
                   <label>Ngày trả</label>
-                  <div className="input-field datetime-field" onClick={() => setShowDateModal(true)}>
+                  <div className="input-field datetime-field" onClick={() => {
+                    setDateSelectionMode('end');
+                    setShowDateModal(true);
+                  }}>
                     <iconify-icon icon="mdi:clock-outline"></iconify-icon>
                     <span>{endTime} SA</span>
                     <iconify-icon icon="mdi:calendar-month"></iconify-icon>
@@ -746,8 +892,8 @@ const CarDetail = () => {
                 </div>
               </div>
 
-              <div className="booking-options">
-                <div className="booking-option">
+              <div className="car-booking-options">
+                <div className="car-booking-option-card">
                   <input 
                     type="radio" 
                     id="instant" 
@@ -756,19 +902,50 @@ const CarDetail = () => {
                     checked={bookingType === 'instant'}
                     onChange={(e) => setBookingType(e.target.value)}
                   />
-                  <label htmlFor="instant">Đặt trước</label>
+                  <label htmlFor="instant" className="car-booking-option-label">
+                    <div className="car-booking-option-content">
+                      <div className="car-booking-option-title">
+                        <i className="fas fa-credit-card" style={{marginRight: '0.5rem', color: '#007bff'}}></i>
+                        Đặt trước
+                      </div>
+                      <div className="car-booking-option-desc">An toàn•Thanh toán cọc 20%</div>
+                      <div className="car-booking-option-deposit">
+                        Cọc: {Math.round(rentalDetails.totalPrice * 0.20).toLocaleString()}đ
+                      </div>
+                    </div>
+                  </label>
                 </div>
                 
-                <div className="booking-option">
+                <div className="car-booking-option-card">
                   <input 
                     type="radio" 
                     id="request" 
                     name="bookingType" 
                     value="request"
                     checked={bookingType === 'request'}
-                    onChange={(e) => setBookingType(e.target.value)}
+                    onChange={(e) => {
+                      setBookingType(e.target.value);
+                      // If switching to ON_SPOT booking, reset to today only
+                      if (e.target.value === 'request') {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        setSelectedStartDate(today);
+                        setSelectedEndDate(today);
+                      }
+                    }}
                   />
-                  <label htmlFor="request">Đặt xe tại điểm</label>
+                  <label htmlFor="request" className="car-booking-option-label">
+                    <div className="car-booking-option-content">
+                      <div className="car-booking-option-title">
+                        <i className="fas fa-map-marker-alt" style={{marginRight: '0.5rem', color: '#47C778'}}></i>
+                        Đặt tại điểm
+                      </div>
+                      <div className="car-booking-option-desc">Thanh toán khi nhận xe • Giữ chỗ 45 phút</div>
+                      <div className="car-booking-option-deposit">
+                        Không cần cọc trước
+                      </div>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -944,40 +1121,53 @@ const CarDetail = () => {
         />
       )}
       
+      {/* Payment Modal */}
+      {showPaymentModal && pendingBookingData && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentClose}
+          bookingData={{
+            bookingId: null, // Will be created after payment
+            totalPrice: pendingBookingData.totalPrice,
+            startDateTime: pendingBookingData.startDateTime,
+            endDateTime: pendingBookingData.endDateTime
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentError={handlePaymentError}
+        />
+      )}
+      
       {/* Date Selection Modal */}
       {showDateModal && (
-        <div className="modal-overlay" onClick={() => setShowDateModal(false)}>
-          <div className="modal-content date-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Chọn ngày thuê</h2>
+        <div className="car-booking-modal-overlay" onClick={() => setShowDateModal(false)}>
+          <div className="car-booking-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="car-booking-modal-header">
+              <h2>{dateSelectionMode === 'start' ? 'Chọn ngày & giờ nhận xe' : 'Chọn ngày & giờ trả xe'}</h2>
               <button className="close-button" onClick={() => setShowDateModal(false)}>
                 <iconify-icon icon="mdi:close"></iconify-icon>
               </button>
             </div>
-            <div className="modal-body">
+            <div className="car-booking-modal-body">
               <div className="time-selection">
-                <div className="time-group">
-                  <label>Giờ nhận</label>
-                  <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
-                    {Array.from({length: 24}, (_, i) => {
-                      const hour = i.toString().padStart(2, '0');
-                      return <option key={hour} value={`${hour}:00`}>{hour}:00</option>
-                    })}
-                  </select>
-                </div>
-                <div className="time-group">
-                  <label>Giờ trả</label>
-                  <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
-                    {Array.from({length: 24}, (_, i) => {
-                      const hour = i.toString().padStart(2, '0');
-                      return <option key={hour} value={`${hour}:00`}>{hour}:00</option>
-                    })}
-                  </select>
-                </div>
+                {dateSelectionMode === 'start' ? (
+                  <div className="time-group">
+                    <label>Giờ nhận</label>
+                    <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
+                      {getAvailableTimeOptions(selectedStartDate)}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="time-group">
+                    <label>Giờ trả</label>
+                    <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
+                      {getAvailableTimeOptions(selectedEndDate, true, selectedStartDate?.getTime() === selectedEndDate?.getTime() ? startTime : null)}
+                    </select>
+                  </div>
+                )}
               </div>
               
-              <div className="calendar-container">
-                <div className="calendar-navigation">
+              <div className="car-detail-calendar-container">
+                <div className="car-detail-calendar-navigation">
                   <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}>
                     <iconify-icon icon="mdi:chevron-left"></iconify-icon>
                   </button>
@@ -985,15 +1175,32 @@ const CarDetail = () => {
                     <iconify-icon icon="mdi:chevron-right"></iconify-icon>
                   </button>
                 </div>
-                <div className="calendars">
+                <div className="car-detail-calendars">
                   {renderCalendar(0)}
-                  {renderCalendar(1)}
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="cancel-button" onClick={() => setShowDateModal(false)}>Hủy</button>
-              <button className="confirm-button" onClick={() => setShowDateModal(false)}>Xác nhận</button>
+            <div className="car-booking-modal-footer">
+              <button 
+                className="button secondary" 
+                onClick={() => {
+                  if (dateSelectionMode === 'start') {
+                    setSelectedStartDate(new Date());
+                    setStartTime('08:00');
+                  } else {
+                    setSelectedEndDate(new Date());
+                    setEndTime('08:00');
+                  }
+                }}
+              >
+                Đặt về hôm nay
+              </button>
+              <button 
+                className="button primary" 
+                onClick={() => setShowDateModal(false)}
+              >
+                Xác nhận
+              </button>
             </div>
           </div>
         </div>

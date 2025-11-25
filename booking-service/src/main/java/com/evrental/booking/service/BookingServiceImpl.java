@@ -3,6 +3,7 @@ package com.evrental.booking.service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,9 @@ public class BookingServiceImpl implements IBookingService {
     
     // Inject notification service
     private final NotificationService notificationService;
+    
+    // Inject booking timeout service
+    private final BookingTimeoutService bookingTimeoutService;
 
     // Lấy URL của service khác từ application.properties
     @Value("${service.url.vehicles}")
@@ -101,10 +105,12 @@ public class BookingServiceImpl implements IBookingService {
                 .userId(userId)
                 .vehicleId(request.getVehicleId())
                 .startStationId(request.getStartStationId())
-                .bookingTime(LocalDateTime.now())
-                .estimatedStartTime(request.getEstimatedStartTime())
-                .estimatedEndTime(request.getEstimatedEndTime())
-                .status(Booking.BookingStatus.PENDING)
+                .bookingTime(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                .estimatedStartTime(request.getEstimatedStartTimeAsLocalDateTime())
+                .estimatedEndTime(request.getEstimatedEndTimeAsLocalDateTime())
+                .bookingType(request.getBookingType() != null ? request.getBookingType() : Booking.BookingType.ADVANCE)
+                .status(request.getBookingType() == Booking.BookingType.ADVANCE ? 
+                        Booking.BookingStatus.CONFIRMED : Booking.BookingStatus.PENDING) // ADVANCE được confirm ngay
                 .build();
                 
         Booking savedBooking = bookingRepository.save(booking);
@@ -148,21 +154,32 @@ public class BookingServiceImpl implements IBookingService {
                 .customerEmail(customerEmail)
                 .vehicleModel(vehicle.getType())
                 .vehiclePlate(vehicle.getLicensePlate())
-                .estimatedStartTime(request.getEstimatedStartTime())
-                .estimatedEndTime(request.getEstimatedEndTime())
-                .bookingTime(LocalDateTime.now())
+                .estimatedStartTime(request.getEstimatedStartTimeAsLocalDateTime())
+                .estimatedEndTime(request.getEstimatedEndTimeAsLocalDateTime())
+                .bookingTime(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                 .notificationType("NEW_BOOKING")
                 .stationName(stationName)
                 .stationAddress(stationAddress)
                 .message(String.format("Có yêu cầu đặt xe mới từ khách hàng %s (%s). Xe: %s - %s. Thời gian nhận dự kiến: %s tại trạm %s", 
                     customerName, customerPhone, vehicle.getType(), vehicle.getLicensePlate(), 
-                    request.getEstimatedStartTime(), stationName))
+                    request.getEstimatedStartTimeAsLocalDateTime(), stationName))
                 .build();
             
             notificationService.sendStaffNotification(notification);
         } catch (Exception e) {
             // Log lỗi nhưng không ảnh hưởng đến việc tạo booking
             System.err.println("Lỗi khi gửi thông báo đến staff: " + e.getMessage());
+        }
+        
+        // --- BƯỚC 6: THIẾT LẬP COUNTDOWN TIMER CHO BOOKING ---
+        try {
+            // Chỉ thiết lập countdown cho booking đặt trước (ADVANCE) đã CONFIRMED
+            if (savedBooking.getBookingType() == Booking.BookingType.ADVANCE && 
+                savedBooking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+                bookingTimeoutService.setupBookingDeadline(savedBooking);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi thiết lập countdown timer: " + e.getMessage());
         }
         
         return savedBooking;
@@ -174,13 +191,21 @@ public class BookingServiceImpl implements IBookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking không tìm thấy"));
 
-        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking không ở trạng thái PENDING");
+        if (booking.getStatus() != Booking.BookingStatus.PENDING && 
+            booking.getStatus() != Booking.BookingStatus.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Booking phải ở trạng thái PENDING hoặc CONFIRMED để có thể bàn giao");
+        }
+        
+        // Kiểm tra thời gian cho phép bàn giao (30 phút trước thời gian nhận xe)
+        if (!bookingTimeoutService.canCheckIn(booking)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Chưa đến thời gian bàn giao xe. Vui lòng chờ đến 30 phút trước thời gian nhận xe đã đặt");
         }
         
         // Cập nhật trạng thái booking
         booking.setStatus(Booking.BookingStatus.ACTIVE);
-        booking.setActualStartTime(LocalDateTime.now());
+        booking.setActualStartTime(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         
         // Cập nhật ảnh xe và ảnh bằng lái
         booking.setCheckinVehicleImageUrl(request.getCheckinVehicleImageUrl());
@@ -193,7 +218,7 @@ public class BookingServiceImpl implements IBookingService {
                 .renterSignature(request.getRenterSignature())
                 .staffSignature(request.getStaffSignature())
                 .checkinVehicleImageUrl(request.getCheckinVehicleImageUrl())
-                .signedAt(LocalDateTime.now())
+                .signedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                 .build();
         
         contractRepository.save(contract);
@@ -223,7 +248,7 @@ public class BookingServiceImpl implements IBookingService {
 
         // 2. Tính toán chi phí (Logic 1.d)
         LocalDateTime startTime = booking.getActualStartTime();
-        LocalDateTime endTime = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         long minutes = Duration.between(startTime, endTime).toMinutes();
         long hours = (long) Math.ceil(minutes / 60.0);
         BigDecimal totalCost = BigDecimal.valueOf(hours * vehicle.getPricePerHour());
@@ -311,11 +336,18 @@ public class BookingServiceImpl implements IBookingService {
     
     @Override
     public List<BookingResponseDTO> getPendingBookingsWithDetailsForStation(Long stationId) {
-        // Lấy các booking PENDING
-        List<Booking> bookings = getPendingBookingsByStation(stationId);
+        // Lấy các booking đang chờ xử lý tại trạm (CONFIRMED - đã có countdown timer)
+        List<Booking> confirmedBookings = bookingRepository.findByStartStationIdAndStatusOrderByBookingTimeAsc(stationId, Booking.BookingStatus.CONFIRMED);
+        // Và cả PENDING (đặt tại chỗ)
+        List<Booking> pendingBookings = bookingRepository.findByStartStationIdAndStatusOrderByBookingTimeAsc(stationId, Booking.BookingStatus.PENDING);
+        
+        // Gộp cả hai list
+        List<Booking> allBookings = new java.util.ArrayList<>();
+        allBookings.addAll(confirmedBookings);
+        allBookings.addAll(pendingBookings);
         
         // Convert sang DTO và enrich với user/vehicle info
-        return bookings.stream().map(booking -> {
+        return allBookings.stream().map(booking -> {
             BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
             
             // Fetch user info từ user-service
@@ -351,6 +383,11 @@ public class BookingServiceImpl implements IBookingService {
             
             return dto;
         }).collect(Collectors.toList());
+    }
+    
+    @Override
+    public BookingTimeoutService.BookingCountdownDTO getBookingCountdown(Long bookingId) {
+        return bookingTimeoutService.getBookingCountdown(bookingId);
     }
     
 }

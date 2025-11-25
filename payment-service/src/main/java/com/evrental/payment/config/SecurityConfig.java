@@ -10,6 +10,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -22,6 +25,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // --- API CÔNG KHAI (Public) ---
@@ -36,7 +40,7 @@ public class SecurityConfig {
                         ).permitAll() 
                         
                         // --- CÁC API CÒN LẠI (Private) ---
-                        // Bất kỳ API nào khác (như /history)
+                        // Bất kỳ API nào khác (như /history, /create)
                         // đều phải được xác thực
                         .anyRequest().authenticated() 
                 )
@@ -46,5 +50,27 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Cho phép tất cả origin (trong production nên chỉ định cụ thể)
+        configuration.addAllowedOriginPattern("*");
+        
+        // Cho phép tất cả HTTP methods
+        configuration.addAllowedMethod("*");
+        
+        // Cho phép tất cả headers
+        configuration.addAllowedHeader("*");
+        
+        // Cho phép credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
+        return source;
     }
 }

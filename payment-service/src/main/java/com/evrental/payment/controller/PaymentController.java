@@ -34,6 +34,31 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
     }
 
+    // API cho Renter tạo payment (đặt cọc) - THÊM MỚI
+    @PostMapping("/create")
+    @PreAuthorize("hasRole('RENTER')")
+    public ResponseEntity<?> createUserPayment(@RequestBody PaymentRequest request) {
+        try {
+            PaymentTransaction transaction = paymentService.processPayment(request);
+            
+            // Trả về response đơn giản cho frontend
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("success", true);
+            response.put("transactionId", transaction.getId());
+            response.put("amount", transaction.getAmount());
+            response.put("paymentMethod", transaction.getPaymentMethod());
+            response.put("status", transaction.getStatus());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", e.getMessage());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     // API cho Renter/Admin xem lịch sử giao dịch
     @GetMapping("/history/user/{userId}")
     @PreAuthorize("hasRole('RENTER') or hasRole('ADMIN') or hasRole('STAFF')")

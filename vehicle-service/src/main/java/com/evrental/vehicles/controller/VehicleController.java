@@ -147,4 +147,15 @@ public class VehicleController {
         Vehicle updated = vehicleService.updateVehicleImage(id, url);
         return ResponseEntity.ok(updated);
     }
+
+    // Get images for vehicle (for frontend display)
+    @GetMapping("/{id}/images")
+    public ResponseEntity<List<String>> getVehicleImages(@PathVariable Long id) {
+        Vehicle vehicle = vehicleService.getVehicleById(id);
+        List<String> images = new java.util.ArrayList<>();
+        if (vehicle.getImageUrl() != null && !vehicle.getImageUrl().isEmpty()) {
+            images.add(vehicle.getImageUrl());
+        }
+        return ResponseEntity.ok(images);
+    }
 }

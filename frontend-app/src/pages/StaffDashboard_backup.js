@@ -9,7 +9,6 @@ import vehicleService from '../utils/vehicleService';
 import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
-import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
 import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage } from '../api/bookings';
 import CountdownTimer from '../components/CountdownTimer';
 
@@ -28,8 +27,6 @@ const StaffDashboard = () => {
   const [user, setUser] = useState(null);
   const [assignedStation, setAssignedStation] = useState(null);
   const [stations, setStations] = useState([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Force re-render for button updates
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,14 +56,6 @@ const StaffDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [assignedStation]);
-
-  // Update button states every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1);
-    }, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchUnreadNotificationCount = async () => {
     if (!assignedStation?.id) return;
@@ -837,7 +826,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                   </span>
                 </p>
                 <p><strong>Xe:</strong> {booking.vehicleInfo.model} - {booking.vehicleInfo.plate}</p>
-                <p><strong>Thời gian nhận:</strong> {new Date(booking.pickupTime).toLocaleString('vi-VN')}</p>
+                <p><strong>Thời gian nhận:</strong> {new Date(booking.estimatedStartTime).toLocaleString('vi-VN')}</p>
                 <p><strong>Pin hiện tại:</strong> {booking.vehicleInfo.battery}%</p>
                 <p>
                   <strong>Trạng thái:</strong>
@@ -860,28 +849,12 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                 )}
               </div>
               <div className="handover-actions">
-                {(() => {
-                  // Calculate minutes until pickup time
-                  const pickupTime = new Date(booking.pickupTime);
-                  const now = new Date();
-                  const minutesUntilPickup = Math.floor((pickupTime - now) / (1000 * 60));
-                  const canHandover = minutesUntilPickup <= 30;
-                  
-                  // Debug log
-                  console.log(`Booking #${booking.id}: ${minutesUntilPickup} minutes until pickup, can handover: ${canHandover}`);
-                  
-                  return (
-                    <button 
-                      className={`btn-primary ${!canHandover ? 'disabled' : ''}`}
-                      onClick={() => canHandover && handleStartHandover(booking)}
-                      disabled={!canHandover}
-                      style={!canHandover ? { color: 'white' } : {}}
-                      title={!canHandover ? `Chỉ có thể bàn giao trong vòng 30 phút trước thời gian nhận (còn ${minutesUntilPickup} phút)` : 'Bắt đầu giao xe'}
-                    >
-                      {!canHandover ? 'Chưa thể bàn giao' : 'Bắt đầu giao xe'}
-                    </button>
-                  );
-                })()}
+                <button 
+                  className="btn-primary"
+                  onClick={() => handleStartHandover(booking)}
+                >
+                  Bắt đầu giao xe
+                </button>
               </div>
             </div>
           ))}

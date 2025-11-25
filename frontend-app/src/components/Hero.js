@@ -15,6 +15,49 @@ const Hero = () => {
   const [hourRentalDuration, setHourRentalDuration] = useState(4); // Số giờ thuê
   const [hourRentalStartTime, setHourRentalStartTime] = useState('07:00'); // Giờ bắt đầu cho thuê theo giờ
   
+  // Generate available time options (at least 1 hour from now)
+  const getAvailableTimeOptions = (selectedDate, isEndTime = false, startTimeValue = null) => {
+    const options = [];
+    const today = new Date();
+    const isToday = selectedDate && 
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear();
+    
+    for (let i = 0; i < 24; i++) {
+      const hour = String(i).padStart(2, '0');
+      const timeValue = `${hour}:00`;
+      
+      // If it's today, only allow times that are at least 1 hour from now
+      if (isToday && !isEndTime) {
+        const currentHour = today.getHours();
+        const currentMinute = today.getMinutes();
+        // If minutes >= 30, need to add 2 hours, otherwise 1 hour
+        const minAllowedHour = currentMinute >= 30 ? currentHour + 2 : currentHour + 1;
+        
+        if (i < minAllowedHour) {
+          continue; // Skip this hour
+        }
+      }
+      
+      // If it's end time and same day, must be at least 4 hours after start time
+      if (isEndTime && isToday && startTimeValue) {
+        const startHour = parseInt(startTimeValue.split(':')[0]);
+        const minEndHour = startHour + 4;
+        
+        if (i < minEndHour) {
+          continue; // Skip this hour
+        }
+      }
+      
+      options.push(
+        <option key={i} value={timeValue}>{timeValue}</option>
+      );
+    }
+    
+    return options;
+  };
+  
   // State cho provinces và stations
   const [provinces, setProvinces] = useState([]);
   const [stations, setStations] = useState([]);
@@ -397,19 +440,13 @@ const Hero = () => {
                     <div className="time-selector">
                       <label>Nhận xe</label>
                       <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
-                        {Array.from({length: 24}, (_, i) => {
-                          const hour = String(i).padStart(2, '0');
-                          return <option key={i} value={`${hour}:00`}>{hour}:00</option>;
-                        })}
+                        {getAvailableTimeOptions(selectedStartDate)}
                       </select>
                     </div>
                     <div className="time-selector">
                       <label>Trả xe</label>
                       <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
-                        {Array.from({length: 24}, (_, i) => {
-                          const hour = String(i).padStart(2, '0');
-                          return <option key={i} value={`${hour}:00`}>{hour}:00</option>;
-                        })}
+                        {getAvailableTimeOptions(selectedEndDate, true, selectedStartDate?.getTime() === selectedEndDate?.getTime() ? startTime : null)}
                       </select>
                     </div>
                   </div>
@@ -445,15 +482,13 @@ const Hero = () => {
                         type="date" 
                         value={selectedStartDate ? selectedStartDate.toISOString().split('T')[0] : ''}
                         onChange={(e) => setSelectedStartDate(new Date(e.target.value))}
+                        min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div className="input-group">
                       <label>Giờ nhận xe</label>
                       <select value={hourRentalStartTime} onChange={(e) => setHourRentalStartTime(e.target.value)}>
-                        {Array.from({length: 24}, (_, i) => {
-                          const hour = String(i).padStart(2, '0');
-                          return <option key={i} value={`${hour}:00`}>{hour}:00</option>;
-                        })}
+                        {getAvailableTimeOptions(selectedStartDate)}
                       </select>
                     </div>
                     <div className="input-group">

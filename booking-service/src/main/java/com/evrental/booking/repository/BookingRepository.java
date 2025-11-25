@@ -41,4 +41,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     
     // Tìm các booking theo status
     List<Booking> findByStatusOrderByBookingTimeDesc(BookingStatus status);
+    
+    // Tìm các booking đã hết hạn chờ bàn giao
+    @Query("SELECT b FROM Booking b WHERE " +
+           "b.status = 'CONFIRMED' AND " +
+           "b.handoverDeadline IS NOT NULL AND " +
+           "b.handoverDeadline < :currentTime AND " +
+           "b.timeoutCancelled = false")
+    List<Booking> findExpiredBookings(@Param("currentTime") LocalDateTime currentTime);
 }

@@ -5,12 +5,12 @@ const Footer = () => {
   const navigate = useNavigate();
   
   const paymentMethods = [
-    { src: "/assets/images/payment/download.png", alt: "ZaloPay" },
-    { src: "/assets/images/payment/download (2).png", alt: "MoMo" },
-    { src: "/assets/images/payment/vtmoney.d7ef81b9.png", alt: "Viettel Money" },
-    { src: "/assets/images/payment/vnpay.780689d6.png", alt: "ViNPay" },
-    { src: "/assets/images/payment/download (1).png", alt: "VISA" },
-    { src: "/assets/images/payment/alepay.bb769e5d.png", alt: "AlePay" }
+    { src: "/assets/images/payment/ZaloPay.png", alt: "ZaloPay" },
+    { src: "/assets/images/payment/momo.png", alt: "MoMo" },
+    { src: "/assets/images/payment/ViettelMoney.png", alt: "Viettel Money" },
+    { src: "/assets/images/payment/vnpay.780689d6.png", alt: "VNPay" },
+    { src: "/assets/images/payment/Visa.png", alt: "VISA" },
+    { src: "/assets/images/payment/ApplePay.png", alt: "Apple Pay" }
   ];
 
   const navigationLinks = [

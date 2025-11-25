@@ -6,20 +6,20 @@
     text-align: center;
 }
 
-.section-header p {
+.how-to-rent-header p {
     max-width: 600px;
     margin: 0 auto 50px;
     font-size: 1.1rem;
     color: var(--color-text-muted);
 }
 
-.steps-grid {
+.how-to-rent-steps-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 30px;
 }
 
-.step-item {
+.how-to-rent-step-item {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -27,7 +27,7 @@
     padding: 20px;
 }
 
-.step-item::after {
+.how-to-rent-step-item::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -39,18 +39,18 @@
     transform: translateY(-50%);
 }
 
-.step-item:last-child::after {
+.how-to-rent-step-item:last-child::after {
     display: none;
 }
 
-.step-image {
+.how-to-rent-step-image {
     height: 150px;
     width: auto;
     object-fit: contain;
     margin-bottom: 20px;
 }
 
-.step-number {
+.how-to-rent-step-number {
     position: absolute;
     top: 0;
     right: 0;
@@ -61,7 +61,7 @@
     line-height: 1;
 }
 
-.step-title {
+.how-to-rent-step-title {
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--color-dark);

@@ -71,8 +71,9 @@ public class MinioService {
                     .contentType(file.getContentType())
                     .build());
 
-            // Return public URL
-            return minioUrl + "/" + bucketName + "/" + fileName;
+            // Return public URL accessible from frontend
+            String externalUrl = minioUrl.replace("minio", "localhost");
+            return externalUrl + "/" + bucketName + "/" + fileName;
         } catch (Exception e) {
             throw new RuntimeException("Error uploading file: " + e.getMessage(), e);
         }

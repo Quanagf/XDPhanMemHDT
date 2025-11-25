@@ -33,6 +33,7 @@ public class BookingResponseDTO {
     private Boolean staffVerifiedCustomer; // Nhân viên đã xác thực
     private Booking.BookingStatus status;
     private BigDecimal totalCost;
+    private Booking.BookingType bookingType; // Loại đặt xe
     
     // User info (optional - được fetch từ user-service nếu cần)
     private UserInfo userInfo;
@@ -87,6 +88,7 @@ public class BookingResponseDTO {
                 .staffVerifiedCustomer(booking.getStaffVerifiedCustomer())
                 .status(booking.getStatus())
                 .totalCost(booking.getTotalCost())
+                .bookingType(booking.getBookingType())
                 .build();
     }
 }

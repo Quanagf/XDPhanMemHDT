@@ -54,12 +54,29 @@ public class Booking {
     @Builder.Default
     private Boolean staffVerifiedCustomer = false; // Nhân viên đã xác thực khách hàng
 
+    // Thời gian deadline bàn giao xe (tự động tính từ estimatedStartTime)
+    private LocalDateTime handoverDeadline;
+    
+    // Thời gian còn lại để bàn giao (tính bằng phút)
+    private Integer handoverTimeoutMinutes;
+    
+    // Đánh dấu booking đã bị hủy do hết thời gian chờ
+    @Builder.Default
+    private Boolean timeoutCancelled = false;
+    
+    // Thời gian bắt đầu đếm ngược (khi booking được confirm)
+    private LocalDateTime countdownStartTime;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
 
     @Column(precision = 10, scale = 2)
     private BigDecimal totalCost;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private BookingType bookingType = BookingType.ADVANCE; // Mặc định là đặt trước
 
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
     private BookingContract contract;
@@ -70,5 +87,10 @@ public class Booking {
         ACTIVE,
         COMPLETED,
         CANCELLED
+    }
+
+    public enum BookingType {
+        ADVANCE, // Đặt trước
+        ON_SPOT  // Đặt tại điểm
     }
 }

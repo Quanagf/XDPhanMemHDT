@@ -40,4 +40,7 @@ public interface IBookingService {
     
     // 10. Lấy booking ACTIVE cần nhận xe tại trạm 
     List<BookingResponseDTO> getActiveBookingsWithDetailsForStation(Long stationId);
+    
+    // 11. Lấy thông tin countdown cho booking
+    BookingTimeoutService.BookingCountdownDTO getBookingCountdown(Long bookingId);
 }

@@ -21,6 +21,7 @@ import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
 import com.evrental.booking.model.Booking;
 import com.evrental.booking.service.IBookingService;
+import com.evrental.booking.service.BookingTimeoutService;
 import com.evrental.booking.service.JwtService;
 
 import io.jsonwebtoken.Claims;
@@ -34,6 +35,7 @@ public class BookingController {
 
     private final IBookingService bookingService;
     private final JwtService jwtService; // <-- INJECT MỚI
+    private final BookingTimeoutService bookingTimeoutService;
 
 
     @GetMapping("/ping")
@@ -193,6 +195,21 @@ public class BookingController {
         
         List<BookingResponseDTO> activeBookings = bookingService.getActiveBookingsWithDetailsForStation(stationId);
         return ResponseEntity.ok(activeBookings);
+    }
+    
+    // === API 11: Lấy thông tin countdown cho booking ===
+    @GetMapping("/{bookingId}/countdown")
+    public ResponseEntity<?> getBookingCountdown(@PathVariable Long bookingId) {
+        try {
+            BookingTimeoutService.BookingCountdownDTO countdown = bookingTimeoutService.getBookingCountdown(bookingId);
+            if (countdown == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(countdown);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting countdown: " + e.getMessage());
+        }
     }
 }
 

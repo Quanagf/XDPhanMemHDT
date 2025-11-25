@@ -81,6 +81,13 @@ public class UserController {
         String username = principal.getName();  // Lấy username từ JWT token
         return ResponseEntity.ok(userService.getProfile(username));
     }
+
+    // === API LẤY THÔNG TIN USER THEO ID (cho external services) ===
+    @GetMapping("/{userId}")
+    public ResponseEntity<User> getUserById(@PathVariable Long userId) {
+        User user = userService.findById(userId);
+        return ResponseEntity.ok(user);
+    }
     
     // === API KIỂM TRA VERIFICATION STATUS (cho Booking Service) ===
     @GetMapping("/verification-status/{userId}")
