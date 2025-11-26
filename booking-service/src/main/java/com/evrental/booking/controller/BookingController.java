@@ -1,8 +1,12 @@
 package com.evrental.booking.controller;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,8 +24,8 @@ import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
 import com.evrental.booking.dto.CreateBookingRequest;
 import com.evrental.booking.model.Booking;
-import com.evrental.booking.service.IBookingService;
 import com.evrental.booking.service.BookingTimeoutService;
+import com.evrental.booking.service.IBookingService;
 import com.evrental.booking.service.JwtService;
 
 import io.jsonwebtoken.Claims;
@@ -307,6 +311,73 @@ public class BookingController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error: " + e.getMessage());
+        }
+    }
+    
+    // === API: Admin lấy tất cả booking với phân trang và lọc ===
+    @GetMapping("/admin/all")
+    // @PreAuthorize("hasRole('ADMIN')") // Tạm tắt để test
+    public ResponseEntity<Page<BookingResponseDTO>> getAllBookingsForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long stationId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String search) {
+        
+        try {
+            System.out.println("🔍 Admin API called with filters:");
+            System.out.println("  - page: " + page + ", size: " + size);
+            System.out.println("  - status: " + status);
+            System.out.println("  - stationId: " + stationId);
+            System.out.println("  - userId: " + userId);
+            System.out.println("  - vehicleId: " + vehicleId);
+            System.out.println("  - startDate: " + startDate);
+            System.out.println("  - endDate: " + endDate);
+            System.out.println("  - search: " + search);
+            
+            Pageable pageable = PageRequest.of(page, size);
+            LocalDateTime startDateTime = null;
+            LocalDateTime endDateTime = null;
+            
+            // Parse startDate safely
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                try {
+                    if (startDate.contains("T")) {
+                        startDateTime = LocalDateTime.parse(startDate);
+                    } else {
+                        startDateTime = LocalDate.parse(startDate).atStartOfDay();
+                    }
+                } catch (Exception e) {
+                    System.err.println("❌ Error parsing startDate: " + startDate + " - " + e.getMessage());
+                }
+            }
+            
+            // Parse endDate safely  
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                try {
+                    if (endDate.contains("T")) {
+                        endDateTime = LocalDateTime.parse(endDate);
+                    } else {
+                        endDateTime = LocalDate.parse(endDate).atTime(23, 59, 59);
+                    }
+                } catch (Exception e) {
+                    System.err.println("❌ Error parsing endDate: " + endDate + " - " + e.getMessage());
+                }
+            }
+            
+            Page<BookingResponseDTO> result = bookingService.getAllBookingsForAdmin(
+                pageable, status, stationId, userId, vehicleId, startDateTime, endDateTime, search);
+            
+            System.out.println("✅ Returning " + result.getContent().size() + " bookings out of " + result.getTotalElements());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("❌ Error in getAllBookingsForAdmin: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

@@ -5,13 +5,12 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import '../styles/components/customer-verification.css';
-import vehicleService from '../utils/vehicleService';
 import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
 import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
 import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage, confirmBooking, rejectBooking } from '../api/bookings';
-import { getPendingPickups, getPendingReturns, processPickup, processReturn } from '../api/handovers';
+import { getPendingPickups, getPendingReturns, processPickup, processReturn, cancelBooking } from '../api/handovers';
 import CountdownTimer from '../components/CountdownTimer';
 
 // Add CSS animation for spinner
@@ -274,6 +273,17 @@ const StaffDashboard = () => {
               </span>
               Khiếu nại được phân công
             </button>
+            <button 
+              className={`staff-nav-item ${activeTab === 'booking-history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('booking-history')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"/>
+                </svg>
+              </span>
+              Lịch sử thuê xe
+            </button>
           </nav>
           
           {/* Nút đăng xuất ở góc dưới */}
@@ -302,6 +312,7 @@ const StaffDashboard = () => {
           />}
           {activeTab === 'maintenance' && <VehicleMaintenance assignedStation={assignedStation} />}
           {activeTab === 'complaints' && <MyComplaintsManagement user={user} assignedStation={assignedStation} />}
+          {activeTab === 'booking-history' && <StaffBookingHistory assignedStation={assignedStation} />}
         </main>
       </div>
     </div>
@@ -339,7 +350,21 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
   const [additionalChargesReason, setAdditionalChargesReason] = useState('');
   const [finalPaymentAmount, setFinalPaymentAmount] = useState('');
   
-  // Load data khi component mount hoặc filter thay đổi
+  // Tạo debounce function đơn giản
+  const useDebounce = (fn, delay) => {
+    const timer = useRef(null);
+    return (...args) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  // Tạo debounced version của loadVehicles để tránh gọi quá nhiều
+  const debouncedLoadVehicles = useDebounce(() => {
+    if (assignedStation?.id) {
+      loadVehicles();
+    }
+  }, 300);
   useEffect(() => {
     if (assignedStation?.id) {
       loadHandoverData();
@@ -397,7 +422,6 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     if (reason === null) return; // User clicked Cancel
     
     try {
-      const { cancelBooking } = await import('../api/handovers');
       await cancelBooking(booking.bookingId, reason);
       alert('✅ Đã hủy booking thành công!');
       loadHandoverData(); // Reload list
@@ -1337,8 +1361,37 @@ const VehicleMaintenance = ({ assignedStation }) => {
     lastMaintenanceDate: ''
   });
 
+  // Tạo debounce function đơn giản cho VehicleMaintenance
+  const useDebounce = (fn, delay) => {
+    const timer = useRef(null);
+    return (...args) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  // Tạo debounced version của loadVehicles cho VehicleMaintenance
+  const debouncedLoadVehicles = useDebounce(() => {
+    if (assignedStation?.id) {
+      loadVehicles();
+    }
+  }, 300);
+
   useEffect(() => {
-    loadVehicles();
+    // Set stationId filter từ assigned station - chỉ chạy 1 lần khi có station
+    if (assignedStation?.id && !filters.stationId) {
+      console.log('🔧 Setting station filter:', assignedStation.id);
+      setFilters(prev => ({ 
+        ...prev, 
+        stationId: assignedStation.id  // Filter cứng theo trạm được phân công
+      }));
+      return; // Thoát early để tránh load 2 lần
+    }
+    
+    // Chỉ load vehicles khi đã có stationId trong filters và sử dụng debounce
+    if (filters.stationId && assignedStation?.id) {
+      debouncedLoadVehicles();
+    }
     
     // Lấy thông tin staff để dùng trong báo cáo sự cố
     const userProfile = localStorage.getItem('userProfile');
@@ -1349,34 +1402,53 @@ const VehicleMaintenance = ({ assignedStation }) => {
         reportedBy: parsedUser.fullName || 'Staff' 
       }));
     }
-  }, [currentPage, filters]);
+  }, [currentPage, filters.stationId, filters.status]); // Chỉ watch những field cần thiết
 
   const loadVehicles = async () => {
+    if (!assignedStation?.id) {
+      console.log('❌ No assigned station, skipping vehicle load');
+      setVehicles([]);
+      setLoading(false);
+      return;
+    }
+
+    // Kiểm tra thêm điều kiện để tránh gọi API không cần thiết
+    if (filters.stationId && filters.stationId !== assignedStation.id) {
+      console.log('🚫 Station filter mismatch, resetting to assigned station');
+      setFilters(prev => ({ ...prev, stationId: assignedStation.id }));
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('🚗 Loading vehicles for station:', assignedStation.id);
       
       const params = {
         page: currentPage,
         size: pageSize,
         sortBy: 'id',
         sortDirection: 'desc',
+        stationId: assignedStation.id, // 🔒 Filter by assigned station
         ...filters
       };
 
+      console.log('📋 Vehicle API params:', params);
       const response = await vehicleAPI.getVehicles(params);
       
       // Adapt backend response structure
-      setVehicles(response.content || []);
+      const vehicleList = response.content || [];
+      setVehicles(vehicleList);
       setTotalPages(response.totalPages || 0);
       setTotalElements(response.totalElements || 0);
       
+      console.log(`✅ Loaded ${vehicleList.length} vehicles for station ${assignedStation.name}`);
+      
     } catch (err) {
-      console.error('Error loading vehicles:', err);
+      console.error('❌ Error loading vehicles:', err);
       setError('Không thể tải danh sách xe. Vui lòng thử lại.');
-      // Fallback to local data for development
-      const fallbackData = vehicleService.getVehicles();
-      setVehicles(fallbackData || []);
+      // Don't use fallback data that might not be station-specific
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -1443,7 +1515,7 @@ const VehicleMaintenance = ({ assignedStation }) => {
       });
       
       // Reload vehicles
-      await loadVehicles();
+      debouncedLoadVehicles();
       
     } catch (err) {
       console.error('Error updating vehicle:', err);
@@ -1501,7 +1573,7 @@ const VehicleMaintenance = ({ assignedStation }) => {
         const vehicle = vehicles.find(v => v.id === issueReportForm.vehicleId);
         if (vehicle) {
           await vehicleAPI.updateVehicle(vehicle.id, { status: 'MAINTENANCE' });
-          await loadVehicles(); // Reload vehicles
+          debouncedLoadVehicles(); // Reload vehicles
         }
       }
       
@@ -1526,6 +1598,18 @@ const VehicleMaintenance = ({ assignedStation }) => {
     <div className="staff-section">
       <div className="section-header">
         <h1>Quản lý xe tại điểm</h1>
+        {assignedStation && (
+          <div style={{ 
+            marginTop: '0.5rem', 
+            padding: '0.75rem 1rem', 
+            background: '#e3f2fd', 
+            borderRadius: '0.5rem', 
+            border: '1px solid #2196f3',
+            color: '#1976d2'
+          }}>
+            <strong>Trạm được phân công:</strong> {assignedStation.name} - {assignedStation.address}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -1542,12 +1626,16 @@ const VehicleMaintenance = ({ assignedStation }) => {
 
       <div className="vehicle-status-table">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Danh sách xe tại điểm</h2>
+          <h2>
+            Danh sách xe tại trạm {assignedStation?.name || 'đang tải...'}
+            {loading && <span style={{ marginLeft: '0.5rem', color: '#666' }}>🔄</span>}
+          </h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <select 
               value={filters.status || ''} 
               onChange={(e) => handleFilterChange({ status: e.target.value || null })}
               style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #ccc' }}
+              disabled={loading}
             >
               <option value="">Tất cả trạng thái</option>
               <option value="AVAILABLE">Có sẵn</option>
@@ -3599,6 +3687,301 @@ const BookingApproval = ({ assignedStation }) => {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Lịch sử thuê xe cho Staff
+const StaffBookingHistory = ({ assignedStation }) => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  
+  // Filters
+  const [filters, setFilters] = useState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    search: ''
+  });
+
+  const statusLabels = {
+    'PENDING': 'Chờ xác nhận',
+    'CONFIRMED': 'Đã xác nhận', 
+    'ACTIVE': 'Đang thuê',
+    'COMPLETED': 'Hoàn thành',
+    'CANCELLED': 'Đã hủy'
+  };
+
+  const statusColors = {
+    'PENDING': '#f57c00',
+    'CONFIRMED': '#2196f3', 
+    'ACTIVE': '#4caf50',
+    'COMPLETED': '#9c27b0',
+    'CANCELLED': '#f44336'
+  };
+
+  useEffect(() => {
+    if (assignedStation?.id) {
+      fetchBookings();
+    }
+  }, [assignedStation, currentPage, filters]);
+
+  const fetchBookings = async () => {
+    if (!assignedStation?.id) {
+      console.log('❌ No assigned station');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🔍 Fetching bookings for station:', assignedStation.id);
+      
+      // Gọi API với stationId cố định để chỉ lấy booking của trạm này
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        size: '10',
+        stationId: assignedStation.id.toString() // Filter cứng theo trạm
+      });
+
+      // Thêm các filter khác nếu có
+      if (filters.status) params.append('status', filters.status);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.search) params.append('search', filters.search);
+
+      console.log('📋 API params:', params.toString());
+
+      const response = await fetch(`/api/bookings/admin/all?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Fetched bookings:', data);
+        
+        setBookings(data.content || []);
+        setTotalPages(data.totalPages || 0);
+        setTotalElements(data.totalElements || 0);
+      } else {
+        console.error('❌ API Error:', response.status);
+        throw new Error(`API Error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching bookings:', error);
+      alert('Lỗi khi tải dữ liệu: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(0); // Reset về page đầu khi filter
+  };
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return '--';
+    return new Date(dateTime).toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  return (
+    <div className="staff-booking-history">
+      <div className="section-header">
+        <h2>📋 Lịch sử thuê xe - {assignedStation?.name}</h2>
+        <p>Quản lý tất cả booking tại trạm của bạn</p>
+      </div>
+
+      {/* Filters */}
+      <div className="booking-filters">
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>Trạng thái</label>
+            <select 
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">Tất cả</option>
+              <option value="PENDING">Chờ xác nhận</option>
+              <option value="CONFIRMED">Đã xác nhận</option>
+              <option value="ACTIVE">Đang thuê</option>
+              <option value="COMPLETED">Hoàn thành</option>
+              <option value="CANCELLED">Đã hủy</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Từ ngày</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => handleFilterChange('startDate', e.target.value)}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Đến ngày</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => handleFilterChange('endDate', e.target.value)}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Tìm kiếm</label>
+            <input
+              type="text"
+              placeholder="Tên khách hàng, SĐT..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics */}
+      <div className="stats-row">
+        <div className="stat-card">
+          <span className="stat-number">{totalElements}</span>
+          <span className="stat-label">Tổng booking</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{assignedStation?.name || '--'}</span>
+          <span className="stat-label">Trạm quản lý</span>
+        </div>
+      </div>
+
+      {/* Booking List */}
+      {loading ? (
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      ) : (
+        <>
+          <div className="booking-list">
+            {bookings.length > 0 ? (
+              bookings.map((booking) => (
+                <div key={booking.id} className="booking-card">
+                  <div className="booking-header">
+                    <div className="booking-id">
+                      <strong>#{booking.id}</strong>
+                    </div>
+                    <div 
+                      className="booking-status"
+                      style={{ 
+                        background: statusColors[booking.status] || '#666',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {statusLabels[booking.status] || booking.status}
+                    </div>
+                  </div>
+
+                  <div className="booking-details">
+                    <div className="detail-row">
+                      <span className="label">Khách hàng:</span>
+                      <span className="value">
+                        {booking.userInfo?.fullName || booking.customerName || 'N/A'}
+                        {booking.userInfo?.phone && (
+                          <small> - {booking.userInfo.phone}</small>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="detail-row">
+                      <span className="label">Xe:</span>
+                      <span className="value">
+                        {booking.vehicleInfo?.licensePlate || 'N/A'} 
+                        - {booking.vehicleInfo?.type || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div className="detail-row">
+                      <span className="label">Thời gian thuê:</span>
+                      <span className="value">
+                        {formatDateTime(booking.estimatedStartTime)} 
+                        → {formatDateTime(booking.estimatedEndTime)}
+                      </span>
+                    </div>
+
+                    <div className="detail-row">
+                      <span className="label">Tổng tiền:</span>
+                      <span className="value price">
+                        {formatCurrency(booking.totalCost)}
+                      </span>
+                    </div>
+
+                    <div className="detail-row">
+                      <span className="label">Ngày đặt:</span>
+                      <span className="value">
+                        {formatDateTime(booking.bookingTime)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-data">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="#ddd">
+                  <path d="M9 11H7v2h2v-2m4 0h-2v2h2v-2m4 0h-2v2h2v-2m2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 16H5V9h14v11Z"/>
+                </svg>
+                <p>Không có booking nào tại trạm này</p>
+                {assignedStation && (
+                  <small>Trạm: {assignedStation.name}</small>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+              >
+                « Trước
+              </button>
+              
+              <span className="page-info">
+                Trang {currentPage + 1} / {totalPages} 
+                ({totalElements} booking)
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                disabled={currentPage >= totalPages - 1}
+              >
+                Sau »
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

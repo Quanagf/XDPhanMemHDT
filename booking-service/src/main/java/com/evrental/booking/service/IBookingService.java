@@ -3,6 +3,9 @@ package com.evrental.booking.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.evrental.booking.dto.BookingResponseDTO;
 import com.evrental.booking.dto.CheckInRequest;
 import com.evrental.booking.dto.CheckOutRequest;
@@ -66,4 +69,7 @@ public interface IBookingService {
         org.springframework.web.multipart.MultipartFile gplxImage,
         org.springframework.web.multipart.MultipartFile cccdImage
     );
+    
+    // 16. Admin: Lấy tất cả booking với phân trang và lọc
+    Page<BookingResponseDTO> getAllBookingsForAdmin(Pageable pageable, String status, Long stationId, Long userId, Long vehicleId, LocalDateTime startDate, LocalDateTime endDate, String search);
 }

@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value; // <-- DÒNG MỚI (Import DTO để gửi đi)
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -717,5 +720,71 @@ public class BookingServiceImpl implements IBookingService {
         }
     }
     
+    @Override
+    public Page<BookingResponseDTO> getAllBookingsForAdmin(Pageable pageable, String status, Long stationId, Long userId, Long vehicleId, LocalDateTime startDate, LocalDateTime endDate, String search) {
+        System.out.println("📋 BookingService getAllBookingsForAdmin called with filters:");
+        System.out.println("  - status: " + status);
+        System.out.println("  - stationId: " + stationId);
+        System.out.println("  - search: " + search);
+        
+        // Lấy tất cả booking
+        List<Booking> allBookings = bookingRepository.findAll();
+        System.out.println("📊 Total bookings in database: " + allBookings.size());
+        
+        // Convert sang DTO trước để dễ làm việc
+        List<BookingResponseDTO> allBookingDTOs = allBookings.stream()
+            .map(BookingResponseDTO::fromBooking)
+            .collect(Collectors.toList());
+        
+        System.out.println("📊 Total booking DTOs created: " + allBookingDTOs.size());
+        
+        // Apply filters on DTOs
+        List<BookingResponseDTO> filteredBookingDTOs = allBookingDTOs;
+        
+        // Filter theo status
+        if (status != null && !status.trim().isEmpty()) {
+            filteredBookingDTOs = filteredBookingDTOs.stream()
+                .filter(dto -> dto.getStatus() != null && dto.getStatus().name().equals(status))
+                .collect(Collectors.toList());
+            System.out.println("📊 After status filter (" + status + "): " + filteredBookingDTOs.size());
+        }
+        
+        // Filter theo stationId 
+        if (stationId != null) {
+            filteredBookingDTOs = filteredBookingDTOs.stream()
+                .filter(dto -> stationId.equals(dto.getStartStationId()))
+                .collect(Collectors.toList());
+            System.out.println("📊 After station filter (" + stationId + "): " + filteredBookingDTOs.size());
+        }
+        
+        // Filter theo startDate
+        if (startDate != null) {
+            filteredBookingDTOs = filteredBookingDTOs.stream()
+                .filter(dto -> dto.getBookingTime() != null && !dto.getBookingTime().isBefore(startDate))
+                .collect(Collectors.toList());
+            System.out.println("📊 After startDate filter (" + startDate + "): " + filteredBookingDTOs.size());
+        }
+        
+        // Filter theo endDate
+        if (endDate != null) {
+            filteredBookingDTOs = filteredBookingDTOs.stream()
+                .filter(dto -> dto.getBookingTime() != null && !dto.getBookingTime().isAfter(endDate))
+                .collect(Collectors.toList());
+            System.out.println("📊 After endDate filter (" + endDate + "): " + filteredBookingDTOs.size());
+        }
+        
+        // Áp dụng phân trang
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), filteredBookingDTOs.size());
+        
+        List<BookingResponseDTO> pageBookingDTOs = start < filteredBookingDTOs.size() 
+            ? filteredBookingDTOs.subList(start, end) 
+            : List.of();
+        
+        System.out.println("📄 Page result: " + pageBookingDTOs.size() + " items (offset: " + start + ", total filtered: " + filteredBookingDTOs.size() + ")");
+        
+        return new PageImpl<>(pageBookingDTOs, pageable, filteredBookingDTOs.size());
+    }
+
 }
 

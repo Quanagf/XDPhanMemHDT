@@ -180,3 +180,34 @@ export async function rejectBooking(bookingId, reason) {
   }
   return res.json();
 }
+
+// Lấy tất cả booking cho admin với phân trang và lọc
+export async function getAllBookings(page = 0, size = 10, filters = {}) {
+  const queryParams = new URLSearchParams();
+  queryParams.append('page', page);
+  queryParams.append('size', size);
+  
+  // Thêm các filter nếu có
+  if (filters.status) queryParams.append('status', filters.status);
+  if (filters.stationId) queryParams.append('stationId', filters.stationId);
+  if (filters.userId) queryParams.append('userId', filters.userId);
+  if (filters.vehicleId) queryParams.append('vehicleId', filters.vehicleId);
+  if (filters.startDate) queryParams.append('startDate', filters.startDate);
+  if (filters.endDate) queryParams.append('endDate', filters.endDate);
+  if (filters.search) queryParams.append('search', filters.search);
+  
+  const url = `${base}/admin/all?${queryParams}`;
+  console.log('🔍 API Call:', url);
+  console.log('📊 Filters:', filters);
+  
+  const res = await fetch(url, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) {
+    console.error('❌ API Error:', res.status, res.statusText);
+    throw new Error('Failed to fetch all bookings');
+  }
+  const data = await res.json();
+  console.log('✅ API Response:', data);
+  return data;
+}

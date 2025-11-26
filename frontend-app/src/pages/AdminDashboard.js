@@ -10,6 +10,7 @@ import vehicleAPI, { getVehicles, getVehicle, createVehicle, updateVehicle, dele
 import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics, staffCompleteComplaint, adminApproveComplaint, adminRejectComplaint } from '../api/complaints';
 import { getAllCustomers, getAllUsers } from '../api/customers';
 import { getStations } from '../api/stations';
+import { getAllBookings } from '../api/bookings'; // Admin booking history
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -111,6 +112,17 @@ const AdminDashboard = () => {
               Quản lý trạm
             </button>
             <button 
+              className={`admin-nav-item ${activeTab === 'bookings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bookings')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M16.5,16L11,13.5L5.5,16V5H16.5V16Z"/>
+                </svg>
+              </span>
+              Lịch sử thuê xe
+            </button>
+            <button 
               className={`admin-nav-item ${activeTab === 'reports' ? 'active' : ''}`}
               onClick={() => setActiveTab('reports')}
             >
@@ -156,6 +168,7 @@ const AdminDashboard = () => {
           {activeTab === 'complaints' && <ComplaintsManagement />}
           {activeTab === 'staff' && <StaffManagement />}
           {activeTab === 'stations' && <StationManagement />}
+          {activeTab === 'bookings' && <BookingHistory />}
           {activeTab === 'reports' && <ReportsAnalytics />}
           {activeTab === 'documents' && <DocumentVerification />}
         </main>
@@ -172,6 +185,16 @@ const VehicleManagement = () => {
   const [expandedVehicle, setExpandedVehicle] = useState(null);
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  
+  // Filter state
+  const [filterStation, setFilterStation] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [form, setForm] = useState({
     licensePlate: '',
@@ -196,8 +219,11 @@ const VehicleManagement = () => {
 
   useEffect(() => {
     fetchStations();
-    fetchVehicles();
   }, []);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [currentPage, pageSize, filterStation, searchTerm]);
 
   const getAuthHeader = () => {
     const token = localStorage.getItem('authToken');
@@ -219,8 +245,31 @@ const VehicleManagement = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const response = await vehicleAPI.getVehicles({ size: 1000 }); // Get all for admin
-      setVehicles(response.content || []);
+      // Build query parameters
+      const params = {
+        page: currentPage,
+        size: pageSize
+      };
+      
+      if (filterStation) {
+        params.stationId = filterStation;
+      }
+      
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      const response = await vehicleAPI.getVehicles(params);
+      
+      if (response.content) {
+        setVehicles(response.content);
+        setTotalPages(response.totalPages || 0);
+        setTotalElements(response.totalElements || 0);
+      } else {
+        setVehicles(response || []);
+        setTotalPages(1);
+        setTotalElements(response.length || 0);
+      }
     } catch (err) {
       console.error('fetchVehicles', err);
       // Fallback to old fetch if vehicleAPI fails
@@ -229,6 +278,8 @@ const VehicleManagement = () => {
         if (res.ok) {
           const data = await res.json();
           setVehicles(data || []);
+          setTotalPages(1);
+          setTotalElements(data.length || 0);
         }
       } catch (fallbackErr) {
         console.error('fetchVehicles fallback', fallbackErr);
@@ -252,6 +303,33 @@ const VehicleManagement = () => {
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size) => {
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page
+  };
+
+  // Filter handlers
+  const handleFilterStation = (stationId) => {
+    setFilterStation(stationId);
+    setCurrentPage(0); // Reset to first page
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(0); // Reset to first page
+  };
+
+  const clearFilters = () => {
+    setFilterStation('');
+    setSearchTerm('');
+    setCurrentPage(0);
   };
 
   const handleAddOrUpdate = async (e) => {
@@ -400,6 +478,59 @@ const VehicleManagement = () => {
   return (
     <div className="staff-section">
       <h1>Quản lý xe tại điểm</h1>
+
+      {/* Filter và Search */}
+      <div className="vehicles-filters">
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>Lọc theo trạm:</label>
+            <select 
+              value={filterStation} 
+              onChange={(e) => handleFilterStation(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Tất cả trạm</option>
+              {stations.map(station => (
+                <option key={station.id} value={station.id}>
+                  {station.name} - {station.address}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Tìm kiếm:</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Tìm theo biển số hoặc loại xe..."
+              className="filter-search"
+            />
+          </div>
+          
+          <div className="filter-group">
+            <label>Hiển thị:</label>
+            <select 
+              value={pageSize} 
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="page-size-select"
+            >
+              <option value={10}>10 xe/trang</option>
+              <option value={20}>20 xe/trang</option>
+              <option value={50}>50 xe/trang</option>
+            </select>
+          </div>
+          
+          <button onClick={clearFilters} className="clear-filters-btn">
+            Xóa bộ lọc
+          </button>
+        </div>
+        
+        <div className="filter-info">
+          <span>Hiển thị {vehicles.length} / {totalElements} xe</span>
+        </div>
+      </div>
 
       <div className="vehicle-status-table">
         <h2>Danh sách xe tại điểm</h2>
@@ -559,6 +690,53 @@ const VehicleManagement = () => {
             ))}
           </tbody>
         </table>
+        )}
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="vehicles-pagination">
+            <div className="pagination-info">
+              <span>Trang {currentPage + 1} / {totalPages}</span>
+            </div>
+            
+            <div className="pagination-controls">
+              <button 
+                onClick={() => handlePageChange(0)} 
+                disabled={currentPage === 0}
+                className="pagination-btn"
+              >
+                Đầu
+              </button>
+              
+              <button 
+                onClick={() => handlePageChange(currentPage - 1)} 
+                disabled={currentPage === 0}
+                className="pagination-btn"
+              >
+                Trước
+              </button>
+              
+              <span className="pagination-current">
+                {currentPage + 1} / {totalPages}
+              </span>
+              
+              <button 
+                onClick={() => handlePageChange(currentPage + 1)} 
+                disabled={currentPage >= totalPages - 1}
+                className="pagination-btn"
+              >
+                Sau
+              </button>
+              
+              <button 
+                onClick={() => handlePageChange(totalPages - 1)} 
+                disabled={currentPage >= totalPages - 1}
+                className="pagination-btn"
+              >
+                Cuối
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -4153,6 +4331,359 @@ const ComplaintsManagement = () => {
                 Xác nhận duyệt
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Lịch sử thuê xe
+const BookingHistory = () => {
+  const [bookings, setBookings] = useState([]);
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  
+  // Filter state
+  const [filters, setFilters] = useState({
+    status: '',
+    stationId: '',
+    userId: '',
+    vehicleId: '',
+    startDate: '',
+    endDate: '',
+    search: ''
+  });
+  
+  // Fetch data
+  useEffect(() => {
+    fetchBookings();
+    fetchStations();
+  }, []); // Chỉ chạy một lần khi component mount
+
+  useEffect(() => {
+    // Debounce fetch khi filters, currentPage, hoặc pageSize thay đổi
+    const timeoutId = setTimeout(() => {
+      fetchBookings();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentPage, pageSize, filters]);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching bookings with filters:', filters, 'page:', currentPage, 'size:', pageSize);
+      const response = await getAllBookings(currentPage, pageSize, filters);
+      console.log('Bookings response:', response);
+      
+      if (response && response.content) {
+        setBookings(response.content);
+        setTotalPages(response.totalPages || 0);
+        setTotalElements(response.totalElements || 0);
+      } else if (Array.isArray(response)) {
+        // Fallback nếu backend trả về array thay vì object với content
+        setBookings(response);
+        setTotalPages(1);
+        setTotalElements(response.length);
+      } else {
+        setBookings([]);
+        setTotalPages(0);
+        setTotalElements(0);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      setBookings([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      // Không hiển thị alert để tránh spam khi filter
+      if (currentPage === 0) {
+        alert('Lỗi khi tải danh sách booking: ' + error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStations = async () => {
+    try {
+      const response = await getStations();
+      setStations(response);
+    } catch (error) {
+      console.error('Error fetching stations:', error);
+    }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setCurrentPage(0); // Reset to first page when filtering
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      stationId: '',
+      userId: '',
+      vehicleId: '',
+      startDate: '',
+      endDate: '',
+      search: ''
+    });
+    setCurrentPage(0);
+  };
+
+  // Handle pagination
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'PENDING': { text: 'Đang chờ', class: 'status-pending' },
+      'CONFIRMED': { text: 'Đã xác nhận', class: 'status-confirmed' },
+      'ACTIVE': { text: 'Đang thuê', class: 'status-active' },
+      'COMPLETED': { text: 'Đã hoàn thành', class: 'status-completed' },
+      'CANCELLED': { text: 'Đã hủy', class: 'status-cancelled' }
+    };
+    
+    const statusInfo = statusMap[status] || { text: status, class: 'status-unknown' };
+    
+    return (
+      <span className={`status-badge ${statusInfo.class}`}>
+        {statusInfo.text}
+      </span>
+    );
+  };
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return '-';
+    return new Date(dateTime).toLocaleString('vi-VN');
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', { 
+      style: 'currency', 
+      currency: 'VND' 
+    }).format(amount);
+  };
+
+  return (
+    <div className="admin-section">
+      <div className="section-header" style={{ marginBottom: '24px' }}>
+        <div>
+          <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700', color: '#1e293b' }}>
+            📋 Lịch sử thuê xe
+          </h1>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>
+            Quản lý và theo dõi tất cả các booking của khách hàng
+          </p>
+        </div>
+        <div style={{ 
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          color: 'white',
+          fontWeight: '600',
+          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+        }}>
+          Tổng: {totalElements} booking
+        </div>
+      </div>
+      
+      {/* Filters */}
+      <div className="booking-filters">
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>Trạng thái:</label>
+            <select 
+              value={filters.status} 
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="PENDING">Đang chờ</option>
+              <option value="CONFIRMED">Đã xác nhận</option>
+              <option value="ACTIVE">Đang thuê</option>
+              <option value="COMPLETED">Đã hoàn thành</option>
+              <option value="CANCELLED">Đã hủy</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Trạm:</label>
+            <select 
+              value={filters.stationId} 
+              onChange={(e) => handleFilterChange('stationId', e.target.value)}
+            >
+              <option value="">Tất cả trạm</option>
+              {stations.map(station => (
+                <option key={station.id} value={station.id}>
+                  {station.name} - {station.province}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Từ ngày:</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => handleFilterChange('startDate', e.target.value)}
+            />
+          </div>
+          
+          <div className="filter-group">
+            <label>Đến ngày:</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => handleFilterChange('endDate', e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="filter-row">
+          <div className="filter-group search-group">
+            <label>Tìm kiếm:</label>
+            <input
+              type="text"
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              placeholder="Tìm theo ID booking, tên khách hàng, biển số xe..."
+            />
+          </div>
+          
+          <button onClick={clearFilters} className="clear-filters-btn">
+            🗑️ Xóa bộ lọc
+          </button>
+        </div>
+        
+        <div className="filter-info">
+          <span>
+            {loading 
+              ? '🔄 Đang tải...' 
+              : `📊 Hiển thị ${bookings.length} / ${totalElements} booking`
+            }
+          </span>
+          {filters.status || filters.stationId || filters.startDate || filters.endDate || filters.search ? (
+            <span style={{ color: '#3b82f6', fontWeight: '600' }}>
+              🔍 Đang lọc kết quả
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="booking-table-container">
+        {loading ? (
+          <div className="loading">Đang tải...</div>
+        ) : (
+          <table className="booking-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Khách hàng</th>
+                <th>Xe</th>
+                <th>Trạm</th>
+                <th>Thời gian thuê</th>
+                <th>Thời gian trả</th>
+                <th>Trạng thái</th>
+                <th>Tổng tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map(booking => (
+                <tr key={booking.id}>
+                  <td>#{booking.id}</td>
+                  <td>
+                    {booking.userInfo ? (
+                      <div>
+                        <div className="user-name">{booking.userInfo.fullName}</div>
+                        <div className="user-email">{booking.userInfo.email}</div>
+                      </div>
+                    ) : (
+                      `User ID: ${booking.userId}`
+                    )}
+                  </td>
+                  <td>
+                    {booking.vehicleInfo ? (
+                      <div>
+                        <div className="vehicle-plate">{booking.vehicleInfo.licensePlate}</div>
+                        <div className="vehicle-type">{booking.vehicleInfo.type}</div>
+                      </div>
+                    ) : (
+                      `Vehicle ID: ${booking.vehicleId}`
+                    )}
+                  </td>
+                  <td>
+                    {stations.find(s => s.id === booking.startStationId)?.name || `Station ${booking.startStationId}`}
+                  </td>
+                  <td>{formatDateTime(booking.estimatedStartTime)}</td>
+                  <td>{formatDateTime(booking.estimatedEndTime)}</td>
+                  <td>{getStatusBadge(booking.status)}</td>
+                  <td>{formatCurrency(booking.totalCost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        
+        {bookings.length === 0 && !loading && (
+          <div className="no-data">Không có dữ liệu</div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="booking-pagination">
+          <div className="pagination-info">
+            <span>Trang {currentPage + 1} / {totalPages}</span>
+          </div>
+          
+          <div className="pagination-controls">
+            <button 
+              onClick={() => handlePageChange(0)} 
+              disabled={currentPage === 0}
+            >
+              Đầu
+            </button>
+            
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)} 
+              disabled={currentPage === 0}
+            >
+              Trước
+            </button>
+            
+            <span className="pagination-current">
+              {currentPage + 1} / {totalPages}
+            </span>
+            
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)} 
+              disabled={currentPage >= totalPages - 1}
+            >
+              Sau
+            </button>
+            
+            <button 
+              onClick={() => handlePageChange(totalPages - 1)} 
+              disabled={currentPage >= totalPages - 1}
+            >
+              Cuối
+            </button>
           </div>
         </div>
       )}
