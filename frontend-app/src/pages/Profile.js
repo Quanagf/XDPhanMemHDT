@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import Login from '../components/Login';
 import ImageCropper from '../components/ImageCropper';
 import FavoriteCarsList from '../components/FavoriteCarsList';
+import { getMyBookingsWithDetails } from '../api/bookings';
 
 
 const Profile = () => {
@@ -58,6 +59,10 @@ const Profile = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [cropperImage, setCropperImage] = useState(null);
 
+  // State cho bookings
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
     const authToken = localStorage.getItem('authToken');
@@ -110,6 +115,27 @@ const Profile = () => {
       setActiveTripsTab(tab);
     }
   }, [location.search]);
+
+  // Fetch bookings khi user đã login
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!user) return;
+      
+      console.log('📦 Fetching bookings for user:', user);
+      setLoadingBookings(true);
+      try {
+        const data = await getMyBookingsWithDetails();
+        console.log('📦 Bookings received:', data);
+        setBookings(data);
+      } catch (error) {
+        console.error('❌ Error fetching bookings:', error);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    fetchBookings();
+  }, [user]);
 
   // === BẮT ĐẦU: THÊM USEEFFECT ĐỂ TẠO PREVIEW HÌNH ===
   // useEffect để tạo preview cho GPLX
@@ -956,17 +982,78 @@ const handleChangePassword = async () => {
         );
       case 'trips':
         const renderTripsContent = () => {
-          // All tabs show the same empty state for now
-          return (
-            <div className="trips-empty-state">
-              <div className="trips-empty-icon">
-                <img 
-                  src="/assets/images/no data/Gemini_Generated_Image_8hczgs8hczgs8hcz-removebg-preview.png" 
-                  alt="No trips available" 
-                  className="no-trips-image"
-                />
+          if (loadingBookings) {
+            return <div className="trips-loading">Đang tải...</div>;
+          }
+
+          // Lọc bookings theo tab
+          let filteredBookings = [];
+          if (activeTripsTab === 'current') {
+            // Chuyến hiện tại: PENDING, CONFIRMED, ACTIVE
+            filteredBookings = bookings.filter(b => 
+              ['PENDING', 'CONFIRMED', 'ACTIVE'].includes(b.status)
+            );
+          } else if (activeTripsTab === 'history') {
+            // Lịch sử: COMPLETED, CANCELLED
+            filteredBookings = bookings.filter(b => 
+              ['COMPLETED', 'CANCELLED'].includes(b.status)
+            );
+          } else {
+            // Tổng quan: tất cả
+            filteredBookings = bookings;
+          }
+
+          if (filteredBookings.length === 0) {
+            return (
+              <div className="trips-empty-state">
+                <div className="trips-empty-icon">
+                  <img 
+                    src="/assets/images/no data/Gemini_Generated_Image_8hczgs8hczgs8hcz-removebg-preview.png" 
+                    alt="No trips available" 
+                    className="no-trips-image"
+                  />
+                </div>
+                <p className="trips-empty-text">Bạn chưa có chuyến</p>
               </div>
-              <p className="trips-empty-text">Bạn chưa có chuyến</p>
+            );
+          }
+
+          // Render danh sách bookings
+          return (
+            <div className="trips-list">
+              {filteredBookings.map(booking => (
+                <div key={booking.id} className="trip-card">
+                  <div className="trip-card-header">
+                    <span className={`trip-status ${booking.status.toLowerCase()}`}>
+                      {booking.status}
+                    </span>
+                    <span className="trip-id">#{booking.id}</span>
+                  </div>
+                  
+                  <div className="trip-card-body">
+                    {booking.vehicleInfo && (
+                      <div className="trip-vehicle-info">
+                        <h4>{booking.vehicleInfo.type}</h4>
+                        <p>Biển số: {booking.vehicleInfo.licensePlate}</p>
+                        <p>Giá: {booking.vehicleInfo.pricePerHour?.toLocaleString('vi-VN')} VNĐ/giờ</p>
+                      </div>
+                    )}
+                    
+                    <div className="trip-time-info">
+                      <p><strong>Thời gian dự kiến:</strong></p>
+                      <p>Từ: {new Date(booking.estimatedStartTime).toLocaleString('vi-VN')}</p>
+                      <p>Đến: {new Date(booking.estimatedEndTime).toLocaleString('vi-VN')}</p>
+                    </div>
+                    
+                    {booking.totalCost && (
+                      <div className="trip-cost">
+                        <strong>Tổng tiền: </strong>
+                        {Number(booking.totalCost).toLocaleString('vi-VN')} VNĐ
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           );
         };

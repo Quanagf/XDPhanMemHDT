@@ -134,6 +134,19 @@ public class BookingController {
         return ResponseEntity.ok(history);
     }
     
+    // === API 4.1: Renter Lấy lịch sử với thông tin đầy đủ ===
+    @GetMapping("/my-history/details")
+    @PreAuthorize("hasRole('RENTER')")
+    public ResponseEntity<List<BookingResponseDTO>> getMyHistoryWithDetails(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        String token = extractToken(authorizationHeader);
+        Long userId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+        
+        List<BookingResponseDTO> history = bookingService.getUserBookingsWithDetails(userId);
+        return ResponseEntity.ok(history);
+    }
+    
     // === API 5: Admin/Staff xem lịch sử của BẤT KỲ ai ===
     @GetMapping("/history/user/{userId}")
     @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')") // <-- KHÓA API (Staff/Admin)
@@ -211,5 +224,91 @@ public class BookingController {
                     .body("Error getting countdown: " + e.getMessage());
         }
     }
+    
+    // === API 12: Staff xác nhận booking ===
+    @PostMapping("/{bookingId}/confirm")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> confirmBooking(@PathVariable Long bookingId) {
+        try {
+            Booking confirmedBooking = bookingService.confirmBooking(bookingId);
+            return ResponseEntity.ok(confirmedBooking);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+    
+    // === API 13: Staff từ chối booking ===
+    @PostMapping("/{bookingId}/reject")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> rejectBooking(
+            @PathVariable Long bookingId,
+            @RequestParam(required = false) String reason) {
+        try {
+            Booking rejectedBooking = bookingService.rejectBooking(bookingId, reason);
+            return ResponseEntity.ok(rejectedBooking);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+
+    // === API 14: Staff tạo booking walk-in tại điểm ===
+    @PostMapping("/walk-in")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> createWalkInBooking(
+            @RequestParam Long vehicleId,
+            @RequestParam Long stationId,
+            @RequestParam String fullName,
+            @RequestParam String phoneNumber,
+            @RequestParam(required = false) String email,
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(required = false) org.springframework.web.multipart.MultipartFile gplxImage,
+            @RequestParam(required = false) org.springframework.web.multipart.MultipartFile cccdImage,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        try {
+            // Extract staff userId from token
+            String token = extractToken(authorizationHeader);
+            Long staffId = jwtService.extractClaim(token, (Claims c) -> c.get("userId", Long.class));
+
+            // Parse dates - Handle both ISO format and datetime-local format
+            LocalDateTime start;
+            LocalDateTime end;
+            try {
+                start = LocalDateTime.parse(startDate);
+                end = LocalDateTime.parse(endDate);
+            } catch (Exception e) {
+                // Try parsing as date-time without seconds
+                java.time.format.DateTimeFormatter formatter = 
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+                start = LocalDateTime.parse(startDate, formatter);
+                end = LocalDateTime.parse(endDate, formatter);
+            }
+
+            // Create walk-in booking through service
+            Booking walkInBooking = bookingService.createWalkInBooking(
+                vehicleId, 
+                stationId, 
+                staffId,
+                fullName, 
+                phoneNumber, 
+                email,
+                start, 
+                end, 
+                gplxImage, 
+                cccdImage
+            );
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(walkInBooking);
+        } catch (Exception e) {
+            System.err.println("ERROR creating walk-in booking: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error: " + e.getMessage());
+        }
+    }
 }
+
 

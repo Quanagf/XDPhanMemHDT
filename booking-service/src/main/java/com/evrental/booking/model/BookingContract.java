@@ -29,8 +29,11 @@ public class BookingContract {
     @Column(columnDefinition = "TEXT")
     private String termsAndConditions;
 
-    private String renterSignature;
-    private String staffSignature;
+    @Column(columnDefinition = "TEXT")
+    private String renterSignature;  // URL file chữ ký điện tử khách thuê
+    
+    @Column(columnDefinition = "TEXT")
+    private String staffSignature;  // URL file chữ ký điện tử nhân viên
 
     @Column(columnDefinition = "TEXT")
     private String checkinVehicleImageUrl; // <-- THÊM DÒNG NÀY (Ảnh xe lúc giao)

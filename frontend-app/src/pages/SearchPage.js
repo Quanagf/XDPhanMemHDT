@@ -8,15 +8,25 @@ import { getVehicles } from '../api/vehicleAPI';
 import { checkAvailability } from '../api/bookings';
 
 // CarCard hiển thị xe từ API
-const CarCard = ({ car }) => {
+const CarCard = ({ car, searchParams }) => {
   const img = car.imageUrl || '/assets/images/cars/placeholder.webp';
   const statusLabel = car.status === 'AVAILABLE' ? 'Có sẵn' : car.status === 'RENTED' ? 'Đang cho thuê' : 'Đã đặt trước';
   const statusClass = car.status === 'AVAILABLE' ? 'badge-available' : car.status === 'RENTED' ? 'badge-rented' : 'badge-reserved';
-  const stationName = car.station ? `${car.station.name} - ${car.station.province}` : 'Chưa xác định';
+  
+  // Map station từ DTO response (stationName, stationProvince) hoặc nested object (station.name, station.province)
+  const stationName = car.stationName 
+    ? `${car.stationName} - ${car.stationProvince}` 
+    : car.station 
+      ? `${car.station.name} - ${car.station.province}` 
+      : 'Chưa xác định';
+  
+  // Build link with search params
+  const carLink = `/car/${car.id}?${searchParams.toString()}`;
+
 
   return (
     <article className="car-card">
-      <Link to={`/car/${car.id}`} className="car-card-link">
+      <Link to={carLink} className="car-card-link">
         <img 
           src={img} 
           alt={car.description || car.type || 'Xe'}
@@ -27,12 +37,10 @@ const CarCard = ({ car }) => {
         />
       </Link>
       
-      <div className="card-details">
+        <div className="card-details">
         <h3>
-          <Link to={`/car/${car.id}`}>{car.description || car.type}</Link>
-        </h3>
-        
-        <div className="info-group">
+          <Link to={carLink}>{car.description || car.type}</Link>
+        </h3>        <div className="info-group">
           <div className="info-row location-info">
             <iconify-icon icon="material-symbols:location-on-outline" aria-hidden="true"></iconify-icon>
             <span>{stationName}</span>
@@ -272,6 +280,7 @@ const SearchPage = () => {
                 <CarCard 
                   key={car.id}
                   car={car}
+                  searchParams={searchParams}
                 />
               ))}
             </div>

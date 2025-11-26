@@ -53,7 +53,7 @@ public class VehicleController {
 
     // API cho Renter/Staff: Lấy danh sách xe với phân trang (1.b / 2.a)
     @GetMapping
-    public ResponseEntity<Page<Vehicle>> findVehicles(
+    public ResponseEntity<Page<VehicleWithStationDTO>> findVehicles(
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) VehicleStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -66,17 +66,23 @@ public class VehicleController {
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Vehicle> vehicles = vehicleService.findVehicles(stationId, status, pageable);
-        return ResponseEntity.ok(vehicles);
+        // Convert to DTO để trả về thông tin station
+        Page<VehicleWithStationDTO> vehicleDTOs = vehicles.map(VehicleWithStationDTO::new);
+        return ResponseEntity.ok(vehicleDTOs);
     }
 
     // API cho danh sách đơn giản không phân trang (backward compatibility)
     @GetMapping("/list")
-    public ResponseEntity<List<Vehicle>> findVehiclesList(
+    public ResponseEntity<List<VehicleWithStationDTO>> findVehiclesList(
             @RequestParam(required = false) Long stationId,
             @RequestParam(required = false) VehicleStatus status) {
         
         List<Vehicle> vehicles = vehicleService.findVehiclesList(stationId, status);
-        return ResponseEntity.ok(vehicles);
+        // Convert to DTO để trả về thông tin station
+        List<VehicleWithStationDTO> vehicleDTOs = vehicles.stream()
+            .map(VehicleWithStationDTO::new)
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(vehicleDTOs);
     }
     
     // API Lấy 1 xe (dùng cho booking-service sau này)
@@ -157,5 +163,12 @@ public class VehicleController {
             images.add(vehicle.getImageUrl());
         }
         return ResponseEntity.ok(images);
+    }
+
+    // Get vehicle status only (for booking service)
+    @GetMapping("/{id}/status")
+    public ResponseEntity<String> getVehicleStatus(@PathVariable Long id) {
+        Vehicle vehicle = vehicleService.getVehicleById(id);
+        return ResponseEntity.ok(vehicle.getStatus().toString());
     }
 }

@@ -679,6 +679,148 @@
   font-weight: 400;
 }
 
+/* Trip List Styles */
+.trips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.trips-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Trip Card Styles */
+.trip-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.trip-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.trip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.trip-status {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trip-status.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.trip-status.confirmed {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.trip-status.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.trip-status.completed {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.trip-status.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.trip-id {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.trip-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.trip-vehicle-info {
+  background: #f8f9fa;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.trip-vehicle-info h4 {
+  margin: 0 0 0.75rem 0;
+  color: #28a745;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.trip-vehicle-info p {
+  margin: 0.5rem 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.trip-time-info {
+  background: #f8f9fa;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.trip-time-info p {
+  margin: 0.5rem 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.trip-time-info strong {
+  color: #007bff;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.trip-cost {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.trip-cost strong {
+  font-size: 1.25rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
 /* Responsive for trips */
 @media (max-width: 768px) {
   .trips-box {
@@ -703,6 +845,20 @@
     max-width: 200px;
     max-height: 200px;
   }
+  
+  .trip-card-body {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .trip-card {
+    padding: 1.25rem;
+  }
+  
+  .trip-vehicle-info,
+  .trip-time-info {
+    padding: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -718,6 +874,24 @@
   
   .trips-empty-text {
     font-size: 0.9rem;
+  }
+  
+  .trip-card {
+    padding: 1rem;
+  }
+  
+  .trip-status {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+  
+  .trip-cost {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .trip-cost strong {
+    font-size: 1.1rem;
   }
 }
 

@@ -16,7 +16,12 @@ const CarCard = ({ car }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   
   const img = car.imageUrl || '/assets/images/cars/placeholder.webp';
-  const stationName = car.station ? `${car.station.name} - ${car.station.province}` : 'Chưa xác định';
+  // Map station từ DTO (stationName, stationProvince) hoặc nested object (station.name, station.province)
+  const stationName = car.stationName 
+    ? `${car.stationName} - ${car.stationProvince}` 
+    : car.station 
+      ? `${car.station.name} - ${car.station.province}` 
+      : 'Chưa xác định';
 
   // Check user and favorite status
   useEffect(() => {
@@ -60,7 +65,11 @@ const CarCard = ({ car }) => {
         pricePerHour: car.pricePerHour,
         seats: car.seats,
         transmission: car.transmission,
-        stationName: car.station ? `${car.station.name} - ${car.station.province}` : 'Chưa xác định'
+        stationName: car.stationName 
+          ? `${car.stationName} - ${car.stationProvince}` 
+          : car.station 
+            ? `${car.station.name} - ${car.station.province}` 
+            : 'Chưa xác định'
       };
       
       const newFavorites = [...favorites, carToSave];

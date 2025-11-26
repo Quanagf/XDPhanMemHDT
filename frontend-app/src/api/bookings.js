@@ -31,12 +31,21 @@ export async function createBooking(payload) {
   return res.json();
 }
 
-// Lấy lịch sử booking của user
+// Lấy lịch sử booking của user (chỉ dữ liệu cơ bản)
 export async function getMyBookings() {
   const res = await fetch(`${base}/my-history`, { 
     headers: getAuthHeader() 
   });
   if (!res.ok) throw new Error('Failed to fetch bookings');
+  return res.json();
+}
+
+// Lấy lịch sử booking với thông tin đầy đủ (user + vehicle info)
+export async function getMyBookingsWithDetails() {
+  const res = await fetch(`${base}/my-history/details`, { 
+    headers: getAuthHeader() 
+  });
+  if (!res.ok) throw new Error('Failed to fetch bookings with details');
   return res.json();
 }
 
@@ -141,6 +150,33 @@ export async function getBookingCountdown(bookingId) {
       return null; // Booking không tồn tại
     }
     throw new Error('Failed to get countdown info');
+  }
+  return res.json();
+}
+
+// Xác nhận booking (cho staff)
+export async function confirmBooking(bookingId) {
+  const res = await fetch(`${base}/${bookingId}/confirm`, {
+    method: 'POST',
+    headers: { ...getAuthHeader() }
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Failed to confirm booking' }));
+    throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: Failed to confirm booking`);
+  }
+  return res.json();
+}
+
+// Từ chối booking (cho staff)
+export async function rejectBooking(bookingId, reason) {
+  const queryParams = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+  const res = await fetch(`${base}/${bookingId}/reject${queryParams}`, {
+    method: 'POST',
+    headers: { ...getAuthHeader() }
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Failed to reject booking' }));
+    throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: Failed to reject booking`);
   }
   return res.json();
 }

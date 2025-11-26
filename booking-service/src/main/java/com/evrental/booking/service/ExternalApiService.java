@@ -39,6 +39,10 @@ public class ExternalApiService {
                         .email(response.getEmail())
                         .phoneNumber(response.getPhoneNumber())
                         .username(response.getUsername())
+                        .licenseNumber(response.getLicenseNumber())
+                        .identityNumber(response.getIdentityNumber())
+                        .licenseImage(response.getLicenseImage())
+                        .identityImage(response.getIdentityImage())
                         .build();
             }
             
@@ -58,6 +62,11 @@ public class ExternalApiService {
             VehicleServiceResponse response = restTemplate.getForObject(url, VehicleServiceResponse.class);
             
             if (response != null) {
+                // Convert Double to BigDecimal for pricePerHour
+                java.math.BigDecimal pricePerHour = response.getPricePerHour() != null 
+                    ? java.math.BigDecimal.valueOf(response.getPricePerHour()) 
+                    : null;
+                
                 return BookingResponseDTO.VehicleInfo.builder()
                         .id(response.getId())
                         .type(response.getType())
@@ -66,7 +75,7 @@ public class ExternalApiService {
                         .imageUrl(response.getImageUrl())
                         .batteryLevel(response.getBatteryLevel())
                         .seats(response.getSeats())
-                        .pricePerHour(response.getPricePerHour())
+                        .pricePerHour(pricePerHour)
                         .status(response.getStatus())
                         .build();
             }
@@ -85,6 +94,10 @@ public class ExternalApiService {
         private String email;
         private String phoneNumber;
         private String username;
+        private String licenseNumber;   // GPLX
+        private String identityNumber;  // CCCD
+        private String licenseImage;    // URL ảnh GPLX
+        private String identityImage;   // URL ảnh CCCD
         
         // getters and setters
         public Long getId() { return id; }
@@ -97,9 +110,17 @@ public class ExternalApiService {
         public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
         public String getUsername() { return username; }
         public void setUsername(String username) { this.username = username; }
+        public String getLicenseNumber() { return licenseNumber; }
+        public void setLicenseNumber(String licenseNumber) { this.licenseNumber = licenseNumber; }
+        public String getIdentityNumber() { return identityNumber; }
+        public void setIdentityNumber(String identityNumber) { this.identityNumber = identityNumber; }
+        public String getLicenseImage() { return licenseImage; }
+        public void setLicenseImage(String licenseImage) { this.licenseImage = licenseImage; }
+        public String getIdentityImage() { return identityImage; }
+        public void setIdentityImage(String identityImage) { this.identityImage = identityImage; }
     }
     
-    private static class VehicleServiceResponse {
+    public static class VehicleServiceResponse {
         private Long id;
         private String type;
         private String licensePlate;
@@ -107,7 +128,7 @@ public class ExternalApiService {
         private String imageUrl;
         private Integer batteryLevel;
         private Integer seats;
-        private java.math.BigDecimal pricePerHour;
+        private Double pricePerHour; // Đổi từ BigDecimal sang Double để match với Vehicle entity
         private String status;
         
         // getters and setters
@@ -125,8 +146,8 @@ public class ExternalApiService {
         public void setBatteryLevel(Integer batteryLevel) { this.batteryLevel = batteryLevel; }
         public Integer getSeats() { return seats; }
         public void setSeats(Integer seats) { this.seats = seats; }
-        public java.math.BigDecimal getPricePerHour() { return pricePerHour; }
-        public void setPricePerHour(java.math.BigDecimal pricePerHour) { this.pricePerHour = pricePerHour; }
+        public Double getPricePerHour() { return pricePerHour; }
+        public void setPricePerHour(Double pricePerHour) { this.pricePerHour = pricePerHour; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
     }

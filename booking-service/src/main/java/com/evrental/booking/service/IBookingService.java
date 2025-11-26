@@ -43,4 +43,27 @@ public interface IBookingService {
     
     // 11. Lấy thông tin countdown cho booking
     BookingTimeoutService.BookingCountdownDTO getBookingCountdown(Long bookingId);
+    
+    // 12. Staff xác nhận booking
+    Booking confirmBooking(Long bookingId);
+    
+    // 13. Staff từ chối booking
+    Booking rejectBooking(Long bookingId, String reason);
+    
+    // 14. Lấy bookings của user với thông tin đầy đủ (user + vehicle info)
+    List<BookingResponseDTO> getUserBookingsWithDetails(Long userId);
+    
+    // 15. Staff tạo booking walk-in tại điểm
+    Booking createWalkInBooking(
+        Long vehicleId,
+        Long stationId,
+        Long staffId,
+        String fullName,
+        String phoneNumber,
+        String email,
+        LocalDateTime startDate,
+        LocalDateTime endDate,
+        org.springframework.web.multipart.MultipartFile gplxImage,
+        org.springframework.web.multipart.MultipartFile cccdImage
+    );
 }

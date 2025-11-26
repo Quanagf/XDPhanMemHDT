@@ -51,6 +51,10 @@ public class BookingResponseDTO {
         private String email;
         private String phoneNumber;
         private String username;
+        private String licenseNumber;  // Số GPLX
+        private String identityNumber; // Số CCCD
+        private String licenseImage;   // URL ảnh GPLX
+        private String identityImage;  // URL ảnh CCCD
     }
     
     @Data

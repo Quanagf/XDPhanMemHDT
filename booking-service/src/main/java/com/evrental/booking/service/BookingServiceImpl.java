@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value; // <-- DÒNG MỚI (Import DTO để gửi đi)
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -44,6 +45,12 @@ public class BookingServiceImpl implements IBookingService {
     
     // Inject booking timeout service
     private final BookingTimeoutService bookingTimeoutService;
+    
+    // Inject MinIO service for file uploads
+    private final MinioService minioService;
+    
+    // Inject walk-in customer service
+    private final WalkInCustomerService walkInCustomerService;
 
     // Lấy URL của service khác từ application.properties
     @Value("${service.url.vehicles}")
@@ -57,6 +64,49 @@ public class BookingServiceImpl implements IBookingService {
 
     @Override
     public Booking createBooking(CreateBookingRequest request, Long userId) {
+        
+        // --- BƯỚC 0: VALIDATE THỜI GIAN ---
+        LocalDateTime estimatedStartTime = request.getEstimatedStartTimeAsLocalDateTime();
+        LocalDateTime estimatedEndTime = request.getEstimatedEndTimeAsLocalDateTime();
+        
+        if (estimatedStartTime == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thời gian nhận xe không được để trống.");
+        }
+        
+        if (estimatedEndTime == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thời gian trả xe không hợp lệ.");
+        }
+        
+        // Kiểm tra thời gian trả xe phải sau thời gian nhận xe
+        if (!estimatedEndTime.isAfter(estimatedStartTime)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Thời gian trả xe phải sau thời gian nhận xe.");
+        }
+        
+        // Kiểm tra thời gian nhận xe phải trong tương lai (ít nhất 1 giờ)
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDateTime minimumStartTime = now.plusHours(1);
+        
+        if (estimatedStartTime.isBefore(minimumStartTime)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Thời gian nhận xe phải ít nhất 1 giờ sau thời điểm hiện tại.");
+        }
+        
+        // Kiểm tra khoảng thời gian thuê tối thiểu
+        Duration rentalDuration = Duration.between(estimatedStartTime, estimatedEndTime);
+        long rentalHours = rentalDuration.toHours();
+        
+        // Với booking ON_SPOT, yêu cầu tối thiểu 4 giờ
+        if (request.getBookingType() == Booking.BookingType.ON_SPOT && rentalHours < 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Đặt xe tại điểm yêu cầu tối thiểu 4 giờ thuê.");
+        }
+        
+        // Với booking ADVANCE, yêu cầu tối thiểu 1 giờ
+        if (request.getBookingType() == Booking.BookingType.ADVANCE && rentalHours < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Đặt trước yêu cầu tối thiểu 1 giờ thuê.");
+        }
         
         // --- BƯỚC 1: GỌI API NỘI BỘ SANG VEHICLE-SERVICE ---
         VehicleDTO vehicle = restTemplate.getForObject(
@@ -100,17 +150,36 @@ public class BookingServiceImpl implements IBookingService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi kiểm tra trạng thái xác thực: " + e.getMessage());
         }
 
+        // --- BƯỚC 2.5: LẤY THÔNG TIN XE ĐỂ TÍNH GIÁ ---
+        VehicleDTO vehicleInfo;
+        try {
+            vehicleInfo = restTemplate.getForObject(
+                vehicleServiceUrl + "/api/vehicles/" + request.getVehicleId(),
+                VehicleDTO.class
+            );
+            if (vehicleInfo == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin xe");
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy thông tin xe: " + e.getMessage());
+        }
+
+        // Tính tổng chi phí dự kiến
+        long minutes = Duration.between(estimatedStartTime, estimatedEndTime).toMinutes();
+        long hours = (long) Math.ceil(minutes / 60.0);
+        BigDecimal totalCost = BigDecimal.valueOf(hours).multiply(BigDecimal.valueOf(vehicleInfo.getPricePerHour()));
+
         // --- BƯỚC 3: TẠO BOOKING MỚI ---
         Booking booking = Booking.builder()
                 .userId(userId)
                 .vehicleId(request.getVehicleId())
                 .startStationId(request.getStartStationId())
                 .bookingTime(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
-                .estimatedStartTime(request.getEstimatedStartTimeAsLocalDateTime())
-                .estimatedEndTime(request.getEstimatedEndTimeAsLocalDateTime())
+                .estimatedStartTime(estimatedStartTime)
+                .estimatedEndTime(estimatedEndTime)
                 .bookingType(request.getBookingType() != null ? request.getBookingType() : Booking.BookingType.ADVANCE)
-                .status(request.getBookingType() == Booking.BookingType.ADVANCE ? 
-                        Booking.BookingStatus.CONFIRMED : Booking.BookingStatus.PENDING) // ADVANCE được confirm ngay
+                .status(Booking.BookingStatus.PENDING) // Luôn PENDING, chờ staff xác nhận
+                .totalCost(totalCost) // Thêm tổng chi phí dự kiến
                 .build();
                 
         Booking savedBooking = bookingRepository.save(booking);
@@ -154,15 +223,15 @@ public class BookingServiceImpl implements IBookingService {
                 .customerEmail(customerEmail)
                 .vehicleModel(vehicle.getType())
                 .vehiclePlate(vehicle.getLicensePlate())
-                .estimatedStartTime(request.getEstimatedStartTimeAsLocalDateTime())
-                .estimatedEndTime(request.getEstimatedEndTimeAsLocalDateTime())
+                .estimatedStartTime(estimatedStartTime)
+                .estimatedEndTime(estimatedEndTime)
                 .bookingTime(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                 .notificationType("NEW_BOOKING")
                 .stationName(stationName)
                 .stationAddress(stationAddress)
                 .message(String.format("Có yêu cầu đặt xe mới từ khách hàng %s (%s). Xe: %s - %s. Thời gian nhận dự kiến: %s tại trạm %s", 
                     customerName, customerPhone, vehicle.getType(), vehicle.getLicensePlate(), 
-                    request.getEstimatedStartTimeAsLocalDateTime(), stationName))
+                    estimatedStartTime, stationName))
                 .build();
             
             notificationService.sendStaffNotification(notification);
@@ -323,6 +392,35 @@ public class BookingServiceImpl implements IBookingService {
     }
     
     @Override
+    public List<BookingResponseDTO> getUserBookingsWithDetails(Long userId) {
+        // Lấy tất cả bookings của user
+        List<Booking> bookings = bookingRepository.findByUserIdOrderByBookingTimeDesc(userId);
+        
+        // Convert sang DTO và enrich với user/vehicle info
+        return bookings.stream().map(booking -> {
+            BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
+            
+            // Fetch user info từ user-service
+            try {
+                BookingResponseDTO.UserInfo userInfo = externalApiService.getUserInfo(booking.getUserId());
+                dto.setUserInfo(userInfo);
+            } catch (Exception e) {
+                System.err.println("Lỗi khi lấy user info: " + e.getMessage());
+            }
+            
+            // Fetch vehicle info từ vehicle-service
+            try {
+                BookingResponseDTO.VehicleInfo vehicleInfo = externalApiService.getVehicleInfo(booking.getVehicleId());
+                dto.setVehicleInfo(vehicleInfo);
+            } catch (Exception e) {
+                System.err.println("Lỗi khi lấy vehicle info: " + e.getMessage());
+            }
+            
+            return dto;
+        }).collect(Collectors.toList());
+    }
+    
+    @Override
     public List<Long> getBookedVehicleIds(LocalDateTime startTime, LocalDateTime endTime) {
         // Lấy danh sách vehicleId đã được booking trong khoảng thời gian
         return bookingRepository.findBookedVehicleIds(startTime, endTime);
@@ -336,18 +434,12 @@ public class BookingServiceImpl implements IBookingService {
     
     @Override
     public List<BookingResponseDTO> getPendingBookingsWithDetailsForStation(Long stationId) {
-        // Lấy các booking đang chờ xử lý tại trạm (CONFIRMED - đã có countdown timer)
-        List<Booking> confirmedBookings = bookingRepository.findByStartStationIdAndStatusOrderByBookingTimeAsc(stationId, Booking.BookingStatus.CONFIRMED);
-        // Và cả PENDING (đặt tại chỗ)
+        // Lấy các booking đang CHỜ XÁC NHẬN tại trạm (status = PENDING)
+        // Sau khi staff xác nhận thì booking sẽ chuyển sang CONFIRMED
         List<Booking> pendingBookings = bookingRepository.findByStartStationIdAndStatusOrderByBookingTimeAsc(stationId, Booking.BookingStatus.PENDING);
         
-        // Gộp cả hai list
-        List<Booking> allBookings = new java.util.ArrayList<>();
-        allBookings.addAll(confirmedBookings);
-        allBookings.addAll(pendingBookings);
-        
         // Convert sang DTO và enrich với user/vehicle info
-        return allBookings.stream().map(booking -> {
+        return pendingBookings.stream().map(booking -> {
             BookingResponseDTO dto = BookingResponseDTO.fromBooking(booking);
             
             // Fetch user info từ user-service
@@ -390,4 +482,240 @@ public class BookingServiceImpl implements IBookingService {
         return bookingTimeoutService.getBookingCountdown(bookingId);
     }
     
+    @Override
+    public Booking confirmBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking không tìm thấy"));
+        
+        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Chỉ có thể xác nhận booking đang ở trạng thái PENDING");
+        }
+        
+        // Cập nhật trạng thái thành CONFIRMED
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        Booking confirmedBooking = bookingRepository.save(booking);
+        
+        // Gửi thông báo cho user
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> userInfo = restTemplate.getForObject(
+                userServiceUrl + "/api/users/" + booking.getUserId(),
+                java.util.Map.class
+            );
+            
+            String customerName = userInfo != null ? (String) userInfo.get("fullName") : "Khách hàng";
+            String customerPhone = userInfo != null ? (String) userInfo.get("phoneNumber") : "";
+            
+            // TODO: Gửi notification cho user qua email/SMS
+            System.out.println("Thông báo cho khách hàng " + customerName + " (" + customerPhone + "): Booking #" + bookingId + " đã được xác nhận!");
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo cho user: " + e.getMessage());
+        }
+        
+        return confirmedBooking;
+    }
+    
+    @Override
+    public Booking rejectBooking(Long bookingId, String reason) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking không tìm thấy"));
+        
+        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Chỉ có thể từ chối booking đang ở trạng thái PENDING");
+        }
+        
+        // Cập nhật trạng thái thành CANCELLED
+        booking.setStatus(Booking.BookingStatus.CANCELLED);
+        Booking rejectedBooking = bookingRepository.save(booking);
+        
+        // Cập nhật lại trạng thái xe về AVAILABLE
+        try {
+            restTemplate.put(
+                vehicleServiceUrl + "/api/vehicles/" + booking.getVehicleId() + "/status/AVAILABLE",
+                null
+            );
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật trạng thái xe: " + e.getMessage());
+        }
+        
+        // Gửi thông báo cho user
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> userInfo = restTemplate.getForObject(
+                userServiceUrl + "/api/users/" + booking.getUserId(),
+                java.util.Map.class
+            );
+            
+            String customerName = userInfo != null ? (String) userInfo.get("fullName") : "Khách hàng";
+            String customerPhone = userInfo != null ? (String) userInfo.get("phoneNumber") : "";
+            String rejectReason = reason != null && !reason.isEmpty() ? reason : "Không có lý do cụ thể";
+            
+            // TODO: Gửi notification cho user qua email/SMS
+            System.out.println("Thông báo cho khách hàng " + customerName + " (" + customerPhone + "): Booking #" + bookingId + " đã bị từ chối. Lý do: " + rejectReason);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo cho user: " + e.getMessage());
+        }
+        
+        return rejectedBooking;
+    }
+    
+    @Override
+    public Booking createWalkInBooking(
+            Long vehicleId,
+            Long stationId,
+            Long staffId,
+            String fullName,
+            String phoneNumber,
+            String email,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            org.springframework.web.multipart.MultipartFile gplxImage,
+            org.springframework.web.multipart.MultipartFile cccdImage) {
+        
+        // 1. Kiểm tra xe có sẵn không
+        try {
+            ResponseEntity<String> vehicleStatusResponse = restTemplate.getForEntity(
+                vehicleServiceUrl + "/api/vehicles/" + vehicleId + "/status",
+                String.class
+            );
+            
+            String vehicleStatus = vehicleStatusResponse.getBody();
+            if (!"AVAILABLE".equals(vehicleStatus)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Xe không có sẵn để đặt. Trạng thái hiện tại: " + vehicleStatus);
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Không thể kiểm tra trạng thái xe: " + e.getMessage());
+        }
+        
+        // 2. Lấy thông tin xe để tính giá
+        BookingResponseDTO.VehicleInfo vehicleInfo;
+        try {
+            vehicleInfo = externalApiService.getVehicleInfo(vehicleId);
+            if (vehicleInfo == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin xe");
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Không thể lấy thông tin xe: " + e.getMessage());
+        }
+        
+        // 3. Tính toán tổng tiền
+        long durationHours = java.time.Duration.between(startDate, endDate).toHours();
+        if (durationHours <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Ngày trả xe phải sau ngày nhận xe!");
+        }
+        
+        BigDecimal totalCost = BigDecimal.valueOf(durationHours)
+            .multiply(vehicleInfo.getPricePerHour());
+        
+        // 4. Tạo booking mới với bookingType = WALK_IN
+        Booking walkInBooking = new Booking();
+        walkInBooking.setUserId(null); // Walk-in không có userId (khách vãng lai)
+        walkInBooking.setVehicleId(vehicleId);
+        walkInBooking.setStartStationId(stationId);
+        walkInBooking.setEndStationId(stationId); // Trả lại tại cùng trạm
+        walkInBooking.setEstimatedStartTime(startDate);
+        walkInBooking.setEstimatedEndTime(endDate);
+        walkInBooking.setBookingTime(LocalDateTime.now());
+        walkInBooking.setTotalCost(totalCost);
+        walkInBooking.setStatus(Booking.BookingStatus.CONFIRMED); // Walk-in được confirm luôn
+        walkInBooking.setBookingType(Booking.BookingType.WALK_IN);
+        
+        // Lưu thông tin khách hàng walk-in
+        walkInBooking.setCustomerName(fullName);
+        walkInBooking.setCustomerPhone(phoneNumber);
+        walkInBooking.setCustomerEmail(email);
+        
+        // 5. Upload ảnh GPLX và CCCD
+        String gplxUrl = null;
+        String cccdUrl = null;
+        
+        if (gplxImage != null && !gplxImage.isEmpty()) {
+            try {
+                gplxUrl = uploadLicenseImage(null, gplxImage, "GPLX");
+                walkInBooking.setGplxImageUrl(gplxUrl);
+            } catch (Exception e) {
+                System.err.println("Lỗi khi upload ảnh GPLX: " + e.getMessage());
+            }
+        }
+        
+        if (cccdImage != null && !cccdImage.isEmpty()) {
+            try {
+                cccdUrl = uploadLicenseImage(null, cccdImage, "CCCD");
+                walkInBooking.setCccdImageUrl(cccdUrl);
+            } catch (Exception e) {
+                System.err.println("Lỗi khi upload ảnh CCCD: " + e.getMessage());
+            }
+        }
+        
+        // 5.5. Tạo hoặc cập nhật thông tin khách hàng walk-in
+        try {
+            com.evrental.booking.model.WalkInCustomer customer = walkInCustomerService.findOrCreateCustomer(
+                fullName,
+                phoneNumber,
+                email,
+                gplxUrl,
+                cccdUrl,
+                stationId
+            );
+            walkInBooking.setWalkInCustomerId(customer.getId());
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lưu thông tin khách hàng walk-in: " + e.getMessage());
+            // Không rollback, vẫn cho phép đặt xe
+        }
+        
+        // 6. Lưu booking vào database
+        Booking savedBooking = bookingRepository.save(walkInBooking);
+        
+        // 6.5. Cập nhật thống kê booking cho khách hàng
+        if (walkInBooking.getWalkInCustomerId() != null) {
+            try {
+                walkInCustomerService.updateBookingStats(walkInBooking.getWalkInCustomerId());
+            } catch (Exception e) {
+                System.err.println("Lỗi khi cập nhật thống kê khách hàng: " + e.getMessage());
+            }
+        }
+        
+        // 7. Cập nhật trạng thái xe thành RENTED
+        try {
+            restTemplate.put(
+                vehicleServiceUrl + "/api/vehicles/" + vehicleId + "/status/RENTED",
+                null
+            );
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật trạng thái xe: " + e.getMessage());
+            // Rollback nếu không update được xe
+            bookingRepository.delete(savedBooking);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Không thể cập nhật trạng thái xe");
+        }
+        
+        // 8. Gửi thông báo cho staff
+        System.out.println("✅ Walk-in booking created by staff #" + staffId + 
+            " - Customer: " + fullName + " (" + phoneNumber + ")");
+        
+        return savedBooking;
+    }
+    
+    // Helper method để upload license images to MinIO
+    private String uploadLicenseImage(Long bookingId, 
+            org.springframework.web.multipart.MultipartFile file, 
+            String type) {
+        try {
+            // Upload to MinIO with folder structure: licenses/{type}/
+            String folder = "licenses/" + type.toLowerCase();
+            return minioService.uploadFile(file, folder);
+        } catch (Exception e) {
+            System.err.println("Error uploading " + type + " image to MinIO: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
 }
+

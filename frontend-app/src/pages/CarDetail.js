@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Login from '../components/Login';
@@ -13,12 +13,12 @@ import '../styles/pages/car-detail.css';
 const CarDetail = () => {
   const { carId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [user, setUser] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [bookingType, setBookingType] = useState('instant');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -34,16 +34,36 @@ const CarDetail = () => {
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateSelectionMode, setDateSelectionMode] = useState(null); // 'start' or 'end'
   const [selectedStartDate, setSelectedStartDate] = useState(() => {
+    const startDateParam = new URLSearchParams(window.location.search).get('startDate');
+    if (startDateParam) {
+      const date = new Date(startDateParam);
+      if (!isNaN(date.getTime())) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+    }
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), today.getDate());
   });
   const [selectedEndDate, setSelectedEndDate] = useState(() => {
+    const endDateParam = new URLSearchParams(window.location.search).get('endDate');
+    if (endDateParam) {
+      const date = new Date(endDateParam);
+      if (!isNaN(date.getTime())) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+    }
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
   });
-  const [startTime, setStartTime] = useState('10:00');
-  const [endTime, setEndTime] = useState('10:00');
+  const [startTime, setStartTime] = useState(() => {
+    const startTimeParam = new URLSearchParams(window.location.search).get('startTime');
+    return startTimeParam || '10:00';
+  });
+  const [endTime, setEndTime] = useState(() => {
+    const endTimeParam = new URLSearchParams(window.location.search).get('endTime');
+    return endTimeParam || '23:00';
+  }); // Mặc định 23:00 cho thời gian trả xe
 
   // Generate available time options (at least 1 hour from now)
   const getAvailableTimeOptions = (selectedDate, isEndTime = false, startTimeValue = null) => {
@@ -53,8 +73,6 @@ const CarDetail = () => {
       selectedDate.getDate() === today.getDate() &&
       selectedDate.getMonth() === today.getMonth() &&
       selectedDate.getFullYear() === today.getFullYear();
-    
-    const isOnSpotBooking = bookingType === 'request';
     
     for (let i = 0; i < 24; i++) {
       const hour = i.toString().padStart(2, '0');
@@ -72,13 +90,12 @@ const CarDetail = () => {
         }
       }
       
-      // For end time, check minimum gap requirement
+      // For end time, check minimum gap requirement (ADVANCE needs 1 hour)
       if (isEndTime && startTimeValue) {
         const startHour = parseInt(startTimeValue.split(':')[0]);
-        const minHourGap = isOnSpotBooking ? 4 : 1; // ON_SPOT needs 4 hours, ADVANCE needs 1 hour
+        const minHourGap = 1; // ADVANCE needs 1 hour minimum
         
         // Calculate minimum end hour based on dates
-        let minEndHour;
         if (selectedStartDate && selectedDate) {
           const startDateTime = new Date(selectedStartDate.getFullYear(), selectedStartDate.getMonth(), selectedStartDate.getDate(), startHour, 0);
           const endDateTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), i, 0);
@@ -89,7 +106,7 @@ const CarDetail = () => {
           }
         } else {
           // Fallback for same day calculation
-          minEndHour = startHour + minHourGap;
+          const minEndHour = startHour + minHourGap;
           if (i < minEndHour) {
             continue; // Skip this hour
           }
@@ -140,6 +157,13 @@ const CarDetail = () => {
             trips: apiVehicle.tripCount || Math.floor(Math.random() * 50) + 10,
             location: apiVehicle.location || 'Chưa xác định vị trí',
             stationName: apiVehicle.stationName || 'Chưa xác định trạm',
+            // Map station từ DTO fields để backward compatibility
+            station: apiVehicle.stationId ? {
+              id: apiVehicle.stationId,
+              name: apiVehicle.stationName,
+              address: apiVehicle.stationAddress,
+              province: apiVehicle.stationProvince
+            } : null,
             pricePerDay: apiVehicle.pricePerHour ? apiVehicle.pricePerHour * 24 : 780000,
             pricePerHour: apiVehicle.pricePerHour || 32500,
             licensePlate: apiVehicle.licensePlate || 'N/A',
@@ -368,7 +392,7 @@ const CarDetail = () => {
       return;
     }
     
-    console.log('Đặt xe:', { carId, bookingType, agreeToTerms });
+    console.log('Đặt xe:', { carId, agreeToTerms });
     
     // Tạo booking request
     try {
@@ -377,6 +401,29 @@ const CarDetail = () => {
       
       const endDateTime = new Date(selectedEndDate);
       endDateTime.setHours(parseInt(endTime.split(':')[0]), parseInt(endTime.split(':')[1]));
+      
+      // Validation: Kiểm tra thời gian nhận xe phải ít nhất 1 giờ sau hiện tại
+      const now = new Date();
+      const minStartTime = new Date(now.getTime() + 60 * 60 * 1000); // +1 giờ
+      
+      if (startDateTime < minStartTime) {
+        alert('⚠️ Thời gian nhận xe phải ít nhất 1 giờ sau thời điểm hiện tại.\n\nVui lòng chọn thời gian khác.');
+        return;
+      }
+      
+      // Validation: Kiểm tra thời gian trả xe phải sau thời gian nhận xe
+      if (endDateTime <= startDateTime) {
+        alert('⚠️ Thời gian trả xe phải sau thời gian nhận xe.\n\nVui lòng chọn lại thời gian.');
+        return;
+      }
+      
+      // Validation: Kiểm tra thời gian thuê tối thiểu
+      const rentalHours = (endDateTime - startDateTime) / (1000 * 60 * 60);
+      
+      if (rentalHours < 1) {
+        alert('⚠️ Đặt trước yêu cầu tối thiểu 1 giờ thuê.\n\nVui lòng chọn thời gian trả xe xa hơn.');
+        return;
+      }
       
       // Debug log timezone
       console.log('Debug datetime creation:');
@@ -399,33 +446,47 @@ const CarDetail = () => {
       
       const bookingRequest = {
         vehicleId: parseInt(carId),
-        startStationId: carData?.station?.id || 1, // Default to station 1 if not available
+        startStationId: carData?.station?.id || carData?.raw?.stationId || 1, // Use stationId from DTO or default to 1
         estimatedStartTime: formatLocalDateTime(startDateTime),
-        estimatedEndTime: formatLocalDateTime(endDateTime)
+        estimatedEndTime: formatLocalDateTime(endDateTime), // Luôn gửi để rõ ràng
+        bookingType: 'ADVANCE' // Chỉ hỗ trợ đặt trước
       };
-      // Map frontend bookingType to backend enum values
-      // frontend uses 'instant' for Đặt trước, 'request' for Đặt tại điểm
-      bookingRequest.bookingType = bookingType === 'request' ? 'ON_SPOT' : 'ADVANCE';
       
       console.log('Sending booking request:', bookingRequest);
       
-      // Check if this is advance booking (needs payment) or on-spot booking (pay later)
-      if (bookingType === 'instant') { // Đặt trước - cần thanh toán cọc
-        // Store booking data for payment modal
-        setPendingBookingData({
-          bookingRequest,
-          totalPrice: rentalDetails.totalPrice,
-          startDateTime,
-          endDateTime
-        });
-        setShowPaymentModal(true);
-      } else { // Đặt tại điểm - không cần thanh toán trước
-        const newBooking = await createBooking(bookingRequest);
-        console.log('Booking created:', newBooking);
-        
-        alert(`✅ Đặt xe thành công!\n\nMã đặt xe: #${newBooking.id}\nLoại đặt: Đặt tại điểm\nThời gian nhận xe: ${startDateTime.toLocaleString('vi-VN')}\nThời gian trả xe: ${endDateTime.toLocaleString('vi-VN')}\n\nBạn sẽ thanh toán khi nhận xe tại trạm.\nStaff sẽ liên hệ với bạn sớm để xác nhận.`);
-        navigate('/');
-      }
+      // Đặt trước - không cần thanh toán cọc
+      const newBooking = await createBooking(bookingRequest);
+      console.log('Booking created:', newBooking);
+      
+      // Hiển thị thông báo thành công chi tiết
+      const vehicleName = carData.name || carData.raw?.type || 'Xe điện';
+      const stationName = carData.stationName || carData.station?.name || 'Trạm xe';
+      
+      alert(
+        `🎉 GỬI YÊU CẦU ĐẶT XE THÀNH CÔNG!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 Mã đặt xe: #${newBooking.id}\n` +
+        `🚗 Xe: ${vehicleName}\n` +
+        `📍 Trạm: ${stationName}\n\n` +
+        `⏰ Thời gian nhận xe:\n   ${startDateTime.toLocaleString('vi-VN', { 
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        })}\n\n` +
+        `⏰ Thời gian trả xe:\n   ${endDateTime.toLocaleString('vi-VN', { 
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        })}\n\n` +
+        `💰 Tổng tiền dự kiến: ${rentalDetails.totalPrice.toLocaleString()}đ\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `⏳ TRẠNG THÁI: CHỜ XÁC NHẬN\n\n` +
+        `✅ Yêu cầu đã được gửi đến staff\n` +
+        `✅ Đã lưu vào lịch sử của bạn\n` +
+        `📞 Staff sẽ liên hệ để xác nhận trong thời gian sớm nhất\n\n` +
+        `💡 Bạn có thể kiểm tra trạng thái trong "Chuyến của tôi"`
+      );
+      
+      // Navigate về trang profile/bookings để xem lịch sử
+      navigate('/profile');
       
     } catch (error) {
       console.error('Lỗi khi đặt xe:', error);
@@ -521,6 +582,7 @@ const CarDetail = () => {
       // Nếu ngày kết thúc đã chọn mà nhỏ hơn ngày bắt đầu mới, reset ngày kết thúc
       if (selectedEndDate && date > selectedEndDate) {
         setSelectedEndDate(date);
+        setEndTime('23:00'); // Mặc định 23:00 khi reset ngày trả xe
       }
     } else if (dateSelectionMode === 'end') {
       // Không cho chọn ngày trả trước ngày nhận
@@ -528,6 +590,8 @@ const CarDetail = () => {
         return;
       }
       setSelectedEndDate(date);
+      // Khi chọn ngày trả xe, mặc định set giờ trả là 23:00
+      setEndTime('23:00');
     }
   };
 
@@ -555,12 +619,8 @@ const CarDetail = () => {
       today.setHours(0, 0, 0, 0);
       const isPast = date < today;
       
-      // For ON_SPOT booking (đặt tại điểm), only restrict start date to today
-      const isOnSpotBooking = bookingType === 'request';
-      const isNotToday = date.getTime() !== today.getTime();
-      const isStartDateRestricted = isOnSpotBooking && dateSelectionMode === 'start' && isNotToday;
-      
-      const isDisabled = isPast || isStartDateRestricted;
+      // For ADVANCE booking, allow future dates
+      const isDisabled = isPast;
       
       days.push(
         <div
@@ -866,26 +926,26 @@ const CarDetail = () => {
               
               <div className="date-selection">
                 <div className="date-input-group">
-                  <label>Ngày nhận</label>
+                  <label>Ngày & giờ nhận xe</label>
                   <div className="input-field datetime-field" onClick={() => {
                     setDateSelectionMode('start');
                     setShowDateModal(true);
                   }}>
                     <iconify-icon icon="mdi:clock-outline"></iconify-icon>
-                    <span>{startTime} SA</span>
+                    <span>{startTime}</span>
                     <iconify-icon icon="mdi:calendar-month"></iconify-icon>
                     <span>{formatSelectedDate(selectedStartDate)}</span>
                   </div>
                 </div>
                 
                 <div className="date-input-group">
-                  <label>Ngày trả</label>
+                  <label>Ngày & giờ trả xe (mặc định 23:00)</label>
                   <div className="input-field datetime-field" onClick={() => {
                     setDateSelectionMode('end');
                     setShowDateModal(true);
                   }}>
                     <iconify-icon icon="mdi:clock-outline"></iconify-icon>
-                    <span>{endTime} SA</span>
+                    <span>{endTime}</span>
                     <iconify-icon icon="mdi:calendar-month"></iconify-icon>
                     <span>{formatSelectedDate(selectedEndDate)}</span>
                   </div>
@@ -893,59 +953,14 @@ const CarDetail = () => {
               </div>
 
               <div className="car-booking-options">
-                <div className="car-booking-option-card">
-                  <input 
-                    type="radio" 
-                    id="instant" 
-                    name="bookingType" 
-                    value="instant"
-                    checked={bookingType === 'instant'}
-                    onChange={(e) => setBookingType(e.target.value)}
-                  />
-                  <label htmlFor="instant" className="car-booking-option-label">
-                    <div className="car-booking-option-content">
-                      <div className="car-booking-option-title">
-                        <i className="fas fa-credit-card" style={{marginRight: '0.5rem', color: '#007bff'}}></i>
-                        Đặt trước
-                      </div>
-                      <div className="car-booking-option-desc">An toàn•Thanh toán cọc 20%</div>
-                      <div className="car-booking-option-deposit">
-                        Cọc: {Math.round(rentalDetails.totalPrice * 0.20).toLocaleString()}đ
-                      </div>
+                <div className="car-booking-option-card selected">
+                  <div className="car-booking-option-content">
+                    <div className="car-booking-option-title">
+                      <i className="fas fa-credit-card" style={{marginRight: '0.5rem', color: '#007bff'}}></i>
+                      Đặt trước
                     </div>
-                  </label>
-                </div>
-                
-                <div className="car-booking-option-card">
-                  <input 
-                    type="radio" 
-                    id="request" 
-                    name="bookingType" 
-                    value="request"
-                    checked={bookingType === 'request'}
-                    onChange={(e) => {
-                      setBookingType(e.target.value);
-                      // If switching to ON_SPOT booking, reset to today only
-                      if (e.target.value === 'request') {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        setSelectedStartDate(today);
-                        setSelectedEndDate(today);
-                      }
-                    }}
-                  />
-                  <label htmlFor="request" className="car-booking-option-label">
-                    <div className="car-booking-option-content">
-                      <div className="car-booking-option-title">
-                        <i className="fas fa-map-marker-alt" style={{marginRight: '0.5rem', color: '#47C778'}}></i>
-                        Đặt tại điểm
-                      </div>
-                      <div className="car-booking-option-desc">Thanh toán khi nhận xe • Giữ chỗ 45 phút</div>
-                      <div className="car-booking-option-deposit">
-                        Không cần cọc trước
-                      </div>
-                    </div>
-                  </label>
+                    <div className="car-booking-option-desc">Thanh toán khi nhận xe • Không cần cọc trước</div>
+                  </div>
                 </div>
               </div>
 

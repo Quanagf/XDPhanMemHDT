@@ -284,6 +284,31 @@ class VehicleAPI {
       limit: 1000
     });
   }
+
+  /**
+   * Get available vehicles by station ID (alias for compatibility)
+   * @param {number} stationId - Station ID
+   * @returns {Promise<Object>} Response with vehicles array
+   */
+  async getAvailableVehiclesByStation(stationId) {
+    try {
+      const url = `${API_BASE_URL}/list?stationId=${stationId}&status=AVAILABLE`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      const result = await handleResponse(response, 'Get available vehicles by station');
+      return { data: Array.isArray(result) ? result : [] };
+    } catch (error) {
+      console.error('Error fetching available vehicles:', error);
+      return { data: [] };
+    }
+  }
 }
 
 // Create singleton instance
@@ -298,6 +323,7 @@ export const createVehicle = (vehicleData) => vehicleAPIInstance.createVehicle(v
 export const updateVehicle = (vehicleId, updateData) => vehicleAPIInstance.updateVehicle(vehicleId, updateData);
 export const deleteVehicle = (vehicleId) => vehicleAPIInstance.deleteVehicle(vehicleId);
 export const uploadVehicleImage = (vehicleId, imageFile) => vehicleAPIInstance.uploadVehicleImage(vehicleId, imageFile);
+export const getAvailableVehiclesByStation = (stationId) => vehicleAPIInstance.getAvailableVehiclesByStation(stationId);
 
 // Export class instance for advanced usage
 export default vehicleAPIInstance;
