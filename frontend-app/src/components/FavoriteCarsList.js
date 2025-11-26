@@ -68,7 +68,7 @@ const FavoriteCarsList = () => {
           <img 
             src="/assets/images/no data/Gemini_Generated_Image_tufjhwtufjhwtufj-removebg-preview.png" 
             alt="Không có xe yêu thích" 
-            className="profile-no-favorites-image"
+            className="profile-not-favorites-image"
           />
         </div>
         <h3 className="profile-favorites-empty-title">Bạn chưa có xe yêu thích nào</h3>

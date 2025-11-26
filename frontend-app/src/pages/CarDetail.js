@@ -939,7 +939,7 @@ const CarDetail = () => {
                 </div>
                 
                 <div className="date-input-group">
-                  <label>Ngày & giờ trả xe (mặc định 23:00)</label>
+                  <label>Ngày & giờ trả xe</label>
                   <div className="input-field datetime-field" onClick={() => {
                     setDateSelectionMode('end');
                     setShowDateModal(true);
@@ -959,7 +959,7 @@ const CarDetail = () => {
                       <i className="fas fa-credit-card" style={{marginRight: '0.5rem', color: '#007bff'}}></i>
                       Đặt trước
                     </div>
-                    <div className="car-booking-option-desc">Thanh toán khi nhận xe • Không cần cọc trước</div>
+                    <div className="car-booking-option-desc">Nhận xe • Thanh toán • Không cần cọc</div>
                   </div>
                 </div>
               </div>
@@ -1196,20 +1196,6 @@ const CarDetail = () => {
               </div>
             </div>
             <div className="car-booking-modal-footer">
-              <button 
-                className="button secondary" 
-                onClick={() => {
-                  if (dateSelectionMode === 'start') {
-                    setSelectedStartDate(new Date());
-                    setStartTime('08:00');
-                  } else {
-                    setSelectedEndDate(new Date());
-                    setEndTime('08:00');
-                  }
-                }}
-              >
-                Đặt về hôm nay
-              </button>
               <button 
                 className="button primary" 
                 onClick={() => setShowDateModal(false)}

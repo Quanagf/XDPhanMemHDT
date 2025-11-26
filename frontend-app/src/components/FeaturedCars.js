@@ -119,11 +119,28 @@ const CarCard = ({ car }) => {
           </div>
           <div className="info-row">
             <iconify-icon icon="mdi:car-seat" aria-hidden="true"></iconify-icon>
-            <span>{car.seats || 'N/A'} chỗ</span>
+            <span className="info-label">Số ghế:</span>
+            <span className="info-value">{car.seats || 4} chỗ</span>
           </div>
           <div className="info-row">
             <iconify-icon icon="mdi:battery-charging" aria-hidden="true"></iconify-icon>
-            <span>{car.batteryLevel}%</span>
+            <span className="info-label">Mức pin:</span>
+            <span className="info-value">{car.batteryLevel || 100}%</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:lightning-bolt" aria-hidden="true"></iconify-icon>
+            <span className="info-label">Tốc độ sạc:</span>
+            <span className="info-value">{car.chargingSpeed || '50'} kW</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:wrench" aria-hidden="true"></iconify-icon>
+            <span className="info-label">Tình trạng:</span>
+            <span className="info-value">{car.technicalCondition || 'Tốt'}</span>
+          </div>
+          <div className="info-row">
+            <iconify-icon icon="mdi:counter" aria-hidden="true"></iconify-icon>
+            <span className="info-label">Tổng chuyến:</span>
+            <span className="info-value">{car.tripCount || 0} chuyến</span>
           </div>
         </div>
 

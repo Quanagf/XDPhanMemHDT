@@ -223,10 +223,10 @@
 
 .date-input-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #2c3e50;
-  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
 }
 
 /* Style like homepage input-field */
@@ -235,31 +235,32 @@
   align-items: center;
   justify-content: space-between;
   border: 2px solid #E0E0E0;
-  border-radius: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  background: #fff;
   transition: all 0.3s ease;
   position: relative;
   min-width: 0;
-  min-height: 52px;
-  gap: 10px;
+  min-height: 56px;
+  gap: 0.75rem;
   cursor: pointer;
 }
 
 .datetime-field:hover {
-  border-color: #47C778;
-  box-shadow: 0 0 0 2px rgba(71, 199, 120, 0.1);
+  border-color: var(--color-fev-green, #5FCF86);
+  box-shadow: 0 2px 8px rgba(95, 207, 134, 0.15);
 }
 
 .datetime-field:focus-within {
-  border-color: #47C778;
-  box-shadow: 0 0 0 2px rgba(71, 199, 120, 0.1);
+  border-color: var(--color-fev-green, #5FCF86);
+  box-shadow: 0 2px 8px rgba(95, 207, 134, 0.15);
 }
 
 .datetime-field iconify-icon {
   font-size: 1.2rem;
-  color: #47C778;
+  color: var(--color-fev-green, #5FCF86);
   margin: 0;
+  flex-shrink: 0;
 }
 
 .datetime-field span {
@@ -311,82 +312,118 @@
 
 .car-booking-options {
   margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .car-booking-option-card {
-  margin-bottom: 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   transition: all 0.3s ease;
   overflow: hidden;
+  background: #fff;
+  margin-bottom: 0;
+  min-height: 70px;
+}
+
+.car-booking-option-card.selected {
+  border-color: var(--color-fev-green, #5FCF86);
+  background: rgba(95, 207, 134, 0.08);
+  box-shadow: 0 4px 16px rgba(95, 207, 134, 0.15);
 }
 
 .car-booking-option-card:hover {
-  border-color: #47C778;
-  box-shadow: 0 4px 12px rgba(71, 199, 120, 0.15);
+  border-color: var(--color-fev-green, #5FCF86);
+  box-shadow: 0 4px 12px rgba(95, 207, 134, 0.15);
 }
 
-.car-booking-option-card input[type="radio"] {
-  display: none;
-}
-
-.car-booking-option-card input[type="radio"]:checked + .car-booking-option-label {
-  border-color: #47C778;
-  background: rgba(71, 199, 120, 0.05);
-}
-
-.car-booking-option-card input[type="radio"]:checked + .car-booking-option-label .car-booking-option-title {
-  color: #47C778;
-  font-weight: 600;
-}
-
-.car-booking-option-label {
-  display: block;
+.car-booking-option-content {
   padding: 1rem 1.25rem;
-  cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-  margin: 0;
-  font-weight: normal;
-  color: inherit;
-}
-
-.car-booking-option-content {
-  width: 100%;
-}
-
-
-.car-booking-option-content {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  min-height: 70px;
 }
 
 .car-booking-option-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   display: flex;
   align-items: center;
   transition: color 0.3s ease;
 }
 
+.car-booking-option-card.selected .car-booking-option-title {
+  color: var(--color-fev-green, #5FCF86);
+}
+
+.car-booking-option-title i {
+  margin-right: 0.75rem !important;
+  color: var(--color-fev-green, #5FCF86) !important;
+  font-size: 1.2rem;
+}
+
 .car-booking-option-desc {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: 0.9rem;
+  color: #888;
+  line-height: 1.4;
+  font-weight: 400;
+  margin: 0;
+}
+
+.car-booking-option-card input[type="radio"]:checked + .car-booking-option-label .car-booking-option-title {
+  color: var(--color-fev-green, #5FCF86);
+  font-weight: 600;
+}
+
+.car-booking-option-label {
+  display: block;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+  margin: 0;
+  font-weight: normal;
+  color: inherit;
+  background: transparent;
+}
+
+.car-booking-option-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.car-booking-option-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.3s ease;
+}
+
+.car-booking-option-title i {
+  margin-right: 0.75rem !important;
+  color: var(--color-fev-green, #5FCF86) !important;
+  font-size: 1.2rem;
+}
+
+.car-booking-option-desc {
+  font-size: 0.9rem;
+  color: #888;
   margin-bottom: 0.5rem;
   line-height: 1.4;
+  font-weight: 400;
 }
 
 .car-booking-option-deposit {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #47C778;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-fev-green, #5FCF86);
+  margin-top: 0.5rem;
 }
 
 .booking-option-card input[type="radio"] {
@@ -1045,10 +1082,10 @@
   background: white;
   border-radius: 16px;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-  max-width: 380px;
-  width: fit-content;
-  min-width: 350px;
-  max-height: 70vh;
+  max-width: 600px;
+  width: 90vw;
+  min-width: 550px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1057,36 +1094,105 @@
 
 .car-booking-modal-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e0e0e0;
   background: #f8f9fa;
   border-radius: 16px 16px 0 0;
+  position: relative;
 }
 
 .car-booking-modal-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #333;
+  text-align: center;
+}
+
+.car-booking-modal-header .close-button {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.car-booking-modal-header .close-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
 }
 
 .car-booking-modal-body {
-  padding: 1rem 1.25rem;
-  max-height: 50vh;
+  padding: 1.5rem;
+  max-height: 60vh;
   overflow-y: auto;
   flex: 1;
+  background: #fff;
+  /* Ẩn thanh cuộn */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.car-booking-modal-body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .car-booking-modal-footer {
   display: flex;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
   border-top: 1px solid #e0e0e0;
   background: #f8f9fa;
   flex-shrink: 0;
   border-radius: 0 0 16px 16px;
+  justify-content: flex-end;
+}
+
+.car-booking-modal-footer .button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.car-booking-modal-footer .button.primary {
+  background: var(--color-fev-green, #5FCF86);
+  color: white;
+}
+
+.car-booking-modal-footer .button.primary:hover {
+  background: #4CAF50;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(95, 207, 134, 0.3);
+}
+
+.car-booking-modal-footer .button.secondary {
+  background: #f1f1f1;
+  color: #666;
+  border: 1px solid #e0e0e0;
+}
+
+.car-booking-modal-footer .button.secondary:hover {
+  background: #e9e9e9;
+  color: #333;
 }
 
 /* ========================================================= */
@@ -1490,39 +1596,46 @@
 
 .time-selection {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   margin-bottom: 2rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
+  padding: 1.5rem;
+  background: rgba(95, 207, 134, 0.05);
+  border: 1px solid rgba(95, 207, 134, 0.2);
+  border-radius: 12px;
 }
 
 .time-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .time-group label {
   font-weight: 600;
   color: #333;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .time-group select {
-  padding: 0.75rem;
+  padding: 0.875rem 1rem;
   border: 2px solid #e0e0e0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: white;
   font-size: 1rem;
   color: #333;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.time-group select:hover {
+  border-color: var(--color-fev-green, #5FCF86);
 }
 
 .time-group select:focus {
-  border-color: #47C778;
   outline: none;
+  border-color: var(--color-fev-green, #5FCF86);
+  box-shadow: 0 0 0 3px rgba(95, 207, 134, 0.1);
 }
 
 /* Car Detail Calendar Styles - Separate from Hero Calendar */
@@ -1539,21 +1652,23 @@
 }
 
 .car-detail-calendar-navigation button {
-  background: #47C778;
-  border: none;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
   border-radius: 50%;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #666;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .car-detail-calendar-navigation button:hover {
-  background: #3ba866;
+  background: #eeeeee;
+  color: #333;
+  border-color: #d0d0d0;
 }
 
 .car-detail-calendars {
@@ -1566,7 +1681,7 @@
   background: white;
   border-radius: 8px;
   padding: 0.5rem;
-  width: 320px;
+  width: 450px;
   margin: 0 auto;
 }
 
@@ -1655,10 +1770,44 @@
   }
   
   .car-booking-modal-content {
-    width: 90vw;
-    max-width: 90vw;
+    width: 95vw;
+    max-width: 95vw;
     min-width: 0;
     margin: 0.5rem;
+    max-height: 90vh;
+  }
+
+  .time-selection {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .time-group {
+    gap: 0.5rem;
+  }
+
+  .car-booking-modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .car-booking-modal-body {
+    padding: 1.25rem;
+    max-height: 65vh;
+  }
+
+  .car-booking-modal-footer {
+    padding: 1rem 1.25rem;
+    flex-direction: column;
+  }
+
+  .car-booking-modal-footer .button {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .car-booking-modal-footer .button:last-child {
+    margin-bottom: 0;
   }
   
   .car-booking-modal-footer {

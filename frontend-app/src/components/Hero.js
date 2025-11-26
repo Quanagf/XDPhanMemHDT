@@ -579,29 +579,29 @@ const Hero = () => {
                 <div className="location-step">
                   <h3>2. Chọn trạm thuê</h3>
                   {tempFilteredStations.length > 0 ? (
-                    <div className="station-list">
+                    <div className="ecoride-station-selector">
                       {tempFilteredStations.map(station => (
                         <div 
                           key={station.id}
-                          className={`station-card ${tempStation === station.id.toString() ? 'selected' : ''}`}
+                          className={`ecoride-station-item ${tempStation === station.id.toString() ? 'selected' : ''}`}
                           onClick={() => setTempStation(station.id.toString())}
                         >
-                          <div className="station-info">
-                            <h4 className="station-name">{station.name}</h4>
-                            <p className="station-address">{station.address}</p>
-                            <div className="station-details">
-                              <span className="station-phone">
+                          <div className="ecoride-info">
+                            <h4 className="ecoride-name">{station.name}</h4>
+                            <p className="ecoride-address">{station.address}</p>
+                            <div className="ecoride-details">
+                              <span className="ecoride-phone">
                                 <iconify-icon icon="material-symbols:phone"></iconify-icon>
                                 {station.phoneNumber || 'Chưa có thông tin'}
                               </span>
-                              <span className="station-capacity">
+                              <span className="ecoride-capacity">
                                 <iconify-icon icon="mdi:car-multiple"></iconify-icon>
                                 {station.capacity || 0} xe
                               </span>
                             </div>
                           </div>
-                          <div className="station-status">
-                            <span className={`status-badge ${station.status === 'OPEN' ? 'open' : 'closed'}`}>
+                          <div className="ecoride-status">
+                            <span className={`ecoride-badge ${station.status === 'OPEN' ? 'active' : 'inactive'}`}>
                               {station.status === 'OPEN' ? 'Đang hoạt động' : 'Tạm đóng'}
                             </span>
                           </div>

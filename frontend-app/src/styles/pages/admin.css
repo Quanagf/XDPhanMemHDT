@@ -1,5 +1,20 @@
 /* Admin Dashboard Styles */
 
+/* Loading animation for Font Awesome icons */
+.fa-spin, .fas.fa-spinner, .fas.fa-circle-notch {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom spin class for other icons */
+.spin {
+  animation: fa-spin 1s linear infinite;
+}
+
 .admin-dashboard {
   min-height: 100vh;
   display: block; /* Thay đổi từ flex sang block */

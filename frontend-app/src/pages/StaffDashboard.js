@@ -208,7 +208,8 @@ const StaffDashboard = () => {
                   fontSize: '13px',
                   margin: '8px 0'
                 }}>
-                  ⚠️ Chưa được phân công trạm
+                  <i className="fas fa-exclamation-triangle" style={{marginRight: '4px', color: '#f59e0b'}}></i>
+                  Chưa được phân công trạm
                 </p>
               )}
             </div>
@@ -423,7 +424,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     
     try {
       await cancelBooking(booking.bookingId, reason);
-      alert('✅ Đã hủy booking thành công!');
+      alert('Đã hủy booking thành công!');
       loadHandoverData(); // Reload list
     } catch (error) {
       console.error('❌ Lỗi hủy booking:', error);
@@ -510,12 +511,12 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
       
       await processPickup(formData);
       
-      alert('✅ Giao xe thành công!');
+      alert('Giao xe thành công!');
       setShowProcessModal(false);
       loadHandoverData(); // Reload danh sách
     } catch (error) {
       console.error('Lỗi giao xe:', error);
-      alert('❌ Có lỗi xảy ra khi giao xe. Vui lòng thử lại!');
+      alert('Có lỗi xảy ra khi giao xe. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
@@ -573,12 +574,12 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
       
       await processReturn(formData);
       
-      alert('✅ Nhận xe trả thành công!');
+      alert('Nhận xe trả thành công!');
       setShowProcessModal(false);
       loadHandoverData(); // Reload danh sách
     } catch (error) {
       console.error('Lỗi nhận xe trả:', error);
-      alert('❌ Có lỗi xảy ra khi nhận xe trả. Vui lòng thử lại!');
+      alert('Có lỗi xảy ra khi nhận xe trả. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }

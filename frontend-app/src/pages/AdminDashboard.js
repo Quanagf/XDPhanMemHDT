@@ -1383,7 +1383,7 @@ const CustomerManagement = () => {
                       <div className="history-meta">
                         <span>Điểm: {history.pointsBefore} → {history.pointsAfter}</span>
                         {history.bookingId && <span>Booking: #{history.bookingId}</span>}
-                        {history.becameRisky && <span className="became-risky">⚠️ Chuyển sang rủi ro</span>}
+                        {history.becameRisky && <span className="became-risky"><i className="fas fa-exclamation-triangle" style={{marginRight: '4px'}}></i>Chuyển sang rủi ro</span>}
                       </div>
                     </div>
                   ))}
@@ -2896,14 +2896,23 @@ const DocumentVerification = () => {
 
                 <div className="doc-details-compact">
                   <div className="doc-title-row">
-                    <strong>{doc.documentType === 'LICENSE' ? '🚗 GPLX' : '🪪 CCCD'}</strong>
+                    <strong>
+                      <i 
+                        className={doc.documentType === 'LICENSE' ? 'fas fa-car' : 'fas fa-id-card'} 
+                        style={{marginRight: '6px'}}
+                      ></i>
+                      {doc.documentType === 'LICENSE' ? 'GPLX' : 'CCCD'}
+                    </strong>
                     <span className="doc-date">{new Date(doc.createdAt).toLocaleDateString('vi-VN')}</span>
                   </div>
                   
                   <div className="doc-info-compact">
                     <p><strong>{doc.fullName}</strong> (@{doc.username})</p>
                     {doc.status === 'REJECTED' && doc.rejectionReason && (
-                      <p className="rejection-reason">❌ {doc.rejectionReason}</p>
+                      <p className="rejection-reason">
+                        <i className="fas fa-times-circle" style={{marginRight: '4px', color: '#dc2626'}}></i>
+                        {doc.rejectionReason}
+                      </p>
                     )}
                   </div>
 
@@ -2925,7 +2934,7 @@ const DocumentVerification = () => {
                           onChange={(e) => setVerifyForm({...verifyForm, action: e.target.value})}
                         >
                           <option value="APPROVED">✓ Xác thực</option>
-                          <option value="REJECTED">✗ Từ chối</option>
+                          <option value="REJECTED">X Từ chối</option>
                         </select>
 
                         {verifyForm.action === 'REJECTED' && (
@@ -3718,7 +3727,9 @@ const ComplaintsManagement = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
-                  }}>📝</div>
+                  }}>
+                    <i className="fas fa-edit" style={{fontSize: '16px'}}></i>
+                  </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ 
                       fontWeight: 600, 
@@ -3755,7 +3766,8 @@ const ComplaintsManagement = () => {
                         border: '1px solid #e0e7ff',
                         color: '#2c3e50'
                       }}>
-                        👤 {selectedComplaint.userName}
+                        <i className="fas fa-user" style={{marginRight: '6px'}}></i>
+                        {selectedComplaint.userName}
                       </div>
                       <div style={{
                         background: 'white',
@@ -3764,7 +3776,8 @@ const ComplaintsManagement = () => {
                         border: '1px solid #e0e7ff',
                         color: '#2c3e50'
                       }}>
-                        📧 {selectedComplaint.userEmail}
+                        <i className="fas fa-envelope" style={{marginRight: '6px'}}></i>
+                        {selectedComplaint.userEmail}
                       </div>
                     </div>
                   </div>
@@ -4484,7 +4497,8 @@ const BookingHistory = () => {
       <div className="section-header" style={{ marginBottom: '24px' }}>
         <div>
           <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700', color: '#1e293b' }}>
-            📋 Lịch sử thuê xe
+            <i className="fas fa-clipboard-list" style={{marginRight: '8px'}}></i>
+            Lịch sử thuê xe
           </h1>
           <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>
             Quản lý và theo dõi tất cả các booking của khách hàng
@@ -4566,20 +4580,29 @@ const BookingHistory = () => {
           </div>
           
           <button onClick={clearFilters} className="clear-filters-btn">
-            🗑️ Xóa bộ lọc
+            <i className="fas fa-trash" style={{marginRight: '4px'}}></i>
+            Xóa bộ lọc
           </button>
         </div>
         
         <div className="filter-info">
           <span>
-            {loading 
-              ? '🔄 Đang tải...' 
-              : `📊 Hiển thị ${bookings.length} / ${totalElements} booking`
-            }
+            {loading ? (
+              <>
+                <i className="fas fa-spinner fa-spin" style={{marginRight: '4px'}}></i>
+                Đang tải...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-chart-bar" style={{marginRight: '4px'}}></i>
+                Hiển thị {bookings.length} / {totalElements} booking
+              </>
+            )}
           </span>
           {filters.status || filters.stationId || filters.startDate || filters.endDate || filters.search ? (
             <span style={{ color: '#3b82f6', fontWeight: '600' }}>
-              🔍 Đang lọc kết quả
+              <i className="fas fa-filter" style={{marginRight: '4px'}}></i>
+              Đang lọc kết quả
             </span>
           ) : null}
         </div>

@@ -167,7 +167,11 @@
     margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 5px; /* Thu hẹp từ 15px xuống 10px */
+}
+
+.info-row.location-info {
+    /* Bỏ grid styles */
 }
 
 .info-row {
@@ -176,6 +180,18 @@
     gap: 5px;
     font-size: 0.9rem;
     color: var(--color-text-muted);
+}
+
+.info-row .info-label {
+    margin-left: 2px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.info-row .info-value {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-dark);
 }
 
 .info-row iconify-icon {
@@ -234,6 +250,21 @@
 
 .separator {
     color: var(--color-text-muted);
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+    .info-group {
+        gap: 8px; /* Thu hẹp thêm trên mobile */
+    }
+    
+    .info-row {
+        font-size: 0.85rem;
+    }
+    
+    .info-row iconify-icon {
+        font-size: 1rem;
+    }
 }
 
 .price-per-day {

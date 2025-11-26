@@ -897,6 +897,7 @@ const handleChangePassword = async () => {
                     onClick={() => handleFileUpload(doc === 'license' ? licenseFile : idFile, doc)}
                     className="profile-upload-save-btn"
                   >
+                    <i className="fas fa-save" style={{marginRight: '6px'}}></i>
                     Lưu ảnh {doc === 'license' ? 'GPLX' : 'CCCD'}
                   </button>
                 )}

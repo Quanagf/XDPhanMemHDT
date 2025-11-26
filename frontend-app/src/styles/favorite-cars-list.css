@@ -18,9 +18,9 @@
   margin-bottom: 24px;
 }
 
-.profile-no-favorites-image {
-  width: 120px;
-  height: 120px;
+.profile-not-favorites-image {
+  width: 320px;
+  height: 320px;
   object-fit: contain;
   opacity: 0.7;
 }
@@ -45,18 +45,19 @@
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-fev-green);
   color: white;
   text-decoration: none;
   border-radius: 25px;
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(95, 207, 134, 0.3);
 }
 
 .profile-browse-cars-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  background: #4CAF50;
+  box-shadow: 0 8px 25px rgba(95, 207, 134, 0.4);
   text-decoration: none;
   color: white;
 }
@@ -229,7 +230,7 @@
 
 .profile-view-detail-btn {
   padding: 8px 16px;
-  background: #28a745;
+  background: #5fcf86;
   color: white;
   text-decoration: none;
   border-radius: 20px;
@@ -241,9 +242,9 @@
 }
 
 .profile-view-detail-btn:hover {
-  background: #218838;
+  background: #5fcf86;
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 4px 15px rgba(95, 207, 134, 0.4);
   text-decoration: none;
   color: white;
 }
@@ -273,9 +274,9 @@
     padding: 0 16px;
   }
   
-  .profile-no-favorites-image {
-    width: 100px;
-    height: 100px;
+  .profile-not-favorites-image {
+    width: 200px;
+    height: 200px;
   }
 }
 

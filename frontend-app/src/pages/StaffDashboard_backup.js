@@ -187,7 +187,8 @@ const StaffDashboard = () => {
                   fontSize: '13px',
                   margin: '8px 0'
                 }}>
-                  ⚠️ Chưa được phân công trạm
+                  <i className="fas fa-exclamation-triangle" style={{marginRight: '4px', color: '#f59e0b'}}></i>
+                  Chưa được phân công trạm
                 </p>
               )}
             </div>
@@ -999,7 +1000,10 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                   </div>
 
                   <div className="customer-verification-section">
-                    <h3>🆔 Xác thực khách hàng</h3>
+                    <h3>
+                      <i className="fas fa-id-card" style={{marginRight: '8px'}}></i>
+                      Xác thực khách hàng
+                    </h3>
                     <div className="verification-content">
                       <div className="license-upload">
                         <h4>Ảnh bằng lái khách hàng:</h4>
@@ -1010,7 +1014,8 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                               className="remove-license" 
                               onClick={() => setLicenseImage(null)}
                             >
-                              🗑️ Xóa ảnh
+                              <i className="fas fa-trash" style={{marginRight: '4px'}}></i>
+                              Xóa ảnh
                             </button>
                           </div>
                         ) : (
@@ -1030,7 +1035,9 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                                 </div>
                               ) : (
                                 <>
-                                  <span className="upload-icon">🆔</span>
+                                  <span className="upload-icon">
+                                    <i className="fas fa-id-card"></i>
+                                  </span>
                                   <span>Tải ảnh bằng lái</span>
                                 </>
                               )}
@@ -1110,7 +1117,10 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                   </div>
                   
                   <div className="vehicle-condition-section">
-                    <h3>🔍 Kiểm tra tình trạng xe</h3>
+                    <h3>
+                      <i className="fas fa-search" style={{marginRight: '8px'}}></i>
+                      Kiểm tra tình trạng xe
+                    </h3>
                     <div className="condition-checklist">
                       <h4>Đánh giá mức pin:</h4>
                       <div className="battery-level-input">
@@ -1141,7 +1151,10 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
               )}
 
               <div className="inspection-notes-section">
-                <h3>📝 Ghi chú tình trạng xe</h3>
+                <h3>
+                  <i className="fas fa-sticky-note" style={{marginRight: '8px'}}></i>
+                  Ghi chú tình trạng xe
+                </h3>
                 <div className="form-group">
                   <label>
                     {handoverType === 'pickup' ? 'Ghi chú (tùy chọn):' : 'Ghi chú tình trạng xe khi nhận lại:'}
@@ -2571,8 +2584,14 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                     #{complaint.id} - {getCategoryLabel(complaint.category)}
                   </h4>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
-                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>👤 {complaint.userName}</span>
-                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>📧 {complaint.userEmail}</span>
+                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>
+                      <i className="fas fa-user" style={{marginRight: '4px'}}></i>
+                      {complaint.userName}
+                    </span>
+                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>
+                      <i className="fas fa-envelope" style={{marginRight: '4px'}}></i>
+                      {complaint.userEmail}
+                    </span>
                     {complaint.bookingId && <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>🎫 Booking #{complaint.bookingId}</span>}
                   </div>
                 </div>
@@ -2607,7 +2626,10 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                   marginBottom: '16px',
                   borderLeft: '4px solid #9C27B0'
                 }}>
-                  <strong style={{ color: '#6A1B9A', display: 'block', marginBottom: '8px' }}>👤 Ghi chú từ Admin:</strong>
+                  <strong style={{ color: '#6A1B9A', display: 'block', marginBottom: '8px' }}>
+                    <i className="fas fa-user-shield" style={{marginRight: '4px'}}></i>
+                    Ghi chú từ Admin:
+                  </strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.adminNotes}</p>
                 </div>
               )}
@@ -2620,7 +2642,10 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                   marginBottom: '16px',
                   borderLeft: '4px solid #2196F3'
                 }}>
-                  <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}>📝 Ghi chú của bạn:</strong>
+                  <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}>
+                    <i className="fas fa-edit" style={{marginRight: '4px'}}></i>
+                    Ghi chú của bạn:
+                  </strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.staffNotes}</p>
                   <small style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
