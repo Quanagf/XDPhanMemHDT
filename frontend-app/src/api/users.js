@@ -87,3 +87,16 @@ export async function deleteAccount() {
 
   return res.text();
 }
+
+// Get all users (Admin only)
+export async function getAllUsers() {
+  const res = await fetch(`${base}/admin/all-users`, {
+    headers: getAuthHeader()
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch users');
+  }
+
+  return res.json();
+}

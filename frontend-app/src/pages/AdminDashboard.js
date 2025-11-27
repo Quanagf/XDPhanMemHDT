@@ -11,6 +11,7 @@ import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, ge
 import { getAllCustomers, getAllUsers } from '../api/customers';
 import { getStations } from '../api/stations';
 import { getAllBookings } from '../api/bookings'; // Admin booking history
+import IncidentReportsManagement from '../components/IncidentReportsManagement';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -101,6 +102,17 @@ const AdminDashboard = () => {
               Quản lý nhân viên
             </button>
             <button 
+              className={`admin-nav-item ${activeTab === 'incidents' ? 'active' : ''}`}
+              onClick={() => setActiveTab('incidents')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
+                </svg>
+              </span>
+              Báo cáo sự cố
+            </button>
+            <button 
               className={`admin-nav-item ${activeTab === 'stations' ? 'active' : ''}`}
               onClick={() => setActiveTab('stations')}
             >
@@ -167,6 +179,7 @@ const AdminDashboard = () => {
           {activeTab === 'customers' && <CustomerManagement />}
           {activeTab === 'complaints' && <ComplaintsManagement />}
           {activeTab === 'staff' && <StaffManagement />}
+          {activeTab === 'incidents' && <IncidentReportsManagement />}
           {activeTab === 'stations' && <StationManagement />}
           {activeTab === 'bookings' && <BookingHistory />}
           {activeTab === 'reports' && <ReportsAnalytics />}

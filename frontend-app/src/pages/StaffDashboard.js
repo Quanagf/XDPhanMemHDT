@@ -10,6 +10,7 @@ import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
 import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
+import { createIncidentReport } from '../api/incidentReports';
 import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage, confirmBooking, rejectBooking } from '../api/bookings';
 import { getPendingPickups, getPendingReturns, processPickup, processReturn, cancelBooking } from '../api/handovers';
 import { getPaymentRecordsByBooking, getTotalPaidAmount, createPaymentRecord } from '../api/paymentRecords';
@@ -1570,18 +1571,45 @@ const VehicleMaintenance = ({ assignedStation }) => {
     e.preventDefault();
     
     try {
-      // Tạo báo cáo sự cố (có thể gửi lên server hoặc lưu local)
-      const issueReport = {
-        ...issueReportForm,
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        status: 'PENDING'
+      // Debug: Check token
+      const token = localStorage.getItem('authToken');
+      console.log('Auth Token:', token ? 'exists' : 'MISSING!');
+      console.log('User Profile:', JSON.parse(localStorage.getItem('userProfile') || '{}'));
+      
+      // Map severity sang priority
+      const priorityMap = {
+        'low': 'LOW',
+        'medium': 'MEDIUM',
+        'high': 'HIGH',
+        'critical': 'CRITICAL'
       };
       
-      // Lưu báo cáo vào localStorage (trong thực tế sẽ gửi lên server)
-      const existingReports = JSON.parse(localStorage.getItem('issueReports') || '[]');
-      existingReports.push(issueReport);
-      localStorage.setItem('issueReports', JSON.stringify(existingReports));
+      // Map issueType sang category
+      const categoryMap = {
+        'mechanical': 'MECHANICAL',
+        'electrical': 'ELECTRICAL',
+        'battery': 'BATTERY',
+        'tire': 'TIRE',
+        'other': 'OTHER'
+      };
+      
+      // Tạo request payload
+      const incidentData = {
+        title: `Sự cố xe ${issueReportForm.vehiclePlate}`,
+        description: issueReportForm.description,
+        category: categoryMap[issueReportForm.issueType] || 'OTHER',
+        priority: priorityMap[issueReportForm.severity] || 'MEDIUM',
+        vehicleId: issueReportForm.vehicleId,
+        vehiclePlate: issueReportForm.vehiclePlate,
+        stationId: assignedStation?.id,
+        stationName: assignedStation?.name,
+        location: assignedStation?.address
+      };
+      
+      console.log('Sending incident report:', incidentData);
+      
+      // Gửi báo cáo lên server
+      await createIncidentReport(incidentData);
       
       // Cập nhật trạng thái xe thành MAINTENANCE nếu sự cố nghiêm trọng
       if (issueReportForm.severity === 'critical') {

@@ -28,6 +28,8 @@ public class JwtService {
             User user = (User) userDetails;
             claims.put("role", user.getRole().name());
             claims.put("userId", user.getId());
+            claims.put("fullName", user.getFullName());
+            claims.put("email", user.getEmail());
         }
         
         return createToken(claims, userDetails.getUsername());
@@ -77,5 +79,27 @@ public class JwtService {
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+    
+    // Additional extraction methods for IncidentReportController
+    public Long extractUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+        throw new RuntimeException("Invalid userId in token");
+    }
+    
+    public String extractFullName(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("fullName", String.class);
+    }
+    
+    public String extractEmail(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("email", String.class);
     }
 }
