@@ -5,12 +5,14 @@ import '../styles/components/verification.css';
 import '../styles/components/handover.css';
 import '../styles/components/form.css';
 import '../styles/components/customer-verification.css';
+import '../styles/components/payment-management.css';
 import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
 import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
 import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage, confirmBooking, rejectBooking } from '../api/bookings';
 import { getPendingPickups, getPendingReturns, processPickup, processReturn, cancelBooking } from '../api/handovers';
+import { getPaymentRecordsByBooking, getTotalPaidAmount, createPaymentRecord } from '../api/paymentRecords';
 import CountdownTimer from '../components/CountdownTimer';
 
 // Add CSS animation for spinner
@@ -24,7 +26,7 @@ spinnerStyle.textContent = `
 document.head.appendChild(spinnerStyle);
 
 const StaffDashboard = () => {
-  const [activeTab, setActiveTab] = useState('booking-approval'); // booking-approval, handover, verification, payment, maintenance
+  const [activeTab, setActiveTab] = useState('booking-approval'); // booking-approval, handover, verification, payment, maintenance, payment-records
   const [user, setUser] = useState(null);
   const [assignedStation, setAssignedStation] = useState(null);
   const [stations, setStations] = useState([]);
@@ -275,6 +277,17 @@ const StaffDashboard = () => {
               Khiếu nại được phân công
             </button>
             <button 
+              className={`staff-nav-item ${activeTab === 'payment-records' ? 'active' : ''}`}
+              onClick={() => setActiveTab('payment-records')}
+            >
+              <span className="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z"/>
+                </svg>
+              </span>
+              💰 Ghi nhận thanh toán
+            </button>
+            <button 
               className={`staff-nav-item ${activeTab === 'booking-history' ? 'active' : ''}`}
               onClick={() => setActiveTab('booking-history')}
             >
@@ -313,6 +326,7 @@ const StaffDashboard = () => {
           />}
           {activeTab === 'maintenance' && <VehicleMaintenance assignedStation={assignedStation} />}
           {activeTab === 'complaints' && <MyComplaintsManagement user={user} assignedStation={assignedStation} />}
+          {activeTab === 'payment-records' && <PaymentManagement assignedStation={assignedStation} user={user} />}
           {activeTab === 'booking-history' && <StaffBookingHistory assignedStation={assignedStation} />}
         </main>
       </div>
@@ -3465,10 +3479,10 @@ const BookingApproval = ({ assignedStation }) => {
                     {/* Customer Info */}
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: '700', color: '#333', marginBottom: '2px' }}>
-                        {booking.userInfo?.fullName || 'N/A'}
+                        {booking.allUserInfo?.fullName || 'N/A'}
                       </div>
                       <div style={{ fontSize: '13px', color: '#666' }}>
-                        📞 {booking.userInfo?.phoneNumber || 'N/A'}
+                        📞 {booking.allUserInfo?.phoneNumber || 'N/A'}
                       </div>
                     </div>
 
@@ -3685,6 +3699,491 @@ const BookingApproval = ({ assignedStation }) => {
               >
                 {actionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component: Ghi nhận thanh toán
+const PaymentManagement = ({ assignedStation, user }) => {
+  const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [paymentRecords, setPaymentRecords] = useState([]);
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Form state
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    paymentType: 'REMAINING',
+    paymentMethod: 'CASH',
+    notes: ''
+  });
+
+  useEffect(() => {
+    if (assignedStation?.id) {
+      fetchActiveBookings();
+    }
+  }, [assignedStation]);
+
+  // Filter bookings khi searchTerm thay đổi
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredBookings(bookings);
+    } else {
+      const term = searchTerm.toLowerCase().trim();
+      const filtered = bookings.filter(booking => {
+        const customerName = (booking.userInfo?.fullName || booking.customerName || '').toLowerCase();
+        const customerPhone = (booking.userInfo?.phone || booking.customerPhone || '');
+        const bookingId = booking.id.toString();
+        
+        return customerName.includes(term) || 
+               customerPhone.includes(term) || 
+               bookingId.includes(term);
+      });
+      setFilteredBookings(filtered);
+    }
+  }, [searchTerm, bookings]);
+
+  const fetchActiveBookings = async () => {
+    if (!assignedStation?.id) return;
+    
+    setLoading(true);
+    try {
+      const response = await getActiveBookingsWithDetailsForStation(assignedStation.id);
+      console.log('Active bookings:', response);
+      
+      // Debug: Kiểm tra phone number
+      if (response && response.length > 0) {
+        response.forEach(booking => {
+          console.log(`📋 Booking #${booking.id}:`, {
+            fullName: booking.allUserInfo?.fullName,
+            phoneNumber: booking.allUserInfo?.phoneNumber,
+            email: booking.allUserInfo?.email,
+            allUserInfo: booking.allUserInfo
+          });
+        });
+      }
+      
+      setBookings(response || []);
+      setFilteredBookings(response || []);
+    } catch (error) {
+      console.error('Error fetching active bookings:', error);
+      alert('Không thể tải danh sách booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openPaymentModal = async (booking) => {
+    setSelectedBooking(booking);
+    setShowPaymentModal(true);
+    
+    // Load payment records for this booking
+    try {
+      const records = await getPaymentRecordsByBooking(booking.id);
+      setPaymentRecords(records || []);
+      
+      const total = await getTotalPaidAmount(booking.id);
+      setTotalPaid(total || 0);
+      
+      // Set suggested amount (remaining amount)
+      const remaining = booking.totalCost - (total || 0);
+      setPaymentForm({
+        amount: remaining > 0 ? remaining.toString() : '',
+        paymentType: 'REMAINING',
+        paymentMethod: 'CASH',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('Error loading payment records:', error);
+    }
+  };
+
+  const closePaymentModal = () => {
+    setShowPaymentModal(false);
+    setSelectedBooking(null);
+    setPaymentRecords([]);
+    setTotalPaid(0);
+    setPaymentForm({
+      amount: '',
+      paymentType: 'REMAINING',
+      paymentMethod: 'CASH',
+      notes: ''
+    });
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ');
+      return;
+    }
+
+    try {
+      const paymentData = {
+        bookingId: selectedBooking.id,
+        paymentType: paymentForm.paymentType,
+        amount: parseFloat(paymentForm.amount),
+        paymentMethod: paymentForm.paymentMethod,
+        paymentStatus: 'COMPLETED',
+        notes: paymentForm.notes,
+        staffId: user.id
+      };
+
+      await createPaymentRecord(paymentData);
+      alert('Ghi nhận thanh toán thành công!');
+      closePaymentModal();
+      fetchActiveBookings();
+    } catch (error) {
+      console.error('Error creating payment record:', error);
+      alert('Có lỗi khi ghi nhận thanh toán');
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const paymentTypeLabels = {
+    'DEPOSIT': 'Tiền cọc',
+    'REMAINING': 'Tiền còn lại',
+    'ADDITIONAL': 'Phí phát sinh',
+    'REFUND': 'Hoàn tiền'
+  };
+
+  const paymentMethodLabels = {
+    'CASH': 'Tiền mặt',
+    'BANK_TRANSFER': 'Chuyển khoản',
+    'CREDIT_CARD': 'Thẻ tín dụng',
+    'E_WALLET': 'Ví điện tử'
+  };
+
+  return (
+    <div className="payment-management">
+      <div className="section-header">
+        <h2>💰 Ghi nhận thanh toán</h2>
+        <p>Quản lý thanh toán cho các booking đang hoạt động</p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="payment-search-section">
+        <div className="search-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="search-icon">
+            <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="🔍 Tìm kiếm theo tên khách hàng, SĐT hoặc mã booking..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {searchTerm && (
+            <button 
+              className="clear-search-btn"
+              onClick={() => setSearchTerm('')}
+              title="Xóa tìm kiếm"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <div className="search-results-info">
+          {searchTerm && (
+            <span className="results-count">
+              Tìm thấy <strong>{filteredBookings.length}</strong> kết quả
+            </span>
+          )}
+          <span className="total-count">
+            Tổng: <strong>{bookings.length}</strong> booking
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Đang tải...</p>
+        </div>
+      ) : (
+        <div className="payment-bookings-grid">
+          {filteredBookings.length > 0 ? (
+            filteredBookings.map((booking, index) => (
+              <div key={booking.id} className="payment-booking-card">
+                <div className="booking-card-header">
+                  <span className="booking-id">#{booking.id}</span>
+                  <span className="status-badge status-active">
+                    ACTIVE
+                  </span>
+                </div>
+
+                <div className="booking-card-body">
+                  <div className="booking-info-row">
+                    <span className="label">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                      </svg>
+                      Khách hàng:
+                    </span>
+                    <span className="value">{booking.userInfo?.fullName || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="booking-info-row">
+                    <span className="label">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
+                      </svg>
+                      SĐT:
+                    </span>
+                    <span className="value">{booking.userInfo?.phone || 'N/A'}</span>
+                  </div>
+
+                  <div className="booking-info-row">
+                    <span className="label">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H15V3H9V5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,16A1.5,1.5 0 0,1 5,14.5A1.5,1.5 0 0,1 6.5,13A1.5,1.5 0 0,1 8,14.5A1.5,1.5 0 0,1 6.5,16M17.5,16A1.5,1.5 0 0,1 16,14.5A1.5,1.5 0 0,1 17.5,13A1.5,1.5 0 0,1 19,14.5A1.5,1.5 0 0,1 17.5,16M5,11L6.5,6.5H17.5L19,11H5Z"/>
+                      </svg>
+                      Xe:
+                    </span>
+                    <span className="value vehicle-info">
+                      {booking.vehicleInfo?.licensePlate || 'N/A'} • {booking.vehicleInfo?.type || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div className="booking-info-row">
+                    <span className="label">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z"/>
+                      </svg>
+                      Tổng tiền:
+                    </span>
+                    <span className="value price-highlight">{formatCurrency(booking.totalCost)}</span>
+                  </div>
+
+                  <div className="booking-info-row">
+                    <span className="label">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9,10H7V12H9V10M13,10H11V12H13V10M17,10H15V12H17V10M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                      </svg>
+                      Thời gian:
+                    </span>
+                    <span className="value time-range">
+                      {new Date(booking.estimatedStartTime).toLocaleString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })} →<br />
+                      {new Date(booking.estimatedEndTime).toLocaleString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="booking-card-footer">
+                  <button 
+                    className="btn-record-payment"
+                    onClick={() => openPaymentModal(booking)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z"/>
+                    </svg>
+                    Ghi nhận thanh toán
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="no-data">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="#ddd">
+                <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+              </svg>
+              <p>
+                {searchTerm 
+                  ? `Không tìm thấy booking nào với từ khóa "${searchTerm}"`
+                  : 'Không có booking nào đang hoạt động'}
+              </p>
+              {searchTerm && (
+                <button 
+                  className="btn-clear-search"
+                  onClick={() => setSearchTerm('')}
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedBooking && (
+        <div className="modal-overlay" onClick={closePaymentModal}>
+          <div className="modal-content payment-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>💰 Ghi nhận thanh toán - Booking #{selectedBooking.id}</h3>
+              <button className="close-btn" onClick={closePaymentModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              {/* Booking Info */}
+              <div className="payment-booking-info">
+                <h4>📋 Thông tin booking</h4>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="label">Khách hàng:</span>
+                    <span className="value">{selectedBooking.userInfo?.fullName}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">SĐT:</span>
+                    <span className="value">{selectedBooking.userInfo?.phone}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Xe:</span>
+                    <span className="value">
+                      {selectedBooking.vehicleInfo?.licensePlate} - {selectedBooking.vehicleInfo?.type}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Tổng tiền:</span>
+                    <span className="value price">{formatCurrency(selectedBooking.totalCost)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment History */}
+              {paymentRecords.length > 0 && (
+                <div className="payment-history">
+                  <h4>📜 Lịch sử thanh toán</h4>
+                  <div className="payment-records-list">
+                    {paymentRecords.map(record => (
+                      <div key={record.id} className="payment-record-item">
+                        <div className="record-header">
+                          <span className={`payment-type ${record.paymentType?.toLowerCase()}`}>
+                            {paymentTypeLabels[record.paymentType] || record.paymentType}
+                          </span>
+                          <span className="payment-amount">{formatCurrency(record.amount)}</span>
+                        </div>
+                        <div className="record-details">
+                          <span>🕐 {formatDateTime(record.paymentTime)}</span>
+                          <span>💳 {paymentMethodLabels[record.paymentMethod]}</span>
+                        </div>
+                        {record.notes && (
+                          <div className="record-notes">📝 {record.notes}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="payment-summary">
+                    <div className="summary-row">
+                      <span>Đã thanh toán:</span>
+                      <span className="amount paid">{formatCurrency(totalPaid)}</span>
+                    </div>
+                    <div className="summary-row total">
+                      <span>Còn lại:</span>
+                      <span className="amount remaining">
+                        {formatCurrency(selectedBooking.totalCost - totalPaid)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Form */}
+              <div className="payment-form-section">
+                <h4>➕ Ghi nhận thanh toán mới</h4>
+                <form onSubmit={handlePaymentSubmit}>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>Loại thanh toán *</label>
+                      <select
+                        value={paymentForm.paymentType}
+                        onChange={(e) => setPaymentForm({...paymentForm, paymentType: e.target.value})}
+                        required
+                      >
+                        <option value="DEPOSIT">Tiền cọc</option>
+                        <option value="REMAINING">Tiền còn lại</option>
+                        <option value="ADDITIONAL">Phí phát sinh</option>
+                        <option value="REFUND">Hoàn tiền</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Số tiền (VNĐ) *</label>
+                      <input
+                        type="number"
+                        value={paymentForm.amount}
+                        onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                        placeholder="Nhập số tiền"
+                        required
+                        min="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Phương thức thanh toán *</label>
+                      <select
+                        value={paymentForm.paymentMethod}
+                        onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
+                        required
+                      >
+                        <option value="CASH">Tiền mặt</option>
+                        <option value="BANK_TRANSFER">Chuyển khoản</option>
+                        <option value="CREDIT_CARD">Thẻ tín dụng</option>
+                        <option value="E_WALLET">Ví điện tử</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label>Ghi chú</label>
+                      <textarea
+                        value={paymentForm.notes}
+                        onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                        placeholder="Nhập ghi chú (không bắt buộc)"
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="button" className="btn-cancel" onClick={closePaymentModal}>
+                      Hủy
+                    </button>
+                    <button type="submit" className="btn-submit">
+                      ✓ Xác nhận thanh toán
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>

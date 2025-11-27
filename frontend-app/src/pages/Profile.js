@@ -6,6 +6,7 @@ import Login from '../components/Login';
 import ImageCropper from '../components/ImageCropper';
 import FavoriteCarsList from '../components/FavoriteCarsList';
 import { getMyBookingsWithDetails } from '../api/bookings';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 
 const Profile = () => {
@@ -119,16 +120,22 @@ const Profile = () => {
   // Fetch bookings khi user đã login
   useEffect(() => {
     const fetchBookings = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('⚠️ User not logged in, skipping booking fetch');
+        return;
+      }
       
       console.log('📦 Fetching bookings for user:', user);
       setLoadingBookings(true);
       try {
         const data = await getMyBookingsWithDetails();
-        console.log('📦 Bookings received:', data);
-        setBookings(data);
+        console.log('✅ Bookings received:', data);
+        console.log('📊 Total bookings:', data?.length || 0);
+        setBookings(data || []);
       } catch (error) {
         console.error('❌ Error fetching bookings:', error);
+        console.error('❌ Error details:', error.response?.data || error.message);
+        setBookings([]);
       } finally {
         setLoadingBookings(false);
       }
@@ -987,7 +994,157 @@ const handleChangePassword = async () => {
             return <div className="trips-loading">Đang tải...</div>;
           }
 
-          // Lọc bookings theo tab
+          // === TỔNG QUAN: Hiển thị thống kê ===
+          if (activeTripsTab === 'overview') {
+            // Tính toán thống kê
+            const totalTrips = bookings.length;
+            const completedTrips = bookings.filter(b => b.status === 'COMPLETED').length;
+            const cancelledTrips = bookings.filter(b => b.status === 'CANCELLED').length;
+            const totalCost = bookings.reduce((sum, b) => {
+              const cost = Number(b.totalCost || 0);
+              const additional = Number(b.additionalCharges || 0);
+              return sum + cost + additional;
+            }, 0);
+
+            // Thống kê giờ thuê (phân theo khung giờ)
+            const hourStats = {};
+            bookings.forEach(b => {
+              if (b.estimatedStartTime) {
+                const hour = new Date(b.estimatedStartTime).getHours();
+                const timeSlot = 
+                  hour >= 6 && hour < 9 ? '06:00-09:00 (Sáng sớm)' :
+                  hour >= 9 && hour < 12 ? '09:00-12:00 (Buổi sáng)' :
+                  hour >= 12 && hour < 14 ? '12:00-14:00 (Trưa)' :
+                  hour >= 14 && hour < 17 ? '14:00-17:00 (Chiều)' :
+                  hour >= 17 && hour < 20 ? '17:00-20:00 (Tối)' :
+                  '20:00-06:00 (Đêm)';
+                hourStats[timeSlot] = (hourStats[timeSlot] || 0) + 1;
+              }
+            });
+
+            const hourChartData = Object.entries(hourStats).map(([slot, count]) => ({
+              timeSlot: slot,
+              trips: count
+            })).sort((a, b) => b.trips - a.trips);
+
+            // Thống kê trạm
+            const stationStats = {};
+            bookings.forEach(b => {
+              if (b.startStationId) {
+                const stationId = `Trạm ${b.startStationId}`;
+                stationStats[stationId] = (stationStats[stationId] || 0) + 1;
+              }
+            });
+
+            const stationChartData = Object.entries(stationStats)
+              .map(([station, count]) => ({ station, count }))
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 5); // Top 5 trạm
+
+            const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0'];
+
+            return (
+              <div className="trips-overview">
+                {/* Thống kê tổng quan */}
+                <div className="overview-stats">
+                  <div className="stat-card">
+                    <div className="stat-icon">🚗</div>
+                    <div className="stat-info">
+                      <h3>{totalTrips}</h3>
+                      <p>Tổng số chuyến</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-icon">✅</div>
+                    <div className="stat-info">
+                      <h3>{completedTrips}</h3>
+                      <p>Hoàn thành</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-icon">❌</div>
+                    <div className="stat-info">
+                      <h3>{cancelledTrips}</h3>
+                      <p>Đã hủy</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card highlight">
+                    <div className="stat-icon">💰</div>
+                    <div className="stat-info">
+                      <h3>{totalCost.toLocaleString('vi-VN')} VNĐ</h3>
+                      <p>Tổng chi phí</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Biểu đồ khung giờ thuê */}
+                {hourChartData.length > 0 && (
+                  <div className="chart-section">
+                    <h3 className="chart-title">📊 Thống kê giờ thuê xe</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={hourChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="timeSlot" 
+                          angle={-45} 
+                          textAnchor="end" 
+                          height={100}
+                          style={{fontSize: '12px'}}
+                        />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="trips" fill="#4CAF50" name="Số lượt thuê" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="chart-note">
+                      {hourChartData[0] && `🔥 Khung giờ cao điểm: ${hourChartData[0].timeSlot} (${hourChartData[0].trips} lượt)`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Biểu đồ trạm */}
+                {stationChartData.length > 0 && (
+                  <div className="chart-section">
+                    <h3 className="chart-title">📍 Top trạm thường đến</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={stationChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({station, count}) => `${station}: ${count}`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="count"
+                        >
+                          {stationChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <p className="chart-note">
+                      {stationChartData[0] && `⭐ Trạm yêu thích: ${stationChartData[0].station} (${stationChartData[0].count} lượt)`}
+                    </p>
+                  </div>
+                )}
+
+                {bookings.length === 0 && (
+                  <div className="trips-empty-state">
+                    <p className="trips-empty-text">Chưa có dữ liệu để thống kê</p>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Lọc bookings theo tab (current/history)
           let filteredBookings = [];
           if (activeTripsTab === 'current') {
             // Chuyến hiện tại: PENDING, CONFIRMED, ACTIVE
@@ -999,9 +1156,6 @@ const handleChangePassword = async () => {
             filteredBookings = bookings.filter(b => 
               ['COMPLETED', 'CANCELLED'].includes(b.status)
             );
-          } else {
-            // Tổng quan: tất cả
-            filteredBookings = bookings;
           }
 
           if (filteredBookings.length === 0) {
@@ -1035,23 +1189,80 @@ const handleChangePassword = async () => {
                     {booking.vehicleInfo && (
                       <div className="trip-vehicle-info">
                         <h4>{booking.vehicleInfo.type}</h4>
-                        <p>Biển số: {booking.vehicleInfo.licensePlate}</p>
-                        <p>Giá: {booking.vehicleInfo.pricePerHour?.toLocaleString('vi-VN')} VNĐ/giờ</p>
+                        <p>📋 Biển số: {booking.vehicleInfo.licensePlate}</p>
+                        <p>💰 Giá thuê: {booking.vehicleInfo.pricePerHour?.toLocaleString('vi-VN')} VNĐ/giờ</p>
+                        {booking.vehicleInfo.seats && <p>👥 Số chỗ: {booking.vehicleInfo.seats}</p>}
                       </div>
                     )}
                     
                     <div className="trip-time-info">
-                      <p><strong>Thời gian dự kiến:</strong></p>
+                      <p><strong>⏰ Thời gian dự kiến:</strong></p>
                       <p>Từ: {new Date(booking.estimatedStartTime).toLocaleString('vi-VN')}</p>
                       <p>Đến: {new Date(booking.estimatedEndTime).toLocaleString('vi-VN')}</p>
+                      
+                      {booking.actualStartTime && (
+                        <p style={{marginTop: '0.5rem', color: '#28a745'}}>
+                          ✅ Bắt đầu thực tế: {new Date(booking.actualStartTime).toLocaleString('vi-VN')}
+                        </p>
+                      )}
+                      {booking.actualEndTime && (
+                        <p style={{color: '#28a745'}}>
+                          ✅ Kết thúc thực tế: {new Date(booking.actualEndTime).toLocaleString('vi-VN')}
+                        </p>
+                      )}
                     </div>
                     
-                    {booking.totalCost && (
-                      <div className="trip-cost">
-                        <strong>Tổng tiền: </strong>
-                        {Number(booking.totalCost).toLocaleString('vi-VN')} VNĐ
+                    {/* Chi tiết thanh toán */}
+                    <div className="trip-payment-details">
+                      {/* 1. Tiền đặt cọc */}
+                      {booking.depositAmount && (
+                        <div className="payment-row">
+                          <span>🏦 Tiền đặt cọc:</span>
+                          <strong>{Number(booking.depositAmount).toLocaleString('vi-VN')} VNĐ</strong>
+                        </div>
+                      )}
+                      
+                      {/* 2. Tiền còn lại = Tổng tiền - Đặt cọc */}
+                      {booking.totalCost && booking.depositAmount && (
+                        <div className="payment-row">
+                          <span>💵 Tiền còn lại:</span>
+                          <strong>
+                            {(Number(booking.totalCost) - Number(booking.depositAmount)).toLocaleString('vi-VN')} VNĐ
+                          </strong>
+                        </div>
+                      )}
+                      
+                      {/* 3. Phí phát sinh (nếu có) */}
+                      {booking.additionalCharges && Number(booking.additionalCharges) > 0 && (
+                        <>
+                          <div className="payment-row additional">
+                            <span>⚠️ Phí phát sinh:</span>
+                            <strong style={{color: '#dc3545'}}>
+                              +{Number(booking.additionalCharges).toLocaleString('vi-VN')} VNĐ
+                            </strong>
+                          </div>
+                          {booking.additionalChargesReason && (
+                            <div className="payment-row reason">
+                              <span style={{fontSize: '0.85rem', color: '#666', fontStyle: 'italic'}}>
+                                Lý do: {booking.additionalChargesReason}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* 4. Tổng thanh toán cuối cùng (Tổng tất cả) */}
+                      <div className="payment-row final">
+                        <span>💳 Tổng thanh toán:</span>
+                        <strong style={{color: '#28a745', fontSize: '1.1rem'}}>
+                          {(() => {
+                            const total = Number(booking.totalCost || 0);
+                            const additional = Number(booking.additionalCharges || 0);
+                            return (total + additional).toLocaleString('vi-VN');
+                          })()} VNĐ
+                        </strong>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.evrental.users.dto.AssignComplaintRequest;
@@ -75,6 +76,7 @@ public class ComplaintController {
 
     // Get all complaints (admin/staff)
     @GetMapping("/admin/complaints")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> getAllComplaints(
             @RequestParam(required = false) ComplaintStatus status) {
         try {
@@ -92,6 +94,7 @@ public class ComplaintController {
 
     // Assign complaint to staff
     @PostMapping("/admin/complaints/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> assignComplaint(
             @PathVariable Long id,
             @Valid @RequestBody AssignComplaintRequest request) {
@@ -105,6 +108,7 @@ public class ComplaintController {
 
     // Resolve or reject a complaint
     @PostMapping("/admin/complaints/{id}/resolve")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> resolveComplaint(
             @PathVariable Long id,
             @RequestHeader("X-User-Id") Long resolvedBy,
@@ -119,6 +123,7 @@ public class ComplaintController {
 
     // Get complaint statistics
     @GetMapping("/admin/complaints/statistics")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> getComplaintStatistics() {
         try {
             Map<String, Object> stats = complaintService.getComplaintStatistics();
@@ -132,6 +137,7 @@ public class ComplaintController {
     
     // Staff marks complaint as completed
     @PostMapping("/staff/complaints/{id}/complete")
+    @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> staffCompleteComplaint(
             @PathVariable Long id,
             @RequestHeader("X-User-Id") Long staffId,
@@ -150,6 +156,7 @@ public class ComplaintController {
     
     // Admin approves staff's work
     @PostMapping("/admin/complaints/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminApproveComplaint(
             @PathVariable Long id,
             @RequestHeader("X-User-Id") Long adminId,
@@ -168,6 +175,7 @@ public class ComplaintController {
     
     // Admin rejects complaint
     @PostMapping("/admin/complaints/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminRejectComplaint(
             @PathVariable Long id,
             @RequestHeader("X-User-Id") Long adminId,

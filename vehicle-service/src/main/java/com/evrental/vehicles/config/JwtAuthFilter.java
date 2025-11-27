@@ -46,8 +46,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             userEmail = jwtService.extractUsername(jwt);
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid or expired token");
+            // Nếu token lỗi, BỎ QUA và cho request đi tiếp (để SecurityConfig quyết định)
+            // Không trả về 401 ngay lập tức
+            filterChain.doFilter(request, response);
             return;
         }
 

@@ -858,6 +858,146 @@
   margin-bottom: 0.25rem;
 }
 
+/* Trip Payment Details */
+.trip-payment-details {
+  grid-column: 1 / -1;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.payment-row:last-child {
+  border-bottom: none;
+}
+
+.payment-row span {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.payment-row strong {
+  font-size: 1rem;
+  color: #333;
+}
+
+.payment-row.additional strong {
+  color: #dc3545;
+  font-weight: 700;
+}
+
+.payment-row.final {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(32, 201, 151, 0.1) 100%);
+  padding: 1rem;
+  margin: 0.5rem -0.25rem -0.25rem -0.25rem;
+  border-radius: 6px;
+  border-bottom: none;
+}
+
+.payment-row.reason {
+  padding: 0.5rem 0;
+  border-bottom: none;
+}
+
+/* Trips Overview Styles */
+.trips-overview {
+  padding: 1rem 0;
+}
+
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.stat-info h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.stat-card.highlight .stat-info h3 {
+  color: white;
+}
+
+.stat-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stat-card.highlight .stat-info p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.chart-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+}
+
+.chart-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-note {
+  margin: 1rem 0 0 0;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-left: 4px solid #4CAF50;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: #555;
+}
+
 /* Responsive for trips */
 @media (max-width: 768px) {
   .trips-box {
@@ -895,6 +1035,23 @@
   .trip-vehicle-info,
   .trip-time-info {
     padding: 1rem;
+  }
+
+  .overview-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .chart-section {
+    padding: 1rem;
+  }
+
+  .chart-title {
+    font-size: 1.1rem;
   }
 }
 

@@ -34,6 +34,10 @@ public class BookingResponseDTO {
     private Booking.BookingStatus status;
     private BigDecimal totalCost;
     private Booking.BookingType bookingType; // Loại đặt xe
+    private BigDecimal depositAmount;  // Tiền đặt cọc
+    private BigDecimal finalPaymentAmount;  // Số tiền thanh toán cuối cùng
+    private BigDecimal additionalCharges;  // Phí phát sinh
+    private String additionalChargesReason;  // Lý do phí phát sinh
     
     // User info (optional - được fetch từ user-service nếu cần)
     private UserInfo userInfo;
@@ -93,6 +97,10 @@ public class BookingResponseDTO {
                 .status(booking.getStatus())
                 .totalCost(booking.getTotalCost())
                 .bookingType(booking.getBookingType())
+                .depositAmount(booking.getDepositAmount())
+                .finalPaymentAmount(booking.getFinalPaymentAmount())
+                .additionalCharges(booking.getAdditionalCharges())
+                .additionalChargesReason(booking.getAdditionalChargesReason())
                 .build();
     }
 }
