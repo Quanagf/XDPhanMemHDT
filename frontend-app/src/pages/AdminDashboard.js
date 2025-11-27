@@ -10,8 +10,9 @@ import vehicleAPI, { getVehicles, getVehicle, createVehicle, updateVehicle, dele
 import { getAllComplaints, assignComplaint, resolveComplaint, closeComplaint, getComplaintStatistics, staffCompleteComplaint, adminApproveComplaint, adminRejectComplaint } from '../api/complaints';
 import { getAllCustomers, getAllUsers } from '../api/customers';
 import { getStations } from '../api/stations';
-import { getAllBookings } from '../api/bookings'; // Admin booking history
+import { getAllBookings, getUserBookingHistory } from '../api/bookings'; // Admin booking history
 import IncidentReportsManagement from '../components/IncidentReportsManagement';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -198,6 +199,7 @@ const VehicleManagement = () => {
   const [expandedVehicle, setExpandedVehicle] = useState(null);
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' hoặc 'statistics'
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -490,8 +492,26 @@ const VehicleManagement = () => {
 
   return (
     <div className="staff-section">
-      <h1>Quản lý xe tại điểm</h1>
+      <div className="section-header">
+        <h1>Quản lý xe tại điểm</h1>
+        <div className="view-mode-toggle">
+          <button 
+            className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+          >
+            📋 Danh sách
+          </button>
+          <button 
+            className={`toggle-btn ${viewMode === 'statistics' ? 'active' : ''}`}
+            onClick={() => setViewMode('statistics')}
+          >
+            📊 Thống kê
+          </button>
+        </div>
+      </div>
 
+      {viewMode === 'list' ? (
+        <>
       {/* Filter và Search */}
       <div className="vehicles-filters">
         <div className="filter-row">
@@ -1007,6 +1027,218 @@ const VehicleManagement = () => {
           )}
         </form>
       </div>
+        </>
+      ) : (
+        <VehicleStatistics vehicles={vehicles} stations={stations} />
+      )}
+    </div>
+  );
+};
+
+// Component: Thống kê đội xe
+const VehicleStatistics = ({ vehicles, stations }) => {
+  const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#00BCD4', '#FFC107'];
+
+  // Thống kê tổng quan
+  const totalVehicles = vehicles.length;
+  const availableVehicles = vehicles.filter(v => v.status === 'AVAILABLE').length;
+  const inUseVehicles = vehicles.filter(v => v.status === 'IN_USE').length;
+  const maintenanceVehicles = vehicles.filter(v => v.status === 'MAINTENANCE' || v.status === 'CHARGING').length;
+  
+  // Tính tỷ lệ sử dụng
+  const utilizationRate = totalVehicles > 0 ? ((inUseVehicles / totalVehicles) * 100).toFixed(1) : 0;
+  
+  // Tổng giá trị xe (giả sử mỗi xe có giá)
+  const totalValue = vehicles.reduce((sum, v) => sum + (Number(v.pricePerHour) || 0), 0);
+
+  // Thống kê theo trạng thái
+  const statusData = [
+    { name: 'Sẵn sàng', value: availableVehicles, color: '#4CAF50' },
+    { name: 'Đang sử dụng', value: inUseVehicles, color: '#2196F3' },
+    { name: 'Bảo trì/Sạc', value: maintenanceVehicles, color: '#FF9800' }
+  ].filter(item => item.value > 0);
+
+  // Thống kê theo loại xe
+  const typeStats = {};
+  vehicles.forEach(v => {
+    if (v.type) {
+      typeStats[v.type] = (typeStats[v.type] || 0) + 1;
+    }
+  });
+  const typeData = Object.entries(typeStats).map(([type, count]) => ({
+    type,
+    count
+  }));
+
+  // Thống kê theo trạm
+  const stationStats = {};
+  vehicles.forEach(v => {
+    if (v.stationId) {
+      const station = stations.find(s => s.id === v.stationId);
+      const stationName = station ? station.name : `Trạm ${v.stationId}`;
+      stationStats[stationName] = (stationStats[stationName] || 0) + 1;
+    }
+  });
+  const stationData = Object.entries(stationStats)
+    .map(([station, count]) => ({ station, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Thống kê mức pin
+  const batteryRanges = {
+    'Cao (80-100%)': 0,
+    'Trung bình (50-79%)': 0,
+    'Thấp (20-49%)': 0,
+    'Rất thấp (<20%)': 0
+  };
+  vehicles.forEach(v => {
+    const battery = v.batteryLevel || 0;
+    if (battery >= 80) batteryRanges['Cao (80-100%)']++;
+    else if (battery >= 50) batteryRanges['Trung bình (50-79%)']++;
+    else if (battery >= 20) batteryRanges['Thấp (20-49%)']++;
+    else batteryRanges['Rất thấp (<20%)']++;
+  });
+  const batteryData = Object.entries(batteryRanges)
+    .map(([range, count]) => ({ range, count }))
+    .filter(item => item.count > 0);
+
+  return (
+    <div className="vehicle-statistics">
+      {/* Thống kê tổng quan */}
+      <div className="stats-overview">
+        <div className="stat-card">
+          <div className="stat-icon">🚗</div>
+          <div className="stat-info">
+            <h3>{totalVehicles}</h3>
+            <p>Tổng số xe</p>
+          </div>
+        </div>
+
+        <div className="stat-card success">
+          <div className="stat-icon">✅</div>
+          <div className="stat-info">
+            <h3>{availableVehicles}</h3>
+            <p>Xe sẵn sàng</p>
+          </div>
+        </div>
+
+        <div className="stat-card primary">
+          <div className="stat-icon">🔄</div>
+          <div className="stat-info">
+            <h3>{inUseVehicles}</h3>
+            <p>Xe đang sử dụng</p>
+          </div>
+        </div>
+
+        <div className="stat-card warning">
+          <div className="stat-icon">🔧</div>
+          <div className="stat-info">
+            <h3>{maintenanceVehicles}</h3>
+            <p>Bảo trì/Sạc</p>
+          </div>
+        </div>
+
+        <div className="stat-card highlight">
+          <div className="stat-icon">📊</div>
+          <div className="stat-info">
+            <h3>{utilizationRate}%</h3>
+            <p>Tỷ lệ sử dụng</p>
+          </div>
+        </div>
+
+        <div className="stat-card accent">
+          <div className="stat-icon">💰</div>
+          <div className="stat-info">
+            <h3>{totalValue.toLocaleString('vi-VN')}</h3>
+            <p>Tổng giá/giờ (VNĐ)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Biểu đồ */}
+      <div className="charts-grid">
+        {/* Biểu đồ trạng thái */}
+        {statusData.length > 0 && (
+          <div className="chart-card">
+            <h3>📈 Phân bố theo trạng thái</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({name, value, percent}) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Biểu đồ loại xe */}
+        {typeData.length > 0 && (
+          <div className="chart-card">
+            <h3>🚙 Phân bố theo loại xe</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={typeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="type" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#4CAF50" name="Số lượng" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Biểu đồ trạm */}
+        {stationData.length > 0 && (
+          <div className="chart-card">
+            <h3>📍 Phân bố theo trạm</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stationData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="station" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={100}
+                  style={{fontSize: '12px'}}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#2196F3" name="Số xe" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Biểu đồ mức pin */}
+        {batteryData.length > 0 && (
+          <div className="chart-card">
+            <h3>🔋 Phân bố mức pin</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={batteryData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="range" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#FF9800" name="Số xe" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -1014,12 +1246,17 @@ const VehicleManagement = () => {
 // Component: Quản lý khách hàng
 const CustomerManagement = () => {
   const [customers, setCustomers] = React.useState([]);
+  const [walkInCustomers, setWalkInCustomers] = React.useState([]);
   const [statistics, setStatistics] = React.useState({});
   const [loading, setLoading] = React.useState(false);
+  const [activeCustomerTab, setActiveCustomerTab] = React.useState('online'); // online, walkin
   const [filter, setFilter] = React.useState('all'); // all, risky, normal
   const [showRiskForm, setShowRiskForm] = React.useState(false);
+  const [showDetailModal, setShowDetailModal] = React.useState(false);
   const [selectedCustomer, setSelectedCustomer] = React.useState(null);
   const [riskHistory, setRiskHistory] = React.useState([]);
+  const [bookingHistory, setBookingHistory] = React.useState([]);
+  const [bookingHistoryLoading, setBookingHistoryLoading] = React.useState(false);
   const [riskFormData, setRiskFormData] = React.useState({
     reason: '',
     bookingId: '',
@@ -1027,9 +1264,13 @@ const CustomerManagement = () => {
   });
 
   React.useEffect(() => {
-    fetchCustomers();
-    fetchStatistics();
-  }, [filter]);
+    if (activeCustomerTab === 'online') {
+      fetchCustomers();
+      fetchStatistics();
+    } else {
+      fetchWalkInCustomers();
+    }
+  }, [filter, activeCustomerTab]);
 
   const fetchCustomers = async () => {
     try {
@@ -1055,6 +1296,27 @@ const CustomerManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWalkInCustomers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/bookings/walk-in-customers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setWalkInCustomers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching walk-in customers:', error);
     } finally {
       setLoading(false);
     }
@@ -1186,122 +1448,234 @@ const CustomerManagement = () => {
     fetchRiskHistory(customer.id);
   };
 
+  const fetchBookingHistory = async (userId) => {
+    try {
+      setBookingHistoryLoading(true);
+      const response = await getUserBookingHistory(userId);
+      setBookingHistory(response.content || []);
+    } catch (error) {
+      console.error('Error fetching booking history:', error);
+      setBookingHistory([]);
+    } finally {
+      setBookingHistoryLoading(false);
+    }
+  };
+
+  const openDetailModal = (customer) => {
+    setSelectedCustomer(customer);
+    setShowDetailModal(true);
+    // Chỉ fetch booking history cho online customer
+    if (activeCustomerTab === 'online' && customer.id) {
+      fetchBookingHistory(customer.id);
+    }
+  };
+
   return (
     <div className="admin-section">
       <h1>Quản lý khách hàng</h1>
       
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Tổng khách hàng</h3>
-          <p className="stat-number">{statistics.totalCustomers || 0}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Khách hàng bình thường</h3>
-          <p className="stat-number">{statistics.normalCustomers || 0}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Khách hàng rủi ro</h3>
-          <p className="stat-number text-danger">{statistics.riskyCustomers || 0}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Tỷ lệ rủi ro</h3>
-          <p className="stat-number">{(statistics.riskyPercentage || 0).toFixed(1)}%</p>
-        </div>
+      {/* Tab Navigation */}
+      <div className="customer-tabs">
+        <button 
+          className={`customer-tab ${activeCustomerTab === 'online' ? 'active' : ''}`}
+          onClick={() => setActiveCustomerTab('online')}
+        >
+          <span className="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+            </svg>
+          </span>
+          Khách hàng Online ({customers.length})
+        </button>
+        <button 
+          className={`customer-tab ${activeCustomerTab === 'walkin' ? 'active' : ''}`}
+          onClick={() => setActiveCustomerTab('walkin')}
+        >
+          <span className="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21A7,7 0 0,1 14,26H10A7,7 0 0,1 3,19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M12,4.5A0.5,0.5 0 0,0 11.5,4A0.5,0.5 0 0,0 12,4.5A0.5,0.5 0 0,0 12.5,4A0.5,0.5 0 0,0 12,4.5M10,9A5,5 0 0,0 5,14V17A5,5 0 0,0 10,22H14A5,5 0 0,0 19,17V14A5,5 0 0,0 14,9H10M10,11H14A3,3 0 0,1 17,14V17A3,3 0 0,1 14,20H10A3,3 0 0,1 7,17V14A3,3 0 0,1 10,11Z"/>
+            </svg>
+          </span>
+          Khách hàng tại điểm ({walkInCustomers.length})
+        </button>
       </div>
+      
+      {activeCustomerTab === 'online' && (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h3>Tổng khách hàng</h3>
+              <p className="stat-number">{statistics.totalCustomers || 0}</p>
+            </div>
+            <div className="stat-card">
+              <h3>Khách hàng bình thường</h3>
+              <p className="stat-number">{statistics.normalCustomers || 0}</p>
+            </div>
+            <div className="stat-card">
+              <h3>Khách hàng rủi ro</h3>
+              <p className="stat-number text-danger">{statistics.riskyCustomers || 0}</p>
+            </div>
+            <div className="stat-card">
+              <h3>Tỷ lệ rủi ro</h3>
+              <p className="stat-number">{(statistics.riskyPercentage || 0).toFixed(1)}%</p>
+            </div>
+          </div>
 
-      <div className="search-section">
-        <div className="filter-buttons">
-          <button 
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            Tất cả
-          </button>
-          <button 
-            className={`filter-btn ${filter === 'normal' ? 'active' : ''}`}
-            onClick={() => setFilter('normal')}
-          >
-            Bình thường
-          </button>
-          <button 
-            className={`filter-btn ${filter === 'risky' ? 'active' : ''}`}
-            onClick={() => setFilter('risky')}
-          >
-            Rủi ro
-          </button>
-        </div>
-      </div>
+          <div className="search-section">
+            <div className="filter-buttons">
+              <button 
+                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                Tất cả
+              </button>
+              <button 
+                className={`filter-btn ${filter === 'normal' ? 'active' : ''}`}
+                onClick={() => setFilter('normal')}
+              >
+                Bình thường
+              </button>
+              <button 
+                className={`filter-btn ${filter === 'risky' ? 'active' : ''}`}
+                onClick={() => setFilter('risky')}
+              >
+                Rủi ro
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {loading ? (
         <div className="loading">Đang tải...</div>
       ) : (
-        <div className="customers-table-container">
-          <table className="customers-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Họ tên</th>
-                <th>Email</th>
-                <th>Số điện thoại</th>
-                <th>Điểm rủi ro</th>
-                <th>Trạng thái</th>
-                <th>Khiếu nại</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map(customer => (
-                <tr key={customer.id}>
-                  <td>#{customer.id}</td>
-                  <td>{customer.fullName}</td>
-                  <td>{customer.email}</td>
-                  <td>{customer.phoneNumber}</td>
-                  <td>
-                    <span className={`risk-points ${customer.riskPoints >= 3 ? 'high' : ''}`}>
-                      {customer.riskPoints}/3
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${customer.isRisky ? 'badge-danger' : 'badge-success'}`}>
-                      {customer.isRisky ? 'Rủi ro' : 'Tốt'}
-                    </span>
-                  </td>
-                  <td>{customer.totalComplaints || 0}</td>
-                  <td>
-                    <button 
-                      className="admin-btn-action"
-                      onClick={() => openRiskForm(customer)}
-                      title="Thêm điểm rủi ro"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M1,21H23L12,2M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/>
-                      </svg>
-                    </button>
-                    <button 
-                      className="admin-btn-action"
-                      onClick={() => handleResetRisk(customer.id)}
-                      title="Reset điểm rủi ro"
-                      disabled={customer.riskPoints === 0}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
-                      </svg>
-                    </button>
-                    <button 
-                      className="admin-btn-action delete"
-                      onClick={() => handleDeleteCustomer(customer.id)}
-                      title="Xóa khách hàng"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                        <path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H10V19H8V9M14,9H16V19H14V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Online Customers Table */}
+          {activeCustomerTab === 'online' && (
+            <div className="customers-table-container">
+              <table className="customers-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Số điện thoại</th>
+                    <th>Điểm rủi ro</th>
+                    <th>Trạng thái</th>
+                    <th>Khiếu nại</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customers.map(customer => (
+                    <tr key={customer.id}>
+                      <td>#{customer.id}</td>
+                      <td>{customer.fullName}</td>
+                      <td>{customer.email}</td>
+                      <td>{customer.phoneNumber}</td>
+                      <td>
+                        <span className={`risk-points ${customer.riskPoints >= 3 ? 'high' : ''}`}>
+                          {customer.riskPoints}/3
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${customer.isRisky ? 'badge-danger' : 'badge-success'}`}>
+                          {customer.isRisky ? 'Rủi ro' : 'Tốt'}
+                        </span>
+                      </td>
+                      <td>{customer.totalComplaints || 0}</td>
+                      <td>
+                        <button 
+                          className="admin-btn-action"
+                          onClick={() => openDetailModal(customer)}
+                          title="Xem hồ sơ chi tiết"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="admin-btn-action"
+                          onClick={() => openRiskForm(customer)}
+                          title="Thêm điểm rủi ro"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1,21H23L12,2M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="admin-btn-action"
+                          onClick={() => handleResetRisk(customer.id)}
+                          title="Reset điểm rủi ro"
+                          disabled={customer.riskPoints === 0}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="admin-btn-action delete"
+                          onClick={() => handleDeleteCustomer(customer.id)}
+                          title="Xóa khách hàng"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                            <path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H10V19H8V9M14,9H16V19H14V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Walk-in Customers Table */}
+          {activeCustomerTab === 'walkin' && (
+            <div className="customers-table-container">
+              <table className="customers-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Họ tên</th>
+                    <th>Số điện thoại</th>
+                    <th>Email</th>
+                    <th>CCCD</th>
+                    <th>GPLX</th>
+                    <th>Trạm đăng ký</th>
+                    <th>Ngày tạo</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {walkInCustomers.map(customer => (
+                    <tr key={customer.id}>
+                      <td>#{customer.id}</td>
+                      <td>{customer.fullName}</td>
+                      <td>{customer.phoneNumber}</td>
+                      <td>{customer.email || 'N/A'}</td>
+                      <td>{customer.cccdNumber || 'N/A'}</td>
+                      <td>{customer.gplxNumber || 'N/A'}</td>
+                      <td>Station #{customer.stationId}</td>
+                      <td>{new Date(customer.createdAt).toLocaleDateString('vi-VN')}</td>
+                      <td>
+                        <button 
+                          className="admin-btn-action"
+                          onClick={() => openDetailModal(customer)}
+                          title="Xem hồ sơ chi tiết"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
 
@@ -1402,6 +1776,440 @@ const CustomerManagement = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Detail Modal */}
+      {showDetailModal && selectedCustomer && (
+        <div className="modal-overlay" onClick={() => {
+          setShowDetailModal(false);
+          setBookingHistory([]);
+          setSelectedCustomer(null);
+        }}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <h2>Hồ sơ khách hàng - {selectedCustomer.fullName}</h2>
+                <p style={{ margin: '0.5rem 0 0 0', color: '#6b7280', fontSize: '0.95rem' }}>
+                  {activeCustomerTab === 'online' ? 'Khách hàng Online' : 'Khách hàng tại điểm'}
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => {
+                setShowDetailModal(false);
+                setBookingHistory([]);
+                setSelectedCustomer(null);
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '1.5rem' }}>
+              {/* Customer Type Indicator */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                marginBottom: '1.5rem' 
+              }}>
+                <span className={`badge ${activeCustomerTab === 'online' ? 'badge-info' : 'badge-warning'}`} 
+                      style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                  {activeCustomerTab === 'online' ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '0.5rem' }}>
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                      </svg>
+                      Khách hàng Online
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '0.5rem' }}>
+                        <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21A7,7 0 0,1 14,26H10A7,7 0 0,1 3,19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/>
+                      </svg>
+                      Khách hàng tại điểm
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Grid thông tin */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: activeCustomerTab === 'online' ? '1fr 1fr' : '1fr', 
+                gap: '1.5rem',
+                marginBottom: '1.5rem'
+              }}>
+                {/* Thông tin cơ bản */}
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Thông tin cá nhân
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>ID:</span>
+                      <span style={{ fontWeight: '500' }}>#{selectedCustomer.id}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Họ tên:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedCustomer.fullName}</span>
+                    </div>
+                    {activeCustomerTab === 'online' && selectedCustomer.username && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Username:</span>
+                        <span style={{ fontWeight: '500' }}>{selectedCustomer.username}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Email:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedCustomer.email || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Số điện thoại:</span>
+                      <span style={{ fontWeight: '500' }}>{selectedCustomer.phoneNumber || 'N/A'}</span>
+                    </div>
+                    {selectedCustomer.birthDate && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Ngày sinh:</span>
+                        <span style={{ fontWeight: '500' }}>{selectedCustomer.birthDate}</span>
+                      </div>
+                    )}
+                    {activeCustomerTab === 'walkin' && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Số CCCD:</span>
+                          <span style={{ fontWeight: '500' }}>{selectedCustomer.cccdNumber || 'N/A'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Số GPLX:</span>
+                          <span style={{ fontWeight: '500' }}>{selectedCustomer.gplxNumber || 'N/A'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Trạm đăng ký:</span>
+                          <span style={{ fontWeight: '500' }}>Station #{selectedCustomer.stationId}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Ngày tạo:</span>
+                          <span style={{ fontWeight: '500' }}>
+                            {new Date(selectedCustomer.createdAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thông tin tài khoản (chỉ cho online customer) */}
+                {activeCustomerTab === 'online' && (
+                  <div style={{ 
+                    background: '#f9fafb',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <h4 style={{ 
+                      margin: '0 0 0.75rem 0', 
+                      color: '#374151',
+                      fontSize: '1rem',
+                      borderBottom: '1px solid #d1d5db',
+                      paddingBottom: '0.5rem'
+                    }}>
+                      Thông tin tài khoản
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Điểm rủi ro:</span>
+                        <span className={`risk-points ${selectedCustomer.riskPoints >= 3 ? 'high' : ''}`} style={{ fontWeight: '500' }}>
+                          {selectedCustomer.riskPoints}/3
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Trạng thái:</span>
+                        <span className={`badge ${selectedCustomer.isRisky ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.8rem' }}>
+                          {selectedCustomer.isRisky ? 'Rủi ro' : 'Tốt'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Tổng khiếu nại:</span>
+                        <span style={{ fontWeight: '500' }}>{selectedCustomer.totalComplaints || 0}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Ngày tham gia:</span>
+                        <span style={{ fontWeight: '500' }}>
+                          {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Hình ảnh giấy tờ (chỉ cho walk-in customer) */}
+              {activeCustomerTab === 'walkin' && (selectedCustomer.cccdImageUrl || selectedCustomer.gplxImageUrl) && (
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Hình ảnh giấy tờ
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {selectedCustomer.cccdImageUrl && (
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6b7280' }}>CCCD</p>
+                        <img 
+                          src={selectedCustomer.cccdImageUrl} 
+                          alt="CCCD" 
+                          style={{ 
+                            width: '100%', 
+                            maxWidth: '200px', 
+                            height: '120px', 
+                            objectFit: 'cover', 
+                            borderRadius: '4px',
+                            border: '1px solid #e5e7eb'
+                          }}
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNjBMMTAwIDYwIiBzdHJva2U9IiM5Q0E0QUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K';
+                            e.target.alt = 'Không thể tải ảnh CCCD';
+                          }}
+                        />
+                      </div>
+                    )}
+                    {selectedCustomer.gplxImageUrl && (
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6b7280' }}>GPLX</p>
+                        <img 
+                          src={selectedCustomer.gplxImageUrl} 
+                          alt="GPLX" 
+                          style={{ 
+                            width: '100%', 
+                            maxWidth: '200px', 
+                            height: '120px', 
+                            objectFit: 'cover', 
+                            borderRadius: '4px',
+                            border: '1px solid #e5e7eb'
+                          }}
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNjBMMTAwIDYwIiBzdHJva2U9IiM5Q0E0QUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K';
+                            e.target.alt = 'Không thể tải ảnh GPLX';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Lịch sử thuê xe (chỉ cho online customer) */}
+              {activeCustomerTab === 'online' && (
+                <div style={{ 
+                  background: '#f9fafb',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.75rem 0', 
+                    color: '#374151',
+                    fontSize: '1rem',
+                    borderBottom: '1px solid #d1d5db',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Lịch sử thuê xe
+                  </h4>
+                  
+                  {bookingHistoryLoading ? (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      padding: '2rem',
+                      color: '#6b7280'
+                    }}>
+                      <div style={{ 
+                        width: '24px', 
+                        height: '24px', 
+                        border: '2px solid #e5e7eb', 
+                        borderTop: '2px solid #3b82f6', 
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginRight: '0.5rem'
+                      }}></div>
+                      Đang tải lịch sử...
+                    </div>
+                  ) : bookingHistory.length === 0 ? (
+                    <p style={{ color: '#6b7280', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                      Chưa có lịch sử thuê xe
+                    </p>
+                  ) : (
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      <table style={{ 
+                        width: '100%', 
+                        fontSize: '0.85rem',
+                        borderCollapse: 'collapse'
+                      }}>
+                        <thead style={{ 
+                          background: '#f3f4f6',
+                          position: 'sticky',
+                          top: 0
+                        }}>
+                          <tr>
+                            <th style={{ 
+                              padding: '0.5rem', 
+                              textAlign: 'left', 
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: '600'
+                            }}>ID</th>
+                            <th style={{ 
+                              padding: '0.5rem', 
+                              textAlign: 'left', 
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: '600'
+                            }}>Xe</th>
+                            <th style={{ 
+                              padding: '0.5rem', 
+                              textAlign: 'left', 
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: '600'
+                            }}>Ngày thuê</th>
+                            <th style={{ 
+                              padding: '0.5rem', 
+                              textAlign: 'left', 
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: '600'
+                            }}>Trạng thái</th>
+                            <th style={{ 
+                              padding: '0.5rem', 
+                              textAlign: 'right', 
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: '600'
+                            }}>Tổng tiền</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bookingHistory.map((booking, index) => (
+                            <tr key={booking.id} style={{ 
+                              borderBottom: index < bookingHistory.length - 1 ? '1px solid #f3f4f6' : 'none'
+                            }}>
+                              <td style={{ padding: '0.5rem' }}>#{booking.id}</td>
+                              <td style={{ padding: '0.5rem' }}>
+                                {booking.vehicle ? (
+                                  <div>
+                                    <div style={{ fontWeight: '500' }}>{booking.vehicle.licensePlate}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                      {booking.vehicle.type}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  `Xe #${booking.vehicleId}`
+                                )}
+                              </td>
+                              <td style={{ padding: '0.5rem' }}>
+                                {booking.bookingTime ? (
+                                  <div>
+                                    <div>{new Date(booking.bookingTime).toLocaleDateString('vi-VN')}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                      {new Date(booking.bookingTime).toLocaleTimeString('vi-VN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : 'N/A'}
+                              </td>
+                              <td style={{ padding: '0.5rem' }}>
+                                <span style={{
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500',
+                                  background: 
+                                    booking.status === 'COMPLETED' ? '#dcfce7' :
+                                    booking.status === 'ACTIVE' ? '#dbeafe' :
+                                    booking.status === 'PENDING' ? '#fef3c7' :
+                                    booking.status === 'CANCELLED' ? '#fee2e2' : '#f3f4f6',
+                                  color:
+                                    booking.status === 'COMPLETED' ? '#166534' :
+                                    booking.status === 'ACTIVE' ? '#1e40af' :
+                                    booking.status === 'PENDING' ? '#92400e' :
+                                    booking.status === 'CANCELLED' ? '#dc2626' : '#6b7280'
+                                }}>
+                                  {booking.status === 'COMPLETED' ? 'Hoàn thành' :
+                                   booking.status === 'ACTIVE' ? 'Đang thuê' :
+                                   booking.status === 'PENDING' ? 'Chờ xử lý' :
+                                   booking.status === 'CANCELLED' ? 'Đã hủy' : booking.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '500' }}>
+                                {booking.totalAmount ? 
+                                  `${booking.totalAmount.toLocaleString('vi-VN')}đ` : 
+                                  'N/A'
+                                }
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                marginTop: '1.5rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                <button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="admin-btn-action"
+                  style={{
+                    padding: '0.5rem 1rem', 
+                    fontSize: '0.9rem', 
+                    fontWeight: '500', 
+                    background: '#6b7280', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = '#4b5563';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = '#6b7280';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
