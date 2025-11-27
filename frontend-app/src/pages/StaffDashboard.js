@@ -3479,10 +3479,10 @@ const BookingApproval = ({ assignedStation }) => {
                     {/* Customer Info */}
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: '700', color: '#333', marginBottom: '2px' }}>
-                        {booking.allUserInfo?.fullName || 'N/A'}
+                        {booking.userInfo?.fullName || 'N/A'}
                       </div>
                       <div style={{ fontSize: '13px', color: '#666' }}>
-                        {booking.allUserInfo?.phoneNumber || 'N/A'}
+                        📞 {booking.userInfo?.phoneNumber || 'N/A'}
                       </div>
                     </div>
 
@@ -3763,10 +3763,10 @@ const PaymentManagement = ({ assignedStation, user }) => {
       if (response && response.length > 0) {
         response.forEach(booking => {
           console.log(`📋 Booking #${booking.id}:`, {
-            fullName: booking.allUserInfo?.fullName,
-            phoneNumber: booking.allUserInfo?.phoneNumber,
-            email: booking.allUserInfo?.email,
-            allUserInfo: booking.allUserInfo
+            fullName: booking.userInfo?.fullName,
+            phoneNumber: booking.userInfo?.phoneNumber,
+            email: booking.userInfo?.email,
+            userInfo: booking.userInfo
           });
         });
       }
@@ -3972,7 +3972,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
                       </svg>
                       SĐT:
                     </span>
-                    <span className="value">{booking.userInfo?.phone || 'N/A'}</span>
+                    <span className="value">{booking.userInfo?.phoneNumber || 'N/A'}</span>
                   </div>
 
                   <div className="booking-info-row">
@@ -4079,7 +4079,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
                   </div>
                   <div className="info-item">
                     <span className="label">SĐT:</span>
-                    <span className="value">{selectedBooking.userInfo?.phone}</span>
+                    <span className="value">{selectedBooking.userInfo?.phoneNumber}</span>
                   </div>
                   <div className="info-item">
                     <span className="label">Xe:</span>
@@ -4485,8 +4485,8 @@ const StaffBookingHistory = ({ assignedStation }) => {
                       <span className="label">Khách hàng:</span>
                       <span className="value">
                         {booking.userInfo?.fullName || booking.customerName || 'N/A'}
-                        {booking.userInfo?.phone && (
-                          <small> - {booking.userInfo.phone}</small>
+                        {booking.userInfo?.phoneNumber && (
+                          <small> - {booking.userInfo.phoneNumber}</small>
                         )}
                       </span>
                     </div>

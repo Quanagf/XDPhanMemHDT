@@ -37,4 +37,41 @@ public class ReportController {
         
         return ResponseEntity.ok(reportService.getUserHistory(userId));
     }
+
+    // API Thống kê tỷ lệ sử dụng xe
+    @GetMapping("/vehicle-utilization")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getVehicleUtilization() {
+        return ResponseEntity.ok(reportService.getVehicleUtilization());
+    }
+
+    // API Phân tích giờ cao điểm/thấp điểm
+    @GetMapping("/peak-hours")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getPeakHoursAnalysis() {
+        return ResponseEntity.ok(reportService.getPeakHoursAnalysis());
+    }
+
+    // API Doanh thu theo quý
+    @GetMapping("/revenue-by-quarter")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getRevenueByQuarter(@RequestParam int year) {
+        return ResponseEntity.ok(reportService.getRevenueByQuarter(year));
+    }
+
+    // API Doanh thu theo năm
+    @GetMapping("/revenue-by-year")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getRevenueByYear(
+            @RequestParam int startYear,
+            @RequestParam int endYear) {
+        return ResponseEntity.ok(reportService.getRevenueByYear(startYear, endYear));
+    }
+
+    // API Thống kê xe cụ thể
+    @GetMapping("/vehicle/{vehicleId}/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getVehicleStats(@PathVariable Long vehicleId) {
+        return ResponseEntity.ok(reportService.getVehicleStats(vehicleId));
+    }
 }

@@ -13,6 +13,7 @@ import { getStations } from '../api/stations';
 import { getAllBookings, getUserBookingHistory } from '../api/bookings'; // Admin booking history
 import IncidentReportsManagement from '../components/IncidentReportsManagement';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { getVehicleUtilizationStats, getRevenueByQuarter, getRevenueByYear, getPeakHoursAnalysis, getRevenueByStation } from '../api/reports';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('vehicles');
@@ -3457,49 +3458,289 @@ const StationManagement = () => {
 
 // Component: Báo cáo & phân tích
 const ReportsAnalytics = () => {
+  const [loading, setLoading] = useState(true);
+  const [vehicleUtilization, setVehicleUtilization] = useState([]);
+  const [peakHours, setPeakHours] = useState([]);
+  const [quarterlyRevenue, setQuarterlyRevenue] = useState([]);
+  const [yearlyRevenue, setYearlyRevenue] = useState([]);
+  const [stationRevenue, setStationRevenue] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [yearRange, setYearRange] = useState({
+    start: new Date().getFullYear() - 2,
+    end: new Date().getFullYear()
+  });
+
+  useEffect(() => {
+    fetchAllReports();
+  }, [selectedYear, yearRange]);
+
+  const fetchAllReports = async () => {
+    setLoading(true);
+    try {
+      const [utilization, peaks, quarterly, yearly, stations] = await Promise.all([
+        getVehicleUtilizationStats().catch(() => []),
+        getPeakHoursAnalysis().catch(() => []),
+        getRevenueByQuarter(selectedYear).catch(() => []),
+        getRevenueByYear(yearRange.start, yearRange.end).catch(() => []),
+        getRevenueByStation().catch(() => [])
+      ]);
+
+      setVehicleUtilization(utilization);
+      setPeakHours(peaks);
+      setQuarterlyRevenue(quarterly);
+      setYearlyRevenue(yearly);
+      
+      // Transform station revenue data để phù hợp với PieChart
+      const transformedStations = stations.map(station => ({
+        name: station.stationName || 'Trạm không xác định',
+        revenue: station.totalRevenue || 0,
+        totalBookings: station.totalBookings || 0
+      }));
+      setStationRevenue(transformedStations);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
+
+  if (loading) {
+    return (
+      <div className="admin-section">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
+          <p>Đang tải dữ liệu báo cáo...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-section">
-      <h1>Báo cáo & phân tích</h1>
+      <h1>📊 Báo cáo & phân tích</h1>
       
-      <div className="reports-stats-grid">
-        <div className="reports-stat-card">
-          <h3>Doanh thu tháng này</h3>
-          <p className="reports-stat-number">850,000,000đ</p>
-          <p className="reports-stat-change positive">+15% so với tháng trước</p>
+      {/* Stats Overview */}
+      <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <h3>Tổng số xe</h3>
+          <p className="stat-number">{vehicleUtilization.length || 0}</p>
         </div>
-        <div className="reports-stat-card">
-          <h3>Tỷ lệ sử dụng xe</h3>
-          <p className="reports-stat-number">78%</p>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <h3>Tỷ lệ SD trung bình</h3>
+          <p className="stat-number">
+            {vehicleUtilization.length > 0 
+              ? Math.round(vehicleUtilization.reduce((sum, v) => sum + (v.utilizationRate || 0), 0) / vehicleUtilization.length)
+              : 0}%
+          </p>
         </div>
-        <div className="reports-stat-card">
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
           <h3>Giờ cao điểm</h3>
-          <p className="reports-stat-number">7-9h, 17-19h</p>
+          <p className="stat-number" style={{ fontSize: '1.2rem' }}>
+            {peakHours.length > 0 ? `${peakHours[0].hour}h - ${peakHours[peakHours.length - 1].hour}h` : 'N/A'}
+          </p>
         </div>
-        <div className="reports-stat-card">
-          <h3>Điểm thuê hiệu quả nhất</h3>
-          <p className="reports-stat-number">Hà Nội - Hoàn Kiếm</p>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="reports-chart-section">
-        <h2>Doanh thu theo điểm thuê</h2>
-        <div className="reports-chart-placeholder">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="#64748b" style={{marginBottom: '1rem'}}>
-            <path d="M6,16.5L3,19.44V11H6M11,14.66L9.43,13.32L8,14.64V7H11M16,13L13,16V3H16M18.81,12.81L17,11H22V16L20.21,14.21L13.41,21H10.59L18.81,12.81Z"/>
-          </svg>
-          <p>Biểu đồ sẽ được hiển thị ở đây</p>
-          <p>(Sử dụng thư viện Chart.js hoặc Recharts)</p>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+          <h3>Doanh thu năm {selectedYear}</h3>
+          <p className="stat-number" style={{ fontSize: '1.2rem' }}>
+            {quarterlyRevenue.reduce((sum, q) => sum + (q.revenue || 0), 0).toLocaleString('vi-VN')}đ
+          </p>
         </div>
       </div>
 
-      <div className="reports-chart-section">
-        <h2>Tỷ lệ sử dụng xe theo giờ</h2>
-        <div className="reports-chart-placeholder">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="#64748b" style={{marginBottom: '1rem'}}>
-            <path d="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z"/>
-          </svg>
-          <p>Biểu đồ đường sẽ được hiển thị ở đây</p>
+      {/* Tỷ lệ sử dụng xe */}
+      <div className="chart-card" style={{ marginBottom: '2rem' }}>
+        <h2>🚗 Tỷ lệ sử dụng xe (theo số chuyến)</h2>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={vehicleUtilization}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="vehicleName" angle={-45} textAnchor="end" height={100} />
+            <YAxis />
+            <Tooltip 
+              formatter={(value, name) => {
+                if (name === 'totalTrips') return [value, 'Số chuyến'];
+                if (name === 'utilizationRate') return [`${value}%`, 'Tỷ lệ SD'];
+                return [value, name];
+              }}
+            />
+            <Legend />
+            <Bar dataKey="totalTrips" fill="#8884d8" name="Số chuyến" />
+            <Bar dataKey="utilizationRate" fill="#82ca9d" name="Tỷ lệ SD (%)" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Giờ cao điểm/thấp điểm */}
+      <div className="chart-card" style={{ marginBottom: '2rem' }}>
+        <h2>⏰ Phân tích giờ cao điểm & thấp điểm</h2>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={peakHours}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="hour" label={{ value: 'Giờ trong ngày', position: 'insideBottom', offset: -5 }} />
+            <YAxis label={{ value: 'Số lượt thuê', angle: -90, position: 'insideLeft' }} />
+            <Tooltip formatter={(value) => [`${value} lượt`, 'Số lượt thuê']} />
+            <Legend />
+            <Line type="monotone" dataKey="bookingCount" stroke="#8884d8" strokeWidth={2} name="Số lượt thuê" />
+          </LineChart>
+        </ResponsiveContainer>
+        <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f9ff', borderRadius: '8px' }}>
+          <p><strong>📈 Giờ cao điểm:</strong> {peakHours.filter(h => h.bookingCount > (peakHours.reduce((s, h) => s + h.bookingCount, 0) / peakHours.length)).map(h => `${h.hour}h`).join(', ') || 'Chưa có dữ liệu'}</p>
+          <p><strong>📉 Giờ thấp điểm:</strong> {peakHours.filter(h => h.bookingCount < (peakHours.reduce((s, h) => s + h.bookingCount, 0) / peakHours.length)).map(h => `${h.hour}h`).join(', ') || 'Chưa có dữ liệu'}</p>
+        </div>
+      </div>
+
+      {/* Doanh thu theo quý */}
+      <div className="chart-card" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>💰 Doanh thu theo quý năm {selectedYear}</h2>
+          <select 
+            value={selectedYear} 
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+          >
+            {[...Array(5)].map((_, i) => {
+              const year = new Date().getFullYear() - i;
+              return <option key={year} value={year}>{year}</option>;
+            })}
+          </select>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={quarterlyRevenue}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="quarter" />
+            <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+            <Tooltip formatter={(value) => [`${value.toLocaleString('vi-VN')}đ`, 'Doanh thu']} />
+            <Legend />
+            <Bar dataKey="revenue" fill="#82ca9d" name="Doanh thu (VNĐ)" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Doanh thu theo năm */}
+      <div className="chart-card" style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>📈 Doanh thu theo năm</h2>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <select 
+              value={yearRange.start}
+              onChange={(e) => setYearRange({...yearRange, start: Number(e.target.value)})}
+              style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+            >
+              {[...Array(10)].map((_, i) => {
+                const year = new Date().getFullYear() - 9 + i;
+                return <option key={year} value={year}>{year}</option>;
+              })}
+            </select>
+            <span style={{ alignSelf: 'center' }}>đến</span>
+            <select 
+              value={yearRange.end}
+              onChange={(e) => setYearRange({...yearRange, end: Number(e.target.value)})}
+              style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd' }}
+            >
+              {[...Array(10)].map((_, i) => {
+                const year = new Date().getFullYear() - 9 + i;
+                return <option key={year} value={year}>{year}</option>;
+              })}
+            </select>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={yearlyRevenue}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" />
+            <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+            <Tooltip formatter={(value) => [`${value.toLocaleString('vi-VN')}đ`, 'Doanh thu']} />
+            <Legend />
+            <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={3} name="Doanh thu (VNĐ)" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Doanh thu theo trạm */}
+      <div className="chart-card" style={{ marginBottom: '2rem' }}>
+        <h2>🏢 Doanh thu theo trạm</h2>
+        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={stationRevenue}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={120}
+                  fill="#8884d8"
+                  dataKey="revenue"
+                >
+                  {stationRevenue.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value.toLocaleString('vi-VN')}đ`, 'Doanh thu']} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Bảng chi tiết */}
+          <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: '8px', 
+              padding: '1rem',
+              border: '1px solid #e0e0e0',
+              maxHeight: '400px',
+              overflowY: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: '#333' }}>📋 Chi tiết doanh thu</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', color: '#666' }}>Trạm</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#666' }}>Số chuyến</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#666' }}>Doanh thu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stationRevenue
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .map((station, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ 
+                            width: '12px', 
+                            height: '12px', 
+                            borderRadius: '50%', 
+                            background: COLORS[index % COLORS.length],
+                            display: 'inline-block'
+                          }}></span>
+                          {station.name}
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#666' }}>
+                          {station.totalBookings || 0}
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#333' }}>
+                          {(station.revenue || 0).toLocaleString('vi-VN')}đ
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #e0e0e0', fontWeight: '700', background: '#f8f9fa' }}>
+                    <td style={{ padding: '0.75rem' }}>Tổng cộng</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#333' }}>
+                      {stationRevenue.reduce((sum, s) => sum + (s.totalBookings || 0), 0)}
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#4CAF50' }}>
+                      {stationRevenue.reduce((sum, s) => sum + (s.revenue || 0), 0).toLocaleString('vi-VN')}đ
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
