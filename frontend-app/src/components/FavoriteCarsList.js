@@ -96,8 +96,8 @@ const FavoriteCarsList = () => {
             {/* Hình ảnh xe */}
             <div className="profile-favorite-img-wrapper">
               <img 
-                src={car.mainImage || '/assets/images/default-car.jpg'} 
-                alt={car.name}
+                src={car.imageUrl || car.mainImage || '/assets/images/default-car.jpg'} 
+                alt={car.type || car.name || 'Xe điện'}
                 className="profile-favorite-img"
                 onError={(e) => {
                   e.target.src = '/assets/images/default-car.jpg';
@@ -116,23 +116,23 @@ const FavoriteCarsList = () => {
 
             {/* Thông tin xe */}
             <div className="profile-favorite-info">
-              <h4 className="profile-favorite-name">{car.name}</h4>
+              <h4 className="profile-favorite-name">{car.type || car.name || car.model || 'Tên xe'}</h4>
               
               <div className="profile-favorite-details">
                 <div className="profile-favorite-specs">
                   <span className="profile-favorite-spec">
                     <iconify-icon icon="mdi:car-seat"></iconify-icon>
-                    {car.seats || 4} chỗ
+                    {car.seats || 'N/A'} chỗ
                   </span>
                   <span className="profile-favorite-spec">
                     <iconify-icon icon="mdi:car-shift-pattern"></iconify-icon>
-                    {car.transmission || 'Số tự động'}
+                    {car.type || car.transmission || 'Xe điện'}
                   </span>
                 </div>
                 
                 <div className="profile-favorite-location">
                   <iconify-icon icon="mdi:map-marker"></iconify-icon>
-                  <span>{car.stationName || 'Đà Nẵng'}</span>
+                  <span>{car.stationName || car.station?.name || car.location || 'Chưa xác định'}</span>
                 </div>
               </div>
 

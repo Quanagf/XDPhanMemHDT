@@ -173,7 +173,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5FCF86;
   color: white;
 }
 
@@ -321,7 +321,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5FCF86;
   color: white;
   border-radius: 12px 12px 0 0;
 }
@@ -495,7 +495,7 @@
 /* Payment Summary */
 .payment-summary {
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5FCF86;
   border-radius: 6px;
   color: white;
 }

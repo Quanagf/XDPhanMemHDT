@@ -797,116 +797,255 @@
 }
 
 .trip-card-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.trip-vehicle-info {
-  background: #f8f9fa;
-  padding: 1.25rem;
-  border-radius: 8px;
-  border-left: 4px solid #28a745;
-}
-
-.trip-vehicle-info h4 {
-  margin: 0 0 0.75rem 0;
-  color: #28a745;
-  font-size: 1.15rem;
-  font-weight: 600;
-}
-
-.trip-vehicle-info p {
-  margin: 0.5rem 0;
-  color: #555;
-  font-size: 0.9rem;
-}
-
-.trip-time-info {
-  background: #f8f9fa;
-  padding: 1.25rem;
-  border-radius: 8px;
-  border-left: 4px solid #007bff;
-}
-
-.trip-time-info p {
-  margin: 0.5rem 0;
-  color: #555;
-  font-size: 0.9rem;
-}
-
-.trip-time-info strong {
-  color: #007bff;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.trip-cost {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 1.1rem;
-  margin-top: 0.5rem;
-}
-
-.trip-cost strong {
-  font-size: 1.25rem;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-/* Trip Payment Details */
-.trip-payment-details {
-  grid-column: 1 / -1;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin-top: 0.5rem;
-}
-
-.payment-row {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trip-top-section {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.trip-vehicle-image {
+  position: relative;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.vehicle-image {
+  width: 100%;
+  flex: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  min-height: 120px;
+}
+
+.vehicle-placeholder {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px dashed #dee2e6;
+  justify-content: center;
+  flex: 1;
+  color: #999;
+  margin-bottom: 0.5rem;
+  min-height: 120px;
 }
 
-.payment-row:last-child {
-  border-bottom: none;
+.vehicle-basic-info {
+  text-align: center;
+  padding: 0.5rem 0;
 }
 
-.payment-row span {
-  font-size: 0.95rem;
-  color: #555;
-}
-
-.payment-row strong {
-  font-size: 1rem;
+.vehicle-basic-info h5 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: #333;
 }
 
-.payment-row.additional strong {
-  color: #dc3545;
-  font-weight: 700;
+.vehicle-basic-info p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
 }
 
-.payment-row.final {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(32, 201, 151, 0.1) 100%);
+.trip-details-info {
+  background: #f8f9fa;
+  border-radius: 8px;
   padding: 1rem;
-  margin: 0.5rem -0.25rem -0.25rem -0.25rem;
-  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.vehicle-details {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.vehicle-details p {
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.time-details p {
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.time-details strong {
+  color: #333;
+}
+
+/* Timeline Styles */
+.timeline-container {
+  display: flex;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.timeline-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #e74c3c;
+  background: #e74c3c;
+  position: relative;
+  z-index: 2;
+}
+
+.timeline-point.end .timeline-dot {
+  border-color: #27ae60;
+  background: #27ae60;
+}
+
+.timeline-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.3rem;
+}
+
+.timeline-label {
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.timeline-time {
+  font-size: 0.75rem;
+  color: #333;
+  font-weight: 600;
+  margin-top: 0.1rem;
+  text-align: center;
+}
+
+.timeline-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0.5rem;
+  position: relative;
+}
+
+.timeline-line {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #e74c3c, #27ae60);
+  border-radius: 1px;
+}
+
+.timeline-duration {
+  font-size: 0.65rem;
+  color: #666;
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+.trip-payment-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  width: 100%;
+}
+
+.trip-payment-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.payment-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.payment-item:last-child {
   border-bottom: none;
 }
 
-.payment-row.reason {
-  padding: 0.5rem 0;
-  border-bottom: none;
+.payment-item span {
+  color: #666;
 }
+
+.payment-item strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.payment-item.additional strong {
+  color: #dc3545;
+}
+
+.payment-reason {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 0.5rem;
+  border-left: 2px solid #ffc107;
+}
+
+.payment-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  background: #e8f5e9;
+  border-radius: 6px;
+  border: 1px solid #c8e6c9;
+}
+
+.payment-total span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.payment-total strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+
 
 /* Trips Overview Styles */
 .trips-overview {
@@ -1018,14 +1157,65 @@
     min-height: 250px;
   }
   
+  .trip-top-section {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .trip-vehicle-image {
+    min-height: 100px;
+    order: -1;
+  }
+  
+  .vehicle-image {
+    height: 60px;
+  }
+  
+  .vehicle-placeholder {
+    height: 60px;
+  }
+  
+  .time-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .vehicle-info-row {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
   .no-trips-image {
     max-width: 200px;
     max-height: 200px;
   }
   
-  .trip-card-body {
+  .trip-top-section {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .trip-vehicle-image {
+    min-height: 100px;
+    order: -1;
+  }
+  
+  .vehicle-image {
+    height: 60px;
+  }
+  
+  .vehicle-placeholder {
+    height: 60px;
+  }
+  
+  .time-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .vehicle-info-row {
+    flex-direction: column;
+    gap: 0.3rem;
   }
   
   .trip-card {
@@ -1736,5 +1926,91 @@
   
   .verification-alert-banner .alert-icon {
     font-size: 1.5rem;
+  }
+}
+
+/* ====== PAGINATION STYLES ====== */
+.pagination-container {
+  margin-top: 30px;
+  padding: 20px 0;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.pagination-btn {
+  background: white;
+  border: 1px solid #ddd;
+  color: #555;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background: #f8f9fa;
+  border-color: #999;
+  color: #333;
+}
+
+.pagination-btn.active {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  color: white;
+  font-weight: 600;
+}
+
+.pagination-btn.disabled {
+  background: #f5f5f5;
+  border-color: #e5e5e5;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  padding: 5px 0;
+}
+
+/* Responsive cho pagination */
+@media (max-width: 768px) {
+  .pagination-container {
+    margin-top: 20px;
+    padding: 15px 0;
+  }
+  
+  .pagination {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .pagination-btn {
+    min-width: 36px;
+    height: 32px;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  .pagination-info {
+    font-size: 13px;
   }
 }

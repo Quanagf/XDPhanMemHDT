@@ -63,6 +63,10 @@ const Profile = () => {
   // State cho bookings
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   useEffect(() => {
     const userProfile = localStorage.getItem('userProfile');
@@ -1048,7 +1052,7 @@ const handleChangePassword = async () => {
                 {/* Thống kê tổng quan */}
                 <div className="overview-stats">
                   <div className="stat-card">
-                    <div className="stat-icon">🚗</div>
+                    <div className="stat-icon"></div>
                     <div className="stat-info">
                       <h3>{totalTrips}</h3>
                       <p>Tổng số chuyến</p>
@@ -1056,7 +1060,7 @@ const handleChangePassword = async () => {
                   </div>
 
                   <div className="stat-card">
-                    <div className="stat-icon">✅</div>
+                    <div className="stat-icon"></div>
                     <div className="stat-info">
                       <h3>{completedTrips}</h3>
                       <p>Hoàn thành</p>
@@ -1064,7 +1068,7 @@ const handleChangePassword = async () => {
                   </div>
 
                   <div className="stat-card">
-                    <div className="stat-icon">❌</div>
+                    <div className="stat-icon"></div>
                     <div className="stat-info">
                       <h3>{cancelledTrips}</h3>
                       <p>Đã hủy</p>
@@ -1072,7 +1076,7 @@ const handleChangePassword = async () => {
                   </div>
 
                   <div className="stat-card highlight">
-                    <div className="stat-icon">💰</div>
+                    <div className="stat-icon"></div>
                     <div className="stat-info">
                       <h3>{totalCost.toLocaleString('vi-VN')} VNĐ</h3>
                       <p>Tổng chi phí</p>
@@ -1083,7 +1087,7 @@ const handleChangePassword = async () => {
                 {/* Biểu đồ khung giờ thuê */}
                 {hourChartData.length > 0 && (
                   <div className="chart-section">
-                    <h3 className="chart-title">📊 Thống kê giờ thuê xe</h3>
+                    <h3 className="chart-title">Thống kê giờ thuê xe</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={hourChartData}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -1101,7 +1105,7 @@ const handleChangePassword = async () => {
                       </BarChart>
                     </ResponsiveContainer>
                     <p className="chart-note">
-                      {hourChartData[0] && `🔥 Khung giờ cao điểm: ${hourChartData[0].timeSlot} (${hourChartData[0].trips} lượt)`}
+                      {hourChartData[0] && `Khung giờ cao điểm: ${hourChartData[0].timeSlot} (${hourChartData[0].trips} lượt)`}
                     </p>
                   </div>
                 )}
@@ -1109,7 +1113,7 @@ const handleChangePassword = async () => {
                 {/* Biểu đồ trạm */}
                 {stationChartData.length > 0 && (
                   <div className="chart-section">
-                    <h3 className="chart-title">📍 Top trạm thường đến</h3>
+                    <h3 className="chart-title">Top trạm thường đến</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
@@ -1130,7 +1134,7 @@ const handleChangePassword = async () => {
                       </PieChart>
                     </ResponsiveContainer>
                     <p className="chart-note">
-                      {stationChartData[0] && `⭐ Trạm yêu thích: ${stationChartData[0].station} (${stationChartData[0].count} lượt)`}
+                      {stationChartData[0] && `Trạm yêu thích: ${stationChartData[0].station} (${stationChartData[0].count} lượt)`}
                     </p>
                   </div>
                 )}
@@ -1173,99 +1177,215 @@ const handleChangePassword = async () => {
             );
           }
 
+          // Phân trang
+          const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+          const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+          
+          const handlePageChange = (page) => {
+            setCurrentPage(page);
+          };
+
           // Render danh sách bookings
           return (
-            <div className="trips-list">
-              {filteredBookings.map(booking => (
+            <div className="trips-container">
+              <div className="trips-list">
+                {paginatedBookings.map(booking => (
                 <div key={booking.id} className="trip-card">
                   <div className="trip-card-header">
                     <span className={`trip-status ${booking.status.toLowerCase()}`}>
-                      {booking.status}
+                      {(() => {
+                        switch(booking.status) {
+                          case 'PENDING': return 'Chờ xác nhận';
+                          case 'CONFIRMED': return 'Đã xác nhận';
+                          case 'ACTIVE': return 'Đang diễn ra';
+                          case 'COMPLETED': return 'Hoàn thành';
+                          case 'CANCELLED': return 'Đã hủy';
+                          default: return booking.status;
+                        }
+                      })()}
                     </span>
                     <span className="trip-id">#{booking.id}</span>
                   </div>
                   
                   <div className="trip-card-body">
-                    {booking.vehicleInfo && (
-                      <div className="trip-vehicle-info">
-                        <h4>{booking.vehicleInfo.type}</h4>
-                        <p>📋 Biển số: {booking.vehicleInfo.licensePlate}</p>
-                        <p>💰 Giá thuê: {booking.vehicleInfo.pricePerHour?.toLocaleString('vi-VN')} VNĐ/giờ</p>
-                        {booking.vehicleInfo.seats && <p>👥 Số chỗ: {booking.vehicleInfo.seats}</p>}
+                    {/* Top Row - Vehicle Image and Info */}
+                    <div className="trip-top-section">
+                      {/* Left - Vehicle Image */}
+                      <div className="trip-vehicle-image">
+                        {booking.vehicleInfo && booking.vehicleInfo.imageUrl ? (
+                          <img 
+                            src={booking.vehicleInfo.imageUrl} 
+                            alt={booking.vehicleInfo.type}
+                            className="vehicle-image"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div className="vehicle-placeholder" style={{display: booking.vehicleInfo?.imageUrl ? 'none' : 'flex'}}>
+                          <svg width="60" height="45" viewBox="0 0 24 24" fill="#999">
+                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3C15 2.45 14.55 2 14 2H10C9.45 2 9 2.45 9 3V5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01ZM6.5 16C5.67 16 5 15.33 5 14.5S5.67 13 6.5 13 8 13.67 8 14.5 7.33 16 6.5 16ZM17.5 16C16.67 16 16 15.33 16 14.5S16.67 13 17.5 13 19 13.67 19 14.5 18.33 16 17.5 16Z"/>
+                          </svg>
+                        </div>
+                        {booking.vehicleInfo && (
+                          <div className="vehicle-basic-info">
+                            <h5>{booking.vehicleInfo.type}</h5>
+                            <p>{booking.vehicleInfo.licensePlate}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    <div className="trip-time-info">
-                      <p><strong>⏰ Thời gian dự kiến:</strong></p>
-                      <p>Từ: {new Date(booking.estimatedStartTime).toLocaleString('vi-VN')}</p>
-                      <p>Đến: {new Date(booking.estimatedEndTime).toLocaleString('vi-VN')}</p>
                       
-                      {booking.actualStartTime && (
-                        <p style={{marginTop: '0.5rem', color: '#28a745'}}>
-                          ✅ Bắt đầu thực tế: {new Date(booking.actualStartTime).toLocaleString('vi-VN')}
-                        </p>
-                      )}
-                      {booking.actualEndTime && (
-                        <p style={{color: '#28a745'}}>
-                          ✅ Kết thúc thực tế: {new Date(booking.actualEndTime).toLocaleString('vi-VN')}
-                        </p>
-                      )}
+                      {/* Right - Trip Information */}
+                      <div className="trip-details-info">
+                        {booking.vehicleInfo && (
+                          <div className="vehicle-details">
+                            <p><strong>Giá thuê:</strong> {booking.vehicleInfo.pricePerHour?.toLocaleString('vi-VN')} VNĐ/giờ</p>
+                            {booking.vehicleInfo.seats && <p><strong>Số chỗ:</strong> {booking.vehicleInfo.seats} chỗ</p>}
+                          </div>
+                        )}
+                        
+                        <div className="time-details">
+                          <p><strong>Thời gian dự kiến:</strong></p>
+                          
+                          <div className="timeline-container">
+                            <div className="timeline-point start">
+                              <div className="timeline-dot"></div>
+                              <div className="timeline-info">
+                                <span className="timeline-label">bắt đầu</span>
+                                <span className="timeline-time">{new Date(booking.estimatedStartTime).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="timeline-bar">
+                              <div className="timeline-line"></div>
+                              <span className="timeline-duration">Tổng giờ đi</span>
+                            </div>
+                            
+                            <div className="timeline-point end">
+                              <div className="timeline-dot"></div>
+                              <div className="timeline-info">
+                                <span className="timeline-label">kết thúc</span>
+                                <span className="timeline-time">{new Date(booking.estimatedEndTime).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
-                    {/* Chi tiết thanh toán */}
-                    <div className="trip-payment-details">
-                      {/* 1. Tiền đặt cọc */}
-                      {booking.depositAmount && (
-                        <div className="payment-row">
-                          <span>🏦 Tiền đặt cọc:</span>
-                          <strong>{Number(booking.depositAmount).toLocaleString('vi-VN')} VNĐ</strong>
-                        </div>
-                      )}
+                    {/* Bottom Row - Payment Information (Full Width) */}
+                    <div className="trip-payment-section">
+                      <h4>Thanh toán</h4>
                       
-                      {/* 2. Tiền còn lại = Tổng tiền - Đặt cọc */}
-                      {booking.totalCost && booking.depositAmount && (
-                        <div className="payment-row">
-                          <span>💵 Tiền còn lại:</span>
-                          <strong>
-                            {(Number(booking.totalCost) - Number(booking.depositAmount)).toLocaleString('vi-VN')} VNĐ
-                          </strong>
-                        </div>
-                      )}
-                      
-                      {/* 3. Phí phát sinh (nếu có) */}
-                      {booking.additionalCharges && Number(booking.additionalCharges) > 0 && (
-                        <>
-                          <div className="payment-row additional">
-                            <span>⚠️ Phí phát sinh:</span>
-                            <strong style={{color: '#dc3545'}}>
-                              +{Number(booking.additionalCharges).toLocaleString('vi-VN')} VNĐ
+                      <div className="payment-items-container">
+                        {/* 1. Tiền đặt cọc */}
+                        {booking.depositAmount && (
+                          <div className="payment-item">
+                            <span>Tiền đặt cọc:</span>
+                            <strong>{Number(booking.depositAmount).toLocaleString('vi-VN')} VNĐ</strong>
+                          </div>
+                        )}
+                        
+                        {/* 2. Tiền còn lại */}
+                        {booking.totalCost && booking.depositAmount && (
+                          <div className="payment-item">
+                            <span>Tiền còn lại:</span>
+                            <strong>
+                              {(Number(booking.totalCost) - Number(booking.depositAmount)).toLocaleString('vi-VN')} VNĐ
                             </strong>
                           </div>
-                          {booking.additionalChargesReason && (
-                            <div className="payment-row reason">
-                              <span style={{fontSize: '0.85rem', color: '#666', fontStyle: 'italic'}}>
-                                Lý do: {booking.additionalChargesReason}
-                              </span>
+                        )}
+                        
+                        {/* 3. Phí phát sinh */}
+                        {booking.additionalCharges && Number(booking.additionalCharges) > 0 && (
+                          <>
+                            <div className="payment-item additional">
+                              <span>Phí phát sinh:</span>
+                              <strong>+{Number(booking.additionalCharges).toLocaleString('vi-VN')} VNĐ</strong>
                             </div>
-                          )}
-                        </>
-                      )}
-                      
-                      {/* 4. Tổng thanh toán cuối cùng (Tổng tất cả) */}
-                      <div className="payment-row final">
-                        <span>💳 Tổng thanh toán:</span>
-                        <strong style={{color: '#28a745', fontSize: '1.1rem'}}>
-                          {(() => {
-                            const total = Number(booking.totalCost || 0);
-                            const additional = Number(booking.additionalCharges || 0);
-                            return (total + additional).toLocaleString('vi-VN');
-                          })()} VNĐ
-                        </strong>
+                            {booking.additionalChargesReason && (
+                              <div className="payment-reason">
+                                <em>Lý do: {booking.additionalChargesReason}</em>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* 4. Tổng thanh toán */}
+                        <div className="payment-total">
+                          <span>Tổng cộng:</span>
+                          <strong>
+                            {(() => {
+                              const total = Number(booking.totalCost || 0);
+                              const additional = Number(booking.additionalCharges || 0);
+                              return (total + additional).toLocaleString('vi-VN');
+                            })()} VNĐ
+                          </strong>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
+              
+              {/* Phân trang - chỉ hiển thị khi có hơn 5 chuyến */}
+              {filteredBookings.length > itemsPerPage && (
+                <div className="pagination-container">
+                  <div className="pagination">
+                    {/* Nút Previous */}
+                    <button 
+                      className={`pagination-btn ${currentPage === 1 ? 'disabled' : ''}`}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      « Trước
+                    </button>
+                    
+                    {/* Số trang */}
+                    {[...Array(totalPages)].map((_, index) => {
+                      const page = index + 1;
+                      return (
+                        <button
+                          key={page}
+                          className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                          onClick={() => handlePageChange(page)}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                    
+                    {/* Nút Next */}
+                    <button 
+                      className={`pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Sau »
+                    </button>
+                  </div>
+                  
+                  <div className="pagination-info">
+                    Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredBookings.length)} của {filteredBookings.length} chuyến
+                  </div>
+                </div>
+              )}
             </div>
           );
         };

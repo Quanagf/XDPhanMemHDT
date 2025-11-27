@@ -499,13 +499,13 @@ const VehicleManagement = () => {
             className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
           >
-            📋 Danh sách
+            <i className="fas fa-list"></i> Danh sách
           </button>
           <button 
             className={`toggle-btn ${viewMode === 'statistics' ? 'active' : ''}`}
             onClick={() => setViewMode('statistics')}
           >
-            📊 Thống kê
+            <i className="fas fa-chart-bar"></i> Thống kê
           </button>
         </div>
       </div>
@@ -1106,7 +1106,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
       {/* Thống kê tổng quan */}
       <div className="stats-overview">
         <div className="stat-card">
-          <div className="stat-icon">🚗</div>
+          <div className="stat-icon"><i className="fas fa-car"></i></div>
           <div className="stat-info">
             <h3>{totalVehicles}</h3>
             <p>Tổng số xe</p>
@@ -1114,7 +1114,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         </div>
 
         <div className="stat-card success">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon"><i className="fas fa-check-circle"></i></div>
           <div className="stat-info">
             <h3>{availableVehicles}</h3>
             <p>Xe sẵn sàng</p>
@@ -1122,7 +1122,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         </div>
 
         <div className="stat-card primary">
-          <div className="stat-icon">🔄</div>
+          <div className="stat-icon"><i className="fas fa-sync-alt"></i></div>
           <div className="stat-info">
             <h3>{inUseVehicles}</h3>
             <p>Xe đang sử dụng</p>
@@ -1130,7 +1130,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         </div>
 
         <div className="stat-card warning">
-          <div className="stat-icon">🔧</div>
+          <div className="stat-icon"><i className="fas fa-tools"></i></div>
           <div className="stat-info">
             <h3>{maintenanceVehicles}</h3>
             <p>Bảo trì/Sạc</p>
@@ -1138,7 +1138,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         </div>
 
         <div className="stat-card highlight">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon"><i className="fas fa-chart-line"></i></div>
           <div className="stat-info">
             <h3>{utilizationRate}%</h3>
             <p>Tỷ lệ sử dụng</p>
@@ -1146,7 +1146,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         </div>
 
         <div className="stat-card accent">
-          <div className="stat-icon">💰</div>
+          <div className="stat-icon"><i className="fas fa-dollar-sign"></i></div>
           <div className="stat-info">
             <h3>{totalValue.toLocaleString('vi-VN')}</h3>
             <p>Tổng giá/giờ (VNĐ)</p>
@@ -1159,7 +1159,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         {/* Biểu đồ trạng thái */}
         {statusData.length > 0 && (
           <div className="chart-card">
-            <h3>📈 Phân bố theo trạng thái</h3>
+            <h3><i className="fas fa-chart-pie"></i> Phân bố theo trạng thái</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -1185,7 +1185,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         {/* Biểu đồ loại xe */}
         {typeData.length > 0 && (
           <div className="chart-card">
-            <h3>🚙 Phân bố theo loại xe</h3>
+            <h3><i className="fas fa-car-side"></i> Phân bố theo loại xe</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={typeData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -1202,7 +1202,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         {/* Biểu đồ trạm */}
         {stationData.length > 0 && (
           <div className="chart-card">
-            <h3>📍 Phân bố theo trạm</h3>
+            <h3><i className="fas fa-map-marker-alt"></i> Phân bố theo trạm</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stationData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -1225,7 +1225,7 @@ const VehicleStatistics = ({ vehicles, stations }) => {
         {/* Biểu đồ mức pin */}
         {batteryData.length > 0 && (
           <div className="chart-card">
-            <h3>🔋 Phân bố mức pin</h3>
+            <h3><i className="fas fa-battery-half"></i> Phân bố mức pin</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={batteryData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -2416,7 +2416,13 @@ const StaffManagement = () => {
           className="admin-btn-success"
           onClick={() => setShowCreateForm(!showCreateForm)}
         >
-          {showCreateForm ? '✗ Đóng form' : '+ Tạo tài khoản Staff mới'}
+          {showCreateForm ? (
+            <>
+              <i className="fas fa-times"></i> Đóng form
+            </>
+          ) : (
+            '+ Tạo tài khoản Staff mới'
+          )}
         </button>
       </div>
 
@@ -2559,24 +2565,18 @@ const StaffManagement = () => {
                 <td style={{ padding: '0.5rem 1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <button 
-                      className="admin-btn-action"
+                      className="admin-btn-action compact"
                       onClick={() => handleChangeRole(user.id, user.role)}
-                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                     >
                       Đổi role
                     </button>
                     {user.role === 'STAFF' && (
                       <button 
-                        className="admin-btn-action"
+                        className="admin-btn-action compact"
                         onClick={() => handleUpdateStation(user)}
-                        style={{ 
-                          marginLeft: '0', 
-                          background: '#2196F3', 
-                          fontSize: '0.75rem', 
-                          padding: '0.25rem 0.5rem' 
-                        }}
+                        style={{ background: '#16a085' }}
                       >
-                        Cập nhật trạm
+                        Đổi trạm
                       </button>
                     )}
                   </div>
@@ -3197,10 +3197,14 @@ const StationManagement = () => {
                 </td>
                 <td style={{ padding: '0.5rem 1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button onClick={() => handleEdit(station)} className="admin-btn-action">
+                    <button onClick={() => handleEdit(station)} className="admin-btn-action compact">
                       Sửa
                     </button>
-                    <button onClick={() => handleDelete(station)} className="admin-btn-action danger">
+                    <button 
+                      onClick={() => handleDelete(station)} 
+                      className="admin-btn-action compact danger"
+                      style={{ background: '#e74c3c' }}
+                    >
                       Xóa
                     </button>
                   </div>
@@ -3457,30 +3461,30 @@ const ReportsAnalytics = () => {
     <div className="admin-section">
       <h1>Báo cáo & phân tích</h1>
       
-      <div className="stats-grid">
-        <div className="stat-card">
+      <div className="reports-stats-grid">
+        <div className="reports-stat-card">
           <h3>Doanh thu tháng này</h3>
-          <p className="stat-number">850,000,000đ</p>
-          <p className="stat-change positive">+15% so với tháng trước</p>
+          <p className="reports-stat-number">850,000,000đ</p>
+          <p className="reports-stat-change positive">+15% so với tháng trước</p>
         </div>
-        <div className="stat-card">
+        <div className="reports-stat-card">
           <h3>Tỷ lệ sử dụng xe</h3>
-          <p className="stat-number">78%</p>
+          <p className="reports-stat-number">78%</p>
         </div>
-        <div className="stat-card">
+        <div className="reports-stat-card">
           <h3>Giờ cao điểm</h3>
-          <p className="stat-number">7-9h, 17-19h</p>
+          <p className="reports-stat-number">7-9h, 17-19h</p>
         </div>
-        <div className="stat-card">
+        <div className="reports-stat-card">
           <h3>Điểm thuê hiệu quả nhất</h3>
-          <p className="stat-number">Hà Nội - Hoàn Kiếm</p>
+          <p className="reports-stat-number">Hà Nội - Hoàn Kiếm</p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="chart-section">
+      <div className="reports-chart-section">
         <h2>Doanh thu theo điểm thuê</h2>
-        <div className="chart-placeholder">
+        <div className="reports-chart-placeholder">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="#64748b" style={{marginBottom: '1rem'}}>
             <path d="M6,16.5L3,19.44V11H6M11,14.66L9.43,13.32L8,14.64V7H11M16,13L13,16V3H16M18.81,12.81L17,11H22V16L20.21,14.21L13.41,21H10.59L18.81,12.81Z"/>
           </svg>
@@ -3489,9 +3493,9 @@ const ReportsAnalytics = () => {
         </div>
       </div>
 
-      <div className="chart-section">
+      <div className="reports-chart-section">
         <h2>Tỷ lệ sử dụng xe theo giờ</h2>
-        <div className="chart-placeholder">
+        <div className="reports-chart-placeholder">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="#64748b" style={{marginBottom: '1rem'}}>
             <path d="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z"/>
           </svg>
@@ -3695,7 +3699,7 @@ const DocumentVerification = () => {
 
       {filteredDocs.length === 0 ? (
         <div className="empty-state">
-          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6'}}>📮</div>
+          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6'}}><i className="fas fa-inbox"></i></div>
           <p>Không có tài liệu nào</p>
         </div>
       ) : (
@@ -3769,13 +3773,13 @@ const DocumentVerification = () => {
 
                         <div className="form-actions-compact">
                           <button 
-                            className="btn-confirm"
+                            className="admin-btn-confirm"
                             onClick={() => handleVerify(doc.id)}
                           >
                             {verifyForm.action === 'APPROVED' ? 'Xác thực' : 'Từ chối'}
                           </button>
                           <button 
-                            className="btn-cancel"
+                            className="admin-btn-cancel"
                             onClick={() => {
                               setSelectedDoc(null);
                               setVerifyForm({
@@ -3791,7 +3795,7 @@ const DocumentVerification = () => {
                       </div>
                     ) : (
                       <button 
-                        className="btn-action-compact"
+                        className="admin-btn-action-compact"
                         onClick={() => {
                           setSelectedDoc(doc.id);
                           const currentNumber = doc.documentType === 'LICENSE' 
@@ -4242,7 +4246,7 @@ const ComplaintsManagement = () => {
         </div>
       ) : filteredComplaints.length === 0 ? (
         <div className="empty-state-modern">
-          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6' }}>📮</div>
+          <div style={{ fontSize: '60px', marginBottom: '16px', opacity: '0.6' }}><i className="fas fa-inbox"></i></div>
           <h3>Không tìm thấy khiếu nại nào</h3>
           <p>{searchTerm ? 'Thử tìm kiếm với từ khóa khác' : 'Chưa có khiếu nại nào trong danh sách'}</p>
         </div>
@@ -4664,7 +4668,7 @@ const ComplaintsManagement = () => {
                     fontSize: '12px',
                     color: '#856404'
                   }}>
-                    💡 Chọn nhân viên phù hợp với khu vực của khiếu nại
+                    <i className="fas fa-lightbulb"></i> Chọn nhân viên phù hợp với khu vực của khiếu nại
                   </div>
                 )}
               </div>
@@ -4719,7 +4723,7 @@ const ComplaintsManagement = () => {
                   fontSize: '12px',
                   color: '#0c5460'
                 }}>
-                  <strong>💡 Gợi ý:</strong> Ghi chú càng chi tiết sẽ giúp nhân viên xử lý hiệu quả hơn
+                  <strong><i className="fas fa-lightbulb"></i> Gợi ý:</strong> Ghi chú càng chi tiết sẽ giúp nhân viên xử lý hiệu quả hơn
                 </div>
               </div>
             </div>

@@ -10,7 +10,6 @@ import vehicleAPI from '../api/vehicleAPI';
 import { getAllComplaints, staffCompleteComplaint } from '../api/complaints';
 import { getStations } from '../api/stations';
 import { getStaffNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../api/notifications';
-import { createIncidentReport } from '../api/incidentReports';
 import { getPendingBookingsByStation, getStationBookings, getPendingBookingsWithDetailsForStation, getActiveBookingsWithDetailsForStation, checkInVehicle, checkOutVehicle, uploadVehicleImage, uploadLicenseImage, confirmBooking, rejectBooking } from '../api/bookings';
 import { getPendingPickups, getPendingReturns, processPickup, processReturn, cancelBooking } from '../api/handovers';
 import { getPaymentRecordsByBooking, getTotalPaidAmount, createPaymentRecord } from '../api/paymentRecords';
@@ -116,7 +115,7 @@ const StaffDashboard = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: '#5FCF86'
       }}>
         <div style={{
           display: 'flex',
@@ -228,7 +227,7 @@ const StaffDashboard = () => {
                   <path d="M9 11H7v2h2v-2m4 0h-2v2h2v-2m4 0h-2v2h2v-2m2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 16H5V9h14v11Z"/>
                 </svg>
               </span>
-              ⏳ Xác nhận đặt xe
+              Xác nhận đặt xe
             </button>
             <button 
               className={`staff-nav-item ${activeTab === 'handover' ? 'active' : ''}`}
@@ -286,7 +285,7 @@ const StaffDashboard = () => {
                   <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z"/>
                 </svg>
               </span>
-              💰 Ghi nhận thanh toán
+              Ghi nhận thanh toán
             </button>
             <button 
               className={`staff-nav-item ${activeTab === 'booking-history' ? 'active' : ''}`}
@@ -621,7 +620,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
     <div style={{ padding: '20px' }}>
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#5FCF86',
         borderRadius: '12px',
         padding: '24px',
         marginBottom: '24px',
@@ -647,7 +646,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
           style={{
             padding: '12px 24px',
             border: 'none',
-            background: activeSubTab === 'pickup' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+            background: activeSubTab === 'pickup' ? '#5FCF86' : 'transparent',
             color: activeSubTab === 'pickup' ? 'white' : '#6b7280',
             fontWeight: '600',
             cursor: 'pointer',
@@ -662,7 +661,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
           style={{
             padding: '12px 24px',
             border: 'none',
-            background: activeSubTab === 'return' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+            background: activeSubTab === 'return' ? '#5FCF86' : 'transparent',
             color: activeSubTab === 'return' ? 'white' : '#6b7280',
             fontWeight: '600',
             cursor: 'pointer',
@@ -734,7 +733,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
               transition: 'all 0.3s'
             }}
           >
-            🔍 Tìm kiếm
+            <i className="fas fa-search"></i> Tìm kiếm
           </button>
         </div>
       </div>
@@ -746,7 +745,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
             width: '40px',
             height: '40px',
             border: '4px solid #e5e7eb',
-            borderTop: '4px solid #667eea',
+            borderTop: '4px solid #5FCF86',
             borderRadius: '50%',
             margin: '0 auto 16px',
             animation: 'spin 1s linear infinite'
@@ -815,7 +814,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                       onClick={() => handleOpenProcessModal(booking)}
                       style={{
                         padding: '10px 20px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: '#5FCF86',
                         color: 'white',
                         border: 'none',
                         borderRadius: '6px',
@@ -841,7 +840,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                           fontSize: '14px'
                         }}
                       >
-                        ❌ Hủy
+                        <i className="fas fa-times"></i> Hủy
                       </button>
                     )}
                   </div>
@@ -1318,7 +1317,7 @@ const VehicleHandover = ({ assignedStation, onNotificationUpdate }) => {
                 disabled={loading}
                 style={{
                   padding: '10px 24px',
-                  background: loading ? '#9ca3af' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: loading ? '#9ca3af' : '#5FCF86',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -1571,45 +1570,18 @@ const VehicleMaintenance = ({ assignedStation }) => {
     e.preventDefault();
     
     try {
-      // Debug: Check token
-      const token = localStorage.getItem('authToken');
-      console.log('Auth Token:', token ? 'exists' : 'MISSING!');
-      console.log('User Profile:', JSON.parse(localStorage.getItem('userProfile') || '{}'));
-      
-      // Map severity sang priority
-      const priorityMap = {
-        'low': 'LOW',
-        'medium': 'MEDIUM',
-        'high': 'HIGH',
-        'critical': 'CRITICAL'
+      // Tạo báo cáo sự cố (có thể gửi lên server hoặc lưu local)
+      const issueReport = {
+        ...issueReportForm,
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        status: 'PENDING'
       };
       
-      // Map issueType sang category
-      const categoryMap = {
-        'mechanical': 'MECHANICAL',
-        'electrical': 'ELECTRICAL',
-        'battery': 'BATTERY',
-        'tire': 'TIRE',
-        'other': 'OTHER'
-      };
-      
-      // Tạo request payload
-      const incidentData = {
-        title: `Sự cố xe ${issueReportForm.vehiclePlate}`,
-        description: issueReportForm.description,
-        category: categoryMap[issueReportForm.issueType] || 'OTHER',
-        priority: priorityMap[issueReportForm.severity] || 'MEDIUM',
-        vehicleId: issueReportForm.vehicleId,
-        vehiclePlate: issueReportForm.vehiclePlate,
-        stationId: assignedStation?.id,
-        stationName: assignedStation?.name,
-        location: assignedStation?.address
-      };
-      
-      console.log('Sending incident report:', incidentData);
-      
-      // Gửi báo cáo lên server
-      await createIncidentReport(incidentData);
+      // Lưu báo cáo vào localStorage (trong thực tế sẽ gửi lên server)
+      const existingReports = JSON.parse(localStorage.getItem('issueReports') || '[]');
+      existingReports.push(issueReport);
+      localStorage.setItem('issueReports', JSON.stringify(existingReports));
       
       // Cập nhật trạng thái xe thành MAINTENANCE nếu sự cố nghiêm trọng
       if (issueReportForm.severity === 'critical') {
@@ -1671,7 +1643,7 @@ const VehicleMaintenance = ({ assignedStation }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2>
             Danh sách xe tại trạm {assignedStation?.name || 'đang tải...'}
-            {loading && <span style={{ marginLeft: '0.5rem', color: '#666' }}>🔄</span>}
+            {loading && <span style={{ marginLeft: '0.5rem', color: '#666' }}></span>}
           </h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <select 
@@ -1862,7 +1834,7 @@ const VehicleMaintenance = ({ assignedStation }) => {
                               </div>
                             </div>
                             
-                            <h6 style={{ marginTop: '16px', marginBottom: '12px', color: '#6366f1', fontWeight: '600', fontSize: '14px' }}>Tình trạng kỹ thuật</h6>
+                            <h6 style={{ marginTop: '16px', marginBottom: '12px', color: '#10b981', fontWeight: '600', fontSize: '14px' }}>Tình trạng kỹ thuật</h6>
                             <div className="details-grid">
                               <div className="detail-row">
                                 <span className="label">Trạng thái kỹ thuật:</span>
@@ -2448,8 +2420,8 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                   </h4>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
                     <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>👤 {complaint.userName}</span>
-                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>📧 {complaint.userEmail}</span>
-                    {complaint.bookingId && <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}>🎫 Booking #{complaint.bookingId}</span>}
+                    <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}><i className="fas fa-envelope"></i> {complaint.userEmail}</span>
+                    {complaint.bookingId && <span style={{ background: '#f8f9fa', padding: '4px 12px', borderRadius: '6px' }}><i className="fas fa-ticket-alt"></i> Booking #{complaint.bookingId}</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -2477,13 +2449,13 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
 
               {complaint.adminNotes && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)',
+                  background: '#E8F5E8',
                   padding: '16px',
                   borderRadius: '8px',
                   marginBottom: '16px',
-                  borderLeft: '4px solid #9C27B0'
+                  borderLeft: '4px solid #5FCF86'
                 }}>
-                  <strong style={{ color: '#6A1B9A', display: 'block', marginBottom: '8px' }}>👤 Ghi chú từ Admin:</strong>
+                  <strong style={{ color: '#2E7D32', display: 'block', marginBottom: '8px' }}><i className="fas fa-user-tie"></i> Ghi chú từ Admin:</strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.adminNotes}</p>
                 </div>
               )}
@@ -2496,7 +2468,7 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                   marginBottom: '16px',
                   borderLeft: '4px solid #2196F3'
                 }}>
-                  <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}>📝 Ghi chú của bạn:</strong>
+                  <strong style={{ color: '#1976D2', display: 'block', marginBottom: '8px' }}><i className="fas fa-sticky-note"></i> Ghi chú của bạn:</strong>
                   <p style={{ margin: '0', color: '#2c3e50', lineHeight: '1.6' }}>{complaint.staffNotes}</p>
                   <small style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
@@ -2558,7 +2530,7 @@ const MyComplaintsManagement = ({ user, assignedStation }) => {
                       Đánh dấu hoàn thành
                     </button>
                     <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
-                      💡 Hãy hoàn thành công việc và nhấn nút này để báo admin
+                      <i className="fas fa-lightbulb"></i> Hãy hoàn thành công việc và nhấn nút này để báo admin
                     </div>
                   </>
                 )}
@@ -2898,7 +2870,7 @@ const WalkInBooking = ({ assignedStation }) => {
         borderRadius: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <p style={{ color: '#f57c00', fontSize: '16px' }}>⚠️ Chưa được phân công trạm</p>
+        <p style={{ color: '#f57c00', fontSize: '16px' }}><i className="fas fa-exclamation-triangle"></i> Chưa được phân công trạm</p>
       </div>
     );
   }
@@ -2906,12 +2878,12 @@ const WalkInBooking = ({ assignedStation }) => {
   return (
     <div style={{ padding: '1.5rem' }}>
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: '#5FCF86',
         padding: '1.5rem',
         borderRadius: '12px',
         marginBottom: '1.5rem',
         color: 'white',
-        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
+        boxShadow: '0 4px 12px rgba(95, 207, 134, 0.4)'
       }}>
         <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '24px', fontWeight: '600' }}>
           Đặt xe tại điểm
@@ -2939,7 +2911,7 @@ const WalkInBooking = ({ assignedStation }) => {
               width: '40px',
               height: '40px',
               border: '4px solid #f3f4f6',
-              borderTop: '4px solid #667eea',
+              borderTop: '4px solid #5FCF86',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto'
@@ -2966,7 +2938,7 @@ const WalkInBooking = ({ assignedStation }) => {
                 key={vehicle.id}
                 onClick={() => handleVehicleSelect(vehicle)}
                 style={{
-                  border: selectedVehicle?.id === vehicle.id ? '3px solid #667eea' : '2px solid #e5e7eb',
+                  border: selectedVehicle?.id === vehicle.id ? '3px solid #5FCF86' : '2px solid #e5e7eb',
                   borderRadius: '8px',
                   padding: '1rem',
                   cursor: 'pointer',
@@ -3056,7 +3028,7 @@ const WalkInBooking = ({ assignedStation }) => {
                     outline: 'none',
                     transition: 'border-color 0.3s'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onFocus={(e) => e.target.style.borderColor = '#5FCF86'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3079,7 +3051,7 @@ const WalkInBooking = ({ assignedStation }) => {
                     outline: 'none',
                     transition: 'border-color 0.3s'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onFocus={(e) => e.target.style.borderColor = '#5FCF86'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3102,7 +3074,7 @@ const WalkInBooking = ({ assignedStation }) => {
                     outline: 'none',
                     transition: 'border-color 0.3s'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onFocus={(e) => e.target.style.borderColor = '#5FCF86'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3132,7 +3104,7 @@ const WalkInBooking = ({ assignedStation }) => {
                   style={{
                     display: 'block',
                     padding: '0.75rem',
-                    border: '2px dashed #667eea',
+                    border: '2px dashed #5FCF86',
                     borderRadius: '6px',
                     textAlign: 'center',
                     cursor: 'pointer',
@@ -3175,7 +3147,7 @@ const WalkInBooking = ({ assignedStation }) => {
                   style={{
                     display: 'block',
                     padding: '0.75rem',
-                    border: '2px dashed #667eea',
+                    border: '2px dashed #5FCF86',
                     borderRadius: '6px',
                     textAlign: 'center',
                     cursor: 'pointer',
@@ -3227,7 +3199,7 @@ const WalkInBooking = ({ assignedStation }) => {
                     outline: 'none',
                     transition: 'border-color 0.3s'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onFocus={(e) => e.target.style.borderColor = '#5FCF86'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3249,7 +3221,7 @@ const WalkInBooking = ({ assignedStation }) => {
                     outline: 'none',
                     transition: 'border-color 0.3s'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                  onFocus={(e) => e.target.style.borderColor = '#5FCF86'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
               </div>
@@ -3284,7 +3256,7 @@ const WalkInBooking = ({ assignedStation }) => {
               padding: '1rem',
               background: submitting 
                 ? '#9ca3af' 
-                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                : '#5FCF86',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -3294,7 +3266,7 @@ const WalkInBooking = ({ assignedStation }) => {
               transition: 'all 0.3s',
               boxShadow: submitting 
                 ? 'none' 
-                : '0 4px 12px rgba(102, 126, 234, 0.4)'
+                : '0 4px 12px rgba(95, 207, 134, 0.4)'
             }}
             onMouseEnter={(e) => {
               if (!submitting) {
@@ -3400,7 +3372,7 @@ const BookingApproval = ({ assignedStation }) => {
   if (!assignedStation) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-        <p>⚠️ Bạn chưa được phân công trạm</p>
+        <p><i className="fas fa-exclamation-triangle"></i> Bạn chưa được phân công trạm</p>
       </div>
     );
   }
@@ -3432,7 +3404,7 @@ const BookingApproval = ({ assignedStation }) => {
       }}>
         {/* Header */}
         <div style={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: '#5FCF86',
           padding: '16px 20px',
           color: 'white',
           display: 'flex',
@@ -3441,7 +3413,7 @@ const BookingApproval = ({ assignedStation }) => {
         }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
-              ⏳ Đặt xe chờ xác nhận
+              Đặt xe chờ xác nhận
             </h2>
             <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '13px' }}>
               Trạm: <strong>{assignedStation.name}</strong>
@@ -3482,7 +3454,7 @@ const BookingApproval = ({ assignedStation }) => {
                     position: 'relative'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#667eea';
+                    e.currentTarget.style.borderColor = '#5FCF86';
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
                   }}
                   onMouseLeave={(e) => {
@@ -3494,7 +3466,7 @@ const BookingApproval = ({ assignedStation }) => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '16px', alignItems: 'center', marginBottom: '12px' }}>
                     {/* Booking ID */}
                     <div style={{ 
-                      background: '#667eea', 
+                      background: '#5FCF86', 
                       color: 'white', 
                       padding: '8px 16px', 
                       borderRadius: '8px',
@@ -3510,7 +3482,7 @@ const BookingApproval = ({ assignedStation }) => {
                         {booking.allUserInfo?.fullName || 'N/A'}
                       </div>
                       <div style={{ fontSize: '13px', color: '#666' }}>
-                        📞 {booking.allUserInfo?.phoneNumber || 'N/A'}
+                        {booking.allUserInfo?.phoneNumber || 'N/A'}
                       </div>
                     </div>
 
@@ -3537,13 +3509,13 @@ const BookingApproval = ({ assignedStation }) => {
                     fontSize: '12px'
                   }}>
                     <div>
-                      <span style={{ color: '#999' }}>⏰ Bắt đầu:</span>
+                      <span style={{ color: '#999' }}>Bắt đầu:</span>
                       <div style={{ fontWeight: '600', color: '#333', marginTop: '2px' }}>
                         {formatDateTime(booking.estimatedStartTime)}
                       </div>
                     </div>
                     <div>
-                      <span style={{ color: '#999' }}>⏰ Kết thúc:</span>
+                      <span style={{ color: '#999' }}>Kết thúc:</span>
                       <div style={{ fontWeight: '600', color: '#333', marginTop: '2px' }}>
                         {formatDateTime(booking.estimatedEndTime)}
                       </div>
@@ -3609,7 +3581,7 @@ const BookingApproval = ({ assignedStation }) => {
                         e.currentTarget.style.background = '#28a745';
                       }}
                     >
-                      ✅ Xác nhận
+                      <i className="fas fa-check"></i> Xác nhận
                     </button>
                     <button
                       onClick={() => {
@@ -3637,7 +3609,7 @@ const BookingApproval = ({ assignedStation }) => {
                         e.currentTarget.style.background = '#dc3545';
                       }}
                     >
-                      ❌ Từ chối
+                      <i className="fas fa-times"></i> Từ chối
                     </button>
                   </div>
                 </div>
@@ -3670,7 +3642,7 @@ const BookingApproval = ({ assignedStation }) => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
           }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '700' }}>
-              ❌ Từ chối booking #{selectedBooking?.id}
+              <i className="fas fa-times"></i> Từ chối booking #{selectedBooking?.id}
             </h3>
             <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
               Vui lòng nhập lý do từ chối để thông báo cho khách hàng:
@@ -3912,7 +3884,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
   return (
     <div className="payment-management">
       <div className="section-header">
-        <h2>💰 Ghi nhận thanh toán</h2>
+        <h2>Ghi nhận thanh toán</h2>
         <p>Quản lý thanh toán cho các booking đang hoạt động</p>
       </div>
 
@@ -3924,7 +3896,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
           </svg>
           <input
             type="text"
-            placeholder="🔍 Tìm kiếm theo tên khách hàng, SĐT hoặc mã booking..."
+            placeholder="Tìm kiếm theo tên khách hàng, SĐT hoặc mã booking..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -3952,9 +3924,23 @@ const PaymentManagement = ({ assignedStation, user }) => {
       </div>
 
       {loading ? (
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Đang tải...</p>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4rem 2rem',
+          gap: '1rem'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid #f3f4f6',
+            borderTop: '5px solid #5FCF86',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ color: '#6b7280', margin: 0, fontSize: '16px', fontWeight: '500' }}>Đang tải...</p>
         </div>
       ) : (
         <div className="payment-bookings-grid">
@@ -4078,14 +4064,14 @@ const PaymentManagement = ({ assignedStation, user }) => {
         <div className="modal-overlay" onClick={closePaymentModal}>
           <div className="modal-content payment-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>💰 Ghi nhận thanh toán - Booking #{selectedBooking.id}</h3>
+              <h3><i className="fas fa-money-bill-wave"></i> Ghi nhận thanh toán - Booking #{selectedBooking.id}</h3>
               <button className="close-btn" onClick={closePaymentModal}>×</button>
             </div>
 
             <div className="modal-body">
               {/* Booking Info */}
               <div className="payment-booking-info">
-                <h4>📋 Thông tin booking</h4>
+                <h4><i className="fas fa-clipboard-list"></i> Thông tin booking</h4>
                 <div className="info-grid">
                   <div className="info-item">
                     <span className="label">Khách hàng:</span>
@@ -4111,7 +4097,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
               {/* Payment History */}
               {paymentRecords.length > 0 && (
                 <div className="payment-history">
-                  <h4>📜 Lịch sử thanh toán</h4>
+                  <h4><i className="fas fa-history"></i> Lịch sử thanh toán</h4>
                   <div className="payment-records-list">
                     {paymentRecords.map(record => (
                       <div key={record.id} className="payment-record-item">
@@ -4122,11 +4108,11 @@ const PaymentManagement = ({ assignedStation, user }) => {
                           <span className="payment-amount">{formatCurrency(record.amount)}</span>
                         </div>
                         <div className="record-details">
-                          <span>🕐 {formatDateTime(record.paymentTime)}</span>
-                          <span>💳 {paymentMethodLabels[record.paymentMethod]}</span>
+                          <span><i className="fas fa-clock"></i> {formatDateTime(record.paymentTime)}</span>
+                          <span><i className="fas fa-credit-card"></i> {paymentMethodLabels[record.paymentMethod]}</span>
                         </div>
                         {record.notes && (
-                          <div className="record-notes">📝 {record.notes}</div>
+                          <div className="record-notes"><i className="fas fa-sticky-note"></i> {record.notes}</div>
                         )}
                       </div>
                     ))}
@@ -4148,7 +4134,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
 
               {/* Payment Form */}
               <div className="payment-form-section">
-                <h4>➕ Ghi nhận thanh toán mới</h4>
+                <h4><i className="fas fa-plus"></i> Ghi nhận thanh toán mới</h4>
                 <form onSubmit={handlePaymentSubmit}>
                   <div className="form-grid">
                     <div className="form-group">
@@ -4207,7 +4193,7 @@ const PaymentManagement = ({ assignedStation, user }) => {
                       Hủy
                     </button>
                     <button type="submit" className="btn-submit">
-                      ✓ Xác nhận thanh toán
+                      <i className="fas fa-check"></i> Xác nhận thanh toán
                     </button>
                   </div>
                 </form>
@@ -4335,7 +4321,7 @@ const StaffBookingHistory = ({ assignedStation }) => {
   return (
     <div className="staff-booking-history">
       <div className="section-header">
-        <h2>📋 Lịch sử thuê xe - {assignedStation?.name}</h2>
+        <h2><i className="fas fa-clipboard-list"></i> Lịch sử thuê xe - {assignedStation?.name}</h2>
         <p>Quản lý tất cả booking tại trạm của bạn</p>
       </div>
 
@@ -4388,22 +4374,86 @@ const StaffBookingHistory = ({ assignedStation }) => {
       </div>
 
       {/* Statistics */}
-      <div className="stats-row">
-        <div className="stat-card">
-          <span className="stat-number">{totalElements}</span>
-          <span className="stat-label">Tổng booking</span>
+      <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <div className="history-stat-card" style={{ 
+          background: '#5FCF86', 
+          color: 'white', 
+          padding: '20px', 
+          borderRadius: '12px',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(95, 207, 134, 0.3)'
+        }}>
+          <span className="history-stat-number" style={{ 
+            fontSize: '32px', 
+            fontWeight: 'bold', 
+            marginBottom: '8px', 
+            display: 'block' 
+          }}>{totalElements}</span>
+          <span className="history-stat-label" style={{ 
+            fontSize: '14px', 
+            opacity: 0.9, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: '6px', 
+            color: '#ffffff' 
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6ZM6 4H13V9H18V20H6V4ZM8 12V14H16V12H8ZM8 16V18H13V16H8Z"/>
+            </svg>
+            Tổng booking
+          </span>
         </div>
-        <div className="stat-card">
-          <span className="stat-number">{assignedStation?.name || '--'}</span>
-          <span className="stat-label">Trạm quản lý</span>
+        <div className="history-stat-card" style={{ 
+          background: '#5FCF86', 
+          color: 'white', 
+          padding: '20px', 
+          borderRadius: '12px',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(95, 207, 134, 0.3)'
+        }}>
+          <span className="history-stat-number" style={{ 
+            fontSize: '32px', 
+            fontWeight: 'bold', 
+            marginBottom: '8px', 
+            display: 'block' 
+          }}>{assignedStation?.name || '--'}</span>
+          <span className="history-stat-label" style={{ 
+            fontSize: '14px', 
+            opacity: 0.9, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: '6px', 
+            color: '#ffffff' 
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+            </svg>
+            Trạm quản lý
+          </span>
         </div>
       </div>
 
       {/* Booking List */}
       {loading ? (
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4rem 2rem',
+          gap: '1rem'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid #f3f4f6',
+            borderTop: '5px solid #5FCF86',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ color: '#6b7280', margin: 0, fontSize: '16px', fontWeight: '500' }}>Đang tải dữ liệu...</p>
         </div>
       ) : (
         <>
