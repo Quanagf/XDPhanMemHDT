@@ -72,4 +72,7 @@ public interface IBookingService {
     
     // 16. Admin: Lấy tất cả booking với phân trang và lọc
     Page<BookingResponseDTO> getAllBookingsForAdmin(Pageable pageable, String status, Long stationId, Long userId, Long vehicleId, LocalDateTime startDate, LocalDateTime endDate, String search);
+    
+    // 17. Admin/Staff: Lấy tất cả walk-in customers
+    List<com.evrental.booking.model.WalkInCustomer> getAllWalkInCustomers();
 }

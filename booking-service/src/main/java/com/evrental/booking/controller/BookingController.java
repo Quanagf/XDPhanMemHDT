@@ -380,6 +380,20 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    // === API: Lấy danh sách khách hàng walk-in ===
+    @GetMapping("/walk-in-customers")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    public ResponseEntity<List<com.evrental.booking.model.WalkInCustomer>> getAllWalkInCustomers() {
+        try {
+            List<com.evrental.booking.model.WalkInCustomer> walkInCustomers = bookingService.getAllWalkInCustomers();
+            return ResponseEntity.ok(walkInCustomers);
+        } catch (Exception e) {
+            System.err.println("❌ Error in getAllWalkInCustomers: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
 
 

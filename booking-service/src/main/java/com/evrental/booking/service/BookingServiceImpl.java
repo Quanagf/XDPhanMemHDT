@@ -786,5 +786,15 @@ public class BookingServiceImpl implements IBookingService {
         return new PageImpl<>(pageBookingDTOs, pageable, filteredBookingDTOs.size());
     }
 
+    @Override
+    public List<com.evrental.booking.model.WalkInCustomer> getAllWalkInCustomers() {
+        try {
+            return walkInCustomerService.getAllWalkInCustomers();
+        } catch (Exception e) {
+            System.err.println("❌ Error getting all walk-in customers: " + e.getMessage());
+            throw new RuntimeException("Failed to get walk-in customers: " + e.getMessage());
+        }
+    }
+
 }
 

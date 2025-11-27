@@ -211,3 +211,18 @@ export async function getAllBookings(page = 0, size = 10, filters = {}) {
   console.log('✅ API Response:', data);
   return data;
 }
+
+// Lấy lịch sử booking của user cụ thể (cho admin)
+export async function getUserBookingHistory(userId, page = 0, size = 20) {
+  const queryParams = new URLSearchParams();
+  queryParams.append('page', page);
+  queryParams.append('size', size);
+  queryParams.append('userId', userId);
+  
+  const url = `${base}/admin/all?${queryParams}`;
+  const res = await fetch(url, {
+    headers: getAuthHeader()
+  });
+  if (!res.ok) throw new Error('Failed to fetch user booking history');
+  return res.json();
+}
